@@ -6,6 +6,8 @@ import { ActionScreen } from './components/ActionScreen';
 import { ReviewScreen } from './components/ReviewScreen';
 import { CompletionScreen } from './components/CompletionScreen';
 import { SettingsSetup } from './components/SettingsSetup';
+import { DepositChoiceScreen } from './components/DepositChoiceScreen';
+import { FourItsScreen } from './components/FourItsScreen';
 import { useFlow } from './hooks/useFlow';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -43,6 +45,21 @@ const App: React.FC = () => {
           <ShuntScreen 
             onChooseDeposit={() => flow.startDeposit()} 
             onChooseAction={() => flow.startAction()} 
+          />
+        );
+
+      case 'DEPOSIT_CHOICE':
+        return (
+          <DepositChoiceScreen
+            onDirectDeposit={() => flow.startDepositDirect()}
+            onFourIts={() => flow.startFourIts()}
+          />
+        );
+
+      case 'FOUR_ITS_FLOW':
+        return (
+          <FourItsScreen
+            onComplete={() => flow.completeFourIts()}
           />
         );
 
@@ -105,6 +122,7 @@ const App: React.FC = () => {
     if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
     if (state === 'ACTION_PATH' || state === 'ACTION_OPTIONS') return 'ACTION';
     if (state === 'COMPLETING' || state === 'COMPLETED') return 'COMPLETION';
+    if (state === 'DEPOSIT_CHOICE' || state === 'FOUR_ITS_FLOW') return 'DEPOSIT_FLOW';
     return state;
   };
 
