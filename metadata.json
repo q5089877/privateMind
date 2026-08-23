@@ -1,0 +1,6 @@
+{
+  "name": "思緒分流器",
+  "description": "一個讓念頭暫時停靠、由使用者決定如何對待的容器。不施壓、不評價、只安放。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
