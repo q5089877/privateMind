@@ -15,10 +15,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const QUICK_OPTIONS = [
-    '腦袋一直轉不停',
     '單純覺得好累',
-    '突然想到一件事',
-    '說不太清楚的感覺'
+    '胸口悶悶的',
+    '腦袋一直轉不停',
+    '有點分心',
   ];
 
   // 自動調整高度
@@ -55,7 +55,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   };
 
   return (
-    <div 
+    <div
       className={`w-full max-w-[500px] flex flex-col items-center text-center ${
         isSinking ? 'sink-animation pointer-events-none' : ''
       }`}
@@ -63,7 +63,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-[#424242] mb-6 sm:mb-10 text-center">
         此刻，腦中有什麼？
       </h1>
-      
+
       <div className="w-full space-y-4 sm:space-y-6">
         <textarea
           ref={textareaRef}
@@ -90,7 +90,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           </div>
 
           <div className="flex justify-center items-center gap-4 mt-2">
-            <button 
+            <button
               type="button"
               onClick={handleSayNothing}
               className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
@@ -98,7 +98,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
               我現在說不上來
             </button>
             <div className="w-[1px] h-[14px] bg-[#E0E0E0]"></div>
-            <button 
+            <button
               type="button"
               onClick={() => {
                 if (isSinking) return;
@@ -120,8 +120,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           onClick={handleContinue}
           disabled={!inputText.trim()}
           className={`px-8 sm:px-10 py-2.5 sm:py-3.5 bg-[#424242] text-[#F8F7F5] rounded-full text-[18px] sm:text-[21px] font-normal tracking-wide transition-all duration-400 cursor-pointer active:scale-98 ${
-            inputText.trim() 
-              ? 'opacity-100 translate-y-0 pointer-events-auto' 
+            inputText.trim()
+              ? 'opacity-100 translate-y-0 pointer-events-auto'
               : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'
           }`}
         >

@@ -153,6 +153,10 @@ export class FlowEngine {
     if (extra) {
       step.assignee = extra.assignee;
       step.extraContent = extra.extraContent;
+    } else {
+      // 確保切換到 C/D 類時，清空 A/B 類遺留的資料
+      step.assignee = undefined;
+      step.extraContent = undefined;
     }
     
     this.saveFinalThought('ACTION');
@@ -209,8 +213,7 @@ export class FlowEngine {
       if (originalThought.actionStep && !isDuplicateText) {
         history.push({
           ...originalThought.actionStep,
-          isCompleted: true,
-          completedAt: Date.now()
+          completedAt: originalThought.actionStep.isCompleted ? Date.now() : undefined
         });
       }
 

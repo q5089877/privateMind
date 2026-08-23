@@ -50,7 +50,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
     if (actionCategory === 'C') {
       return {
         initial: { opacity: 0 },
-        animate: { opacity: 0.15 },
+        animate: { opacity: 0.45 },
         text: '先放在這裡。',
         transition: { duration: 1.2, ease: "easeInOut" }
       };

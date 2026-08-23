@@ -3,6 +3,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Thought } from '../types';
+import { triggerHaptic } from '../utils/haptics';
 
 interface ThoughtCardProps {
   thought: Thought;
@@ -122,6 +123,16 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
 // --- Sub-components for better readability (SRP) ---
 
+const getCategoryLabel = (cat?: string) => {
+  switch (cat) {
+    case 'A': return '我自己做';
+    case 'B': return '找人一起做';
+    case 'C': return '暫時放著';
+    case 'D': return '我先不處理';
+    default: return '過去的步驟';
+  }
+};
+
 const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
   if (thought.type === 'AWARENESS') {
     return <div className="text-[#5E5E5E] italic font-light">這是一次無聲的覺察</div>;
@@ -153,8 +164,10 @@ const ActionInfo: React.FC<{
 }> = ({ thought, isC, onUpdate }) => {
   const hasHistory = thought.stepHistory && thought.stepHistory.length > 0;
 
+  const displayTag = getCategoryLabel(thought.actionStep?.category);
+
   return (
-    <div className="mt-3 space-y-2.5">
+    <div className="mt-3 space-y-3">
       {hasHistory && <StepHistory history={thought.stepHistory!} />}
 
       <div className={`p-3.5 rounded-xl border transition-all ${
@@ -162,9 +175,9 @@ const ActionInfo: React.FC<{
           ? 'bg-[#F9F9F8] border-[#EFEEEB] opacity-80' 
           : 'bg-[#FDFDFB] border-[#E0E0E0] shadow-sm'
       }`}>
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="text-[10px] text-[#A3A3A3] tracking-[0.1em] font-bold uppercase">
-            {isC ? '暫時放著' : (thought.actionStep?.subOption || '目前的下一步')}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="text-xs text-[#A3A3A3] tracking-widest font-semibold uppercase">
+            {displayTag}
           </div>
           {thought.actionStep?.assignee && (
             <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
@@ -201,20 +214,38 @@ const ActionInfo: React.FC<{
 };
 
 const StepHistory: React.FC<{ history: any[] }> = ({ history }) => (
-  <div className="space-y-3 pl-3 border-l-2 border-[#E0E0E0] ml-2.5 pb-2">
+  <div className="space-y-3 pl-4 border-l-2 border-[#E0E0E0] ml-3 pb-1">
     {history.map((step, i) => (
-      <div key={i} className="flex items-start gap-3 relative">
-        {/* 節點點點：負 margin-left 讓它蓋在垂直線上 */}
-        <div className="absolute -left-[17px] top-1.5 w-2 h-2 rounded-full bg-[#BDBDBD] ring-4 ring-[#FFFFFF]" />
+      <div key={i} className="relative">
+        {/* 節點點點 */}
+        <div className="absolute -left-[23px] top-4 w-2.5 h-2.5 rounded-full bg-[#E0E0E0] ring-4 ring-[#FFFFFF]" />
         
-        <div className="space-y-0.5">
-          <div className="text-[#5E5E5E] text-sm font-light">
+        {/* 歷史方塊 */}
+        <div className="bg-[#FDFDFB] border border-[#EFEEEB] rounded-xl p-3 opacity-75 grayscale-[0.2]">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="text-[10px] text-[#A3A3A3] tracking-widest font-semibold uppercase">
+              {getCategoryLabel(step.category)}
+            </div>
+            {step.assignee && (
+              <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
+                找 {step.assignee}
+              </div>
+            )}
+            {step.completedAt && (
+              <div className="text-[10px] text-[#D1D1CB] font-mono ml-auto">
+                {new Date(step.completedAt).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
+              </div>
+            )}
+          </div>
+          
+          <div className={`text-[13px] text-[#737373] ${step.isCompleted ? 'line-through decoration-[#D1D1CB]' : ''}`}>
             {step.text}
           </div>
-          {step.completedAt && (
-            <div className="text-[10px] text-[#A3A3A3] font-mono">
-              {new Date(step.completedAt).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
-            </div>
+          
+          {step.extraContent && (
+             <div className="text-xs text-[#A3A3A3] mt-2 italic truncate">
+               {step.extraContent}
+             </div>
           )}
         </div>
       </div>
@@ -241,6 +272,21 @@ const ActionButtons: React.FC<{
 const DeferredActions: React.FC<{ onKeep: () => void, onAction: () => void, onDrop: () => void }> = 
 ({ onKeep, onAction, onDrop }) => {
   const [confirmDrop, setConfirmDrop] = React.useState(false);
+  const [isKept, setIsKept] = React.useState(false);
+
+  const handleKeep = () => {
+    triggerHaptic(15);
+    setIsKept(true);
+    onKeep();
+  };
+
+  if (isKept) {
+    return (
+      <div className="mt-4 pt-4 border-t border-[#EFEEEB] text-center">
+        <span className="text-xs tracking-wider text-[#A3A3A3]">✓ 已安心放置</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 pt-3.5 border-t border-[#EFEEEB]">
@@ -250,7 +296,7 @@ const DeferredActions: React.FC<{ onKeep: () => void, onAction: () => void, onDr
        <div className="flex flex-wrap gap-2">
           {!confirmDrop ? (
             <>
-              <ActionButton label="繼續放著" onClick={onKeep} />
+              <ActionButton label="繼續放著" onClick={handleKeep} />
               <ActionButton label="現在想處理一點" onClick={onAction} />
               <ActionButton label="決定放下" onClick={() => setConfirmDrop(true)} isDanger />
             </>

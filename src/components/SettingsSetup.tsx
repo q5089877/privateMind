@@ -21,9 +21,24 @@ export const SettingsSetup: React.FC<SettingsSetupProps> = ({ onConfirm }) => {
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-md space-y-10"
     >
-      <div className="text-center space-y-3">
-        <h2 className="text-2xl sm:text-3xl font-light text-[#424242]">歡迎使用思緒分流器</h2>
-        <p className="text-sm text-[#5E5E5E]">請選擇你希望念頭預設在 App 裡停留多久？</p>
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-light text-[#424242]">歡迎使用思緒停靠</h2>
+          <p className="text-xs text-[#A3A3A3] tracking-[0.2em] uppercase">Mind Harbor</p>
+        </div>
+
+        <div className="bg-[#EFEEEB]/60 border border-[#E0E0E0] p-4.5 rounded-xl text-left space-y-2.5">
+          <p className="text-sm text-[#424242] font-semibold tracking-wide">這不是待辦清單，也不適合專案管理。</p>
+          <p className="text-xs text-[#5E5E5E] leading-relaxed">
+            如果你需要長久、結構化地「記住」一件事，請使用 Notion 等專業工具。<br/>
+            這裡的核心目的是<span className="font-semibold text-[#424242]">「釋放」</span>——讓當下佔據大腦的混亂念頭，有一個無壓力的暫停區。<br/><br/>
+            我們不累積清單、不建立任務樹，只專注陪你把手上的事往前推一小步。
+          </p>
+        </div>
+
+        <div className="text-center pt-2">
+          <p className="text-sm text-[#5E5E5E] font-medium">請選擇這些念頭，預設要停留多久？</p>
+        </div>
       </div>
 
       <div className="space-y-3">

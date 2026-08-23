@@ -192,7 +192,34 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                   </div>
                 )}
 
-                {getSubOptionPlaceholder() && (
+                {subOption === '安排時間' ? (
+                  <div className="animate-in fade-in slide-in-from-top-1 space-y-4">
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {['今天稍晚', '明天', '這週末', '下週'].map(time => (
+                        <button
+                          key={time}
+                          onClick={() => {
+                            triggerHaptic(10);
+                            setExtraContent(time);
+                          }}
+                          className={`px-3.5 py-1.5 rounded-full text-xs transition-colors border cursor-pointer ${
+                            extraContent === time 
+                              ? 'bg-[#424242] text-[#FDFDFD] border-[#424242]' 
+                              : 'bg-transparent text-[#5E5E5E] border-[#E0E0E0] hover:bg-[#F8F7F5]'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                    <input 
+                      value={extraContent}
+                      onChange={(e) => setExtraContent(e.target.value)}
+                      placeholder="或輸入自訂時間..."
+                      className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none font-normal"
+                    />
+                  </div>
+                ) : getSubOptionPlaceholder() ? (
                   <div className="animate-in fade-in slide-in-from-top-1">
                     <textarea 
                       value={extraContent}
@@ -201,7 +228,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                       className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none resize-none min-h-[60px] font-normal"
                     />
                   </div>
-                )}
+                ) : null}
 
                 <div className="flex justify-center pt-6">
                   <button
