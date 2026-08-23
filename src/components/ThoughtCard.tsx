@@ -122,15 +122,29 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
 // --- Sub-components for better readability (SRP) ---
 
-const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => (
-  thought.type === 'AWARENESS' ? (
-    <div className="text-[#5E5E5E] italic font-light">這是一次無聲的覺察</div>
-  ) : (
-    <div className={`text-lg font-light leading-relaxed whitespace-pre-wrap ${thought.actionStep?.isCompleted ? 'text-[#9E9E9E] line-through' : 'text-[#424242]'}`}>
+const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
+  if (thought.type === 'AWARENESS') {
+    return <div className="text-[#5E5E5E] italic font-light">這是一次無聲的覺察</div>;
+  }
+
+  if (thought.actionStep) {
+    const stepText = thought.actionStep.text || thought.content;
+    if (stepText === thought.content) {
+      return null; // 若當前步驟與原始念頭文字完全相同，則不顯示冗餘的上下文
+    }
+    return (
+      <div className="text-sm text-[#A3A3A3] font-light truncate">
+        源自：「{thought.content}」
+      </div>
+    );
+  }
+
+  return (
+    <div className={`text-lg font-light leading-relaxed whitespace-pre-wrap text-[#424242]`}>
       {thought.content}
     </div>
-  )
-);
+  );
+};
 
 const ActionInfo: React.FC<{ 
   thought: Thought, 
@@ -171,7 +185,7 @@ const ActionInfo: React.FC<{
               className="mt-1 w-4 h-4 rounded-sm border-[#E0E0E0] text-[#424242] focus:ring-0 cursor-pointer flex-shrink-0"
             />
           )}
-          <div className={`text-[#424242] font-normal text-base leading-relaxed ${thought.actionStep?.isCompleted ? 'line-through text-[#9E9E9E]' : ''}`}>
+          <div className={`text-[#424242] font-normal text-[17px] leading-relaxed ${thought.actionStep?.isCompleted ? 'line-through text-[#9E9E9E]' : ''}`}>
             {thought.actionStep?.text || thought.content}
           </div>
         </div>

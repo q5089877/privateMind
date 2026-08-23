@@ -199,8 +199,14 @@ export class FlowEngine {
     if (thoughtIndex !== -1) {
       const originalThought = thoughts[thoughtIndex];
       const history = originalThought.stepHistory || [];
+      const newStep = this.currentThought.actionStep;
       
-      if (originalThought.actionStep) {
+      // 防呆：如果使用者只是改變狀態（例如從「放著」變成「自己做」），但「步驟內容」完全沒變
+      // 我們就不產生新的歷史節點，而是直接原地更新狀態 (覆蓋原有的 actionStep)
+      const isDuplicateText = originalThought.actionStep && newStep &&
+                              originalThought.actionStep.text === newStep.text;
+      
+      if (originalThought.actionStep && !isDuplicateText) {
         history.push({
           ...originalThought.actionStep,
           isCompleted: true,
@@ -210,7 +216,7 @@ export class FlowEngine {
 
       const updatedThought: Thought = {
         ...originalThought,
-        actionStep: this.currentThought.actionStep,
+        actionStep: newStep,
         stepHistory: history,
         type: 'ACTION'
       };

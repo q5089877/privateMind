@@ -89,14 +89,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             ))}
           </div>
 
-          <button 
-            key="escape-door"
-            type="button"
-            onClick={handleSayNothing}
-            className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-3 cursor-pointer mt-1"
-          >
-            我現在說不上來
-          </button>
+          <div className="flex justify-center items-center gap-4 mt-2">
+            <button 
+              type="button"
+              onClick={handleSayNothing}
+              className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
+            >
+              我現在說不上來
+            </button>
+            <div className="w-[1px] h-[14px] bg-[#E0E0E0]"></div>
+            <button 
+              type="button"
+              onClick={() => {
+                if (isSinking) return;
+                triggerHaptic(20);
+                onReview();
+              }}
+              className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
+            >
+              回望過去
+            </button>
+          </div>
         </div>
       </div>
 
@@ -116,19 +129,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
         </button>
       </div>
 
-      {/* 獨立回望入口 */}
-      <div className="pt-1">
-        <button 
-          type="button"
-          onClick={() => {
-            triggerHaptic(20);
-            onReview();
-          }}
-          className="text-[13px] sm:text-[15px] tracking-[0.15em] text-[#A3A3A3] hover:text-[#424242] font-light transition-colors duration-200 cursor-pointer py-1 px-3"
-        >
-          回來看看
-        </button>
-      </div>
     </div>
   );
 };
