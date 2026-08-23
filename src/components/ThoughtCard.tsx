@@ -109,14 +109,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           onDelete={() => setIsConfirmingDelete(true)}
         />
       </div>
-      
-      {isC && !thought.actionStep?.isCompleted && (
-        <DeferredActions 
-          onKeep={() => onUpdate({...thought, actionStep: {...thought.actionStep!, lastReviewAt: Date.now()}})}
-          onAction={onActionSelect}
-          onDrop={onDelete}
-        />
-      )}
     </motion.div>
   );
 };
@@ -269,47 +261,6 @@ const ActionButtons: React.FC<{
   </div>
 );
 
-const DeferredActions: React.FC<{ onKeep: () => void, onAction: () => void, onDrop: () => void }> = 
-({ onKeep, onAction, onDrop }) => {
-  const [confirmDrop, setConfirmDrop] = React.useState(false);
-  const [isKept, setIsKept] = React.useState(false);
-
-  const handleKeep = () => {
-    triggerHaptic(15);
-    setIsKept(true);
-    onKeep();
-  };
-
-  if (isKept) {
-    return (
-      <div className="mt-4 pt-4 border-t border-[#EFEEEB] text-center">
-        <span className="text-xs tracking-wider text-[#A3A3A3]">✓ 已安心放置</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 pt-3.5 border-t border-[#EFEEEB]">
-       <div className="text-xs text-[#5E5E5E] mb-2.5">
-         {confirmDrop ? '確定要放下這件事嗎？' : '現在還做不到嗎？'}
-       </div>
-       <div className="flex flex-wrap gap-2">
-          {!confirmDrop ? (
-            <>
-              <ActionButton label="繼續放著" onClick={handleKeep} />
-              <ActionButton label="現在想處理一點" onClick={onAction} />
-              <ActionButton label="決定放下" onClick={() => setConfirmDrop(true)} isDanger />
-            </>
-          ) : (
-            <>
-              <ActionButton label="先留著" onClick={() => setConfirmDrop(false)} />
-              <ActionButton label="確定放下" onClick={onDrop} isDanger />
-            </>
-          )}
-       </div>
-    </div>
-  );
-};
 
 const ActionButton: React.FC<{ label: string, onClick: () => void, isDanger?: boolean }> = 
 ({ label, onClick, isDanger }) => (

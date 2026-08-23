@@ -23,7 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           className="flex items-center gap-1.5 text-[15px] sm:text-[17px] text-[#A3A3A3] hover:text-[#424242] transition-colors duration-500 cursor-pointer"
         >
           <span className="text-[#A3A3A3] font-light">♡</span>
-          <span>如果你覺得難以獨自承受...</span>
+          <span>需要即時的支持與資源</span>
         </button>
       </footer>
 

@@ -4,11 +4,17 @@
 
 ---
 
-## 1. 核心願景與哲學 (Core Philosophy)
+## 1. 核心願景與最高原則 (Core Philosophy & Highest Principles)
 
 現代人在高壓、資訊超載的生活中，經常面臨腦袋運轉停不下來、思緒纏繞、焦慮與力不從心的狀態。傳統的「待辦清單 (To-Do List)」或「生產力工具」往往會帶來隱性的進度焦慮、未完成的自責感與打卡壓力。
 
-**思緒停靠** 的核心哲學是 **「非生產力取向的認知減載空間 (Cognitive Offloader)」**：
+**思緒停靠** 的核心哲學是 **「非生產力取向的認知減載空間 (Cognitive Offloader)」**。
+系統的所有功能開發與設計，都必須絕對服從以下兩條最高原則：
+
+1. **不建立任務樹 (No Task Trees)**：任何功能都不能把一個念頭，變成使用者此刻必須完成的另一件事。
+2. **單線演進原則 (Single-line Evolution)**：時間可以循環，結構不能向下無限展開。每一次的「再往下一步（重新處理）」，都只是原地替換當前活躍步驟，舊步驟一律降級為唯讀的歷史軌跡。
+
+這套系統：
 - **不施壓**：不追蹤 KPI、不發送催促通知、不累積紅色未完成紅點。
 - **不評價**：接納所有情緒、混亂、碎語與無助；「說不上來」或「做不到」都擁有同等的尊嚴與位置。
 - **不替你決定**：讓念頭先離開腦中，暫時有一個位置可以放著。讓當下不需要處理的念頭，暫時離開注意力。
@@ -153,6 +159,7 @@
 ### 7.2 Core Data Models (`src/types.ts`)
 - **`Thought`**: 紀錄核心念頭 (id, content, createdAt, type, retention)。
 - **`ActionStep`**: 紀錄微小步驟與決策狀態。包含 `stepHistory` 實作單線歷史紀錄 (Single-line Evolution)，嚴禁樹狀結構。
+  - **資料覆寫邊界**：當進行「再往下一步（重新處理）」時，除了小步驟文字 (`text`) 外，原本附屬的所有中介資訊（如 `assignee`, `extraContent`）都會被**徹底清空重置**。這確保了每一次演進都是乾淨的全新決策，而非舊狀態的補丁。
 - **`FlowState`**: 核心狀態機列舉 (HOME, INPUTTING, SHUNTTING, DEPOSIT_PATH, ACTION_PATH, REVIEW, 等等)。
 
 ### 7.3 Architecture (`src/logic`)

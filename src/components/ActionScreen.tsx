@@ -31,7 +31,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
   const categories = [
     { id: 'A', label: '我自己做', options: ['立刻動手', '安排時間', '把步驟再縮小'] },
     { id: 'B', label: '找人一起做', options: ['記下找誰', '說明如何協助', '先草擬內容'] },
-    { id: 'C', label: '現在還做不到', options: ['先放著', '等一個條件成熟', '回到更小的一步'] },
+    { id: 'C', label: '現在還做不到', options: ['先放著', '等一個條件成熟', '把步驟再縮小'] },
     { id: 'D', label: '我先不處理', options: ['先放著', '保留一段時間後消失'] },
   ];
 
@@ -46,7 +46,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
     triggerHaptic([30, 40, 20]);
     if (selectedCategory) {
       // 如果選擇「再縮小」，則重置類別回到決策頁
-      if (subOption === '把步驟再縮小' || subOption === '回到更小的一步') {
+      if (subOption === '把步驟再縮小') {
         setSelectedCategory(null);
         setSubOption(null);
         return;
