@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 思緒分流器 (Thought Shunt)
 
-# Run and deploy your AI Studio app
+> 「一個讓念頭暫時停靠、由使用者決定如何對待的空間。不施壓、不評價、不替你決定。」
 
-This contains everything you need to run your app locally.
+思緒分流器是一個非生產力取向的**認知減載空間 (Cognitive Offloader)**。它不是待辦清單，也不是情緒追蹤器；它允許使用者在腦袋過載時，將念頭安全地傾倒出來，並自主決定當下要如何對待它，藉此將大腦記憶體釋放給當下的生活。
 
-View your app in AI Studio: https://ai.studio/apps/54bd88c3-4fe3-4eda-908a-e70afbc88eeb
+---
 
-## Run Locally
+## 🌟 核心哲學與設計原則 (Core Philosophy)
 
-**Prerequisites:**  Node.js
+* **念頭與處置絕對分離**：系統不判斷輸入的是情緒、靈感還是雜事，也不要求使用者分類。
+* **零評價與低阻力**：提供「單純覺得好累」、「我現在說不上來」等中性快捷文字，僅作為輸入輔助，不觸發任何自動判定。
+* **永遠保留退路**：任何步驟皆有「先放著」的出口，允許使用者隨時放棄當前處理，不施加「必須完成」的壓力。
+* **純粹的結束感**：以 1.2 秒的平滑視覺沉降與單次微震動取代心理學療效宣告，提供清晰的物理結束感。
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🛠️ 技術架構 (Tech Stack)
+
+本專案堅持「極致隱私」與「本機優先」，完全不依賴雲端伺服器與第三方 AI 模型。
+
+* **前端介面**：HTML / CSS / JavaScript (Vanilla) / PWA
+* **資料儲存**：Web LocalStorage / IndexedDB (純本機端儲存)
+* **動態與無障礙**：CSS Transitions (支援 `prefers-reduced-motion`) / Web Vibration API
+
+---
+
+## 🚀 快速開始 (Getting Started)
+
+由於本專案為純前端與本機端儲存架構，無需設定資料庫或 API 金鑰即可直接運行。
