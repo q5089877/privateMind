@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
+import { UI_TEXT } from '../config/textConfig';
 
 interface HomeScreenProps {
   onStartInput: (text: string) => void;
@@ -14,12 +15,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   const [isSinking, setIsSinking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const QUICK_OPTIONS = [
-    '單純覺得好累',
-    '胸口悶悶的',
-    '腦袋一直轉不停',
-    '有點分心',
-  ];
+  const QUICK_OPTIONS = UI_TEXT.home.quickOptions;
 
   // 自動調整高度
   useEffect(() => {
@@ -61,7 +57,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       }`}
     >
       <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-[#424242] mb-6 sm:mb-10 text-center">
-        此刻，腦中有什麼？
+        {UI_TEXT.home.title}
       </h1>
 
       <div className="w-full space-y-4 sm:space-y-6">
@@ -70,7 +66,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           rows={1}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="點這裡寫下來..."
+          placeholder={UI_TEXT.home.inputPlaceholder}
           className="w-full bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] placeholder:font-light transition-colors duration-300 py-2.5 sm:py-3.5 text-[20px] sm:text-[23px] outline-none resize-none text-center leading-[1.5]"
           autoFocus
         />
@@ -95,7 +91,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
               onClick={handleSayNothing}
               className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
             >
-              我現在說不上來
+              {UI_TEXT.home.sayNothing}
             </button>
             <div className="w-[1px] h-[14px] bg-[#E0E0E0]"></div>
             <button
@@ -107,7 +103,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
               }}
               className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
             >
-              回望過去
+              {UI_TEXT.home.reviewPast}
             </button>
           </div>
         </div>
@@ -125,7 +121,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
               : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'
           }`}
         >
-          繼續
+          {UI_TEXT.home.submit}
         </button>
       </div>
 

@@ -5,8 +5,8 @@ import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts, ReviewFilter } from '../hooks/useThoughts';
 import { Thought } from '../types';
-
 import { useFlow } from '../hooks/useFlow';
+import { UI_TEXT } from '../config/textConfig';
 
 interface ReviewScreenProps {
   onClose: () => void;
@@ -46,8 +46,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
       <ReviewHeader filter={filter} setFilter={setFilter} onClose={onClose} />
 
       <div className="space-y-1.5 sm:space-y-2 mb-8 sm:mb-12 text-center">
-        <h2 className="text-2xl sm:text-3xl font-light text-[#424242]">回來看看</h2>
-        <p className="text-[#5E5E5E] font-light text-sm sm:text-base">讓當下不需要處理的念頭，暫時離開注意力。</p>
+        <h2 className="text-2xl sm:text-3xl font-light text-[#424242]">{UI_TEXT.review.title}</h2>
+        <p className="text-[#5E5E5E] font-light text-sm sm:text-base">{UI_TEXT.review.subtitle}</p>
       </div>
 
       <div className="space-y-4">
@@ -73,16 +73,16 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
 const ReviewHeader: React.FC<{ filter: ReviewFilter, setFilter: (f: ReviewFilter) => void, onClose: () => void }> = 
 ({ filter, setFilter, onClose }) => (
   <div className="flex items-center justify-between sticky top-0 bg-[#F7F7F4]/95 backdrop-blur-md py-4 z-10 border-b border-[#E8E8E4]">
-    <h2 className="text-xl sm:text-2xl font-light text-[#2C2C2C]">回來看看</h2>
+    <h2 className="text-xl sm:text-2xl font-light text-[#2C2C2C]">{UI_TEXT.review.title}</h2>
     <div className="flex gap-3 items-center">
       <select 
         value={filter}
         onChange={(e) => setFilter(e.target.value as any)}
         className="text-sm bg-[#EAEAE6] text-[#2C2C2C] rounded-full px-3.5 py-1.5 outline-none cursor-pointer"
       >
-        <option value="ALL">全部內容</option>
-        <option value="ACTION">行動與重訪</option>
-        <option value="DEPOSIT">安放紀錄</option>
+        <option value="ALL">{UI_TEXT.review.filters.ALL}</option>
+        <option value="ACTION">{UI_TEXT.review.filters.ACTION}</option>
+        <option value="DEPOSIT">{UI_TEXT.review.filters.DEPOSIT}</option>
       </select>
       <button onClick={onClose} className="p-2 text-[#555555] hover:bg-[#EAEAE6] rounded-full transition-colors cursor-pointer">
         <X size={20} />
@@ -93,6 +93,6 @@ const ReviewHeader: React.FC<{ filter: ReviewFilter, setFilter: (f: ReviewFilter
 
 const EmptyState = () => (
   <div className="py-20 text-center text-[#737373] font-light">
-    目前還沒有保留的內容
+    {UI_TEXT.review.emptyState}
   </div>
 );

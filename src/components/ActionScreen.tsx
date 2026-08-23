@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ActionCategory } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { UI_TEXT } from '../config/textConfig';
 
 interface ActionScreenProps {
   initialStep: string;
@@ -29,10 +29,10 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
   const [extraContent, setExtraContent] = useState('');
 
   const categories = [
-    { id: 'A', label: '我自己做', options: ['立刻動手', '安排時間', '把步驟再縮小'] },
-    { id: 'B', label: '找人一起做', options: ['記下找誰', '說明如何協助', '先草擬內容'] },
-    { id: 'C', label: '現在還做不到', options: ['先放著', '等一個條件成熟', '把步驟再縮小'] },
-    { id: 'D', label: '我先不處理', options: ['先放著', '保留一段時間後消失'] },
+    { id: 'A', label: UI_TEXT.action.categories.A.label, options: UI_TEXT.action.categories.A.options },
+    { id: 'B', label: UI_TEXT.action.categories.B.label, options: UI_TEXT.action.categories.B.options },
+    { id: 'C', label: UI_TEXT.action.categories.C.label, options: UI_TEXT.action.categories.C.options },
+    { id: 'D', label: UI_TEXT.action.categories.D.label, options: UI_TEXT.action.categories.D.options },
   ];
 
   const handleCategorySelect = (id: ActionCategory) => {
@@ -46,7 +46,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
     triggerHaptic([30, 40, 20]);
     if (selectedCategory) {
       // 如果選擇「再縮小」，則重置類別回到決策頁
-      if (subOption === '把步驟再縮小') {
+      if (subOption === UI_TEXT.action.categories.A.options[2] || subOption === UI_TEXT.action.categories.C.options[2]) {
         setSelectedCategory(null);
         setSubOption(null);
         return;
@@ -61,10 +61,10 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
 
   const getSubOptionPlaceholder = () => {
     switch (subOption) {
-      case '安排時間': return '預計什麼時候？（例如：明天下午、下週一）';
-      case '說明如何協助': return '希望對方怎麼幫你？';
-      case '先草擬內容': return '想對他說什麼？';
-      case '等一個條件成熟': return '在等什麼條件成熟？';
+      case UI_TEXT.action.categories.A.options[1]: return UI_TEXT.action.placeholders.schedule; // 安排時間
+      case UI_TEXT.action.categories.B.options[1]: return UI_TEXT.action.placeholders.howToHelp; // 說明如何協助
+      case UI_TEXT.action.categories.B.options[2]: return UI_TEXT.action.placeholders.draftContent; // 先草擬內容
+      case UI_TEXT.action.categories.C.options[1]: return UI_TEXT.action.placeholders.waitCondition; // 等一個條件成熟
       default: return '';
     }
   };
@@ -87,10 +87,10 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
             <div className="space-y-4 text-center">
               {thoughtContent && (
                 <div className="text-xs sm:text-sm text-[#A3A3A3] font-light tracking-wide mb-2 italic">
-                  關於「{thoughtContent}」...
+                  {UI_TEXT.action.contextPrefix}{thoughtContent}{UI_TEXT.action.contextSuffix}
                 </div>
               )}
-              <h2 className="text-lg sm:text-2xl font-normal text-[#424242]">你想怎麼對待它？</h2>
+              <h2 className="text-lg sm:text-2xl font-normal text-[#424242]">{UI_TEXT.action.title}</h2>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -111,14 +111,14 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                   onClick={onCancelEvolve}
                   className="text-xs sm:text-sm text-[#A3A3A3] hover:text-[#424242] transition-colors cursor-pointer py-2 px-4"
                 >
-                  取消，保留原本狀態
+                  {UI_TEXT.action.buttons.cancelEvolve}
                 </button>
               ) : (
                 <button 
                   onClick={onBackToDeposit}
                   className="text-xs sm:text-sm text-[#A3A3A3] hover:text-[#424242] transition-colors cursor-pointer py-2 px-4"
                 >
-                  先不處理了，就放著吧
+                  {UI_TEXT.action.buttons.backToDeposit}
                 </button>
               )}
             </div>
@@ -137,7 +137,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                   onClick={() => setSelectedCategory(null)}
                   className="text-xs text-[#A3A3A3] hover:text-[#424242] transition-colors"
                 >
-                  ← 重選意圖
+                  {UI_TEXT.action.reselectIntent}
                 </button>
                 <div className="text-xs font-medium text-[#424242] px-3 py-1 bg-[#EFEEEB] rounded-full">
                   {currentCategory?.label}
@@ -146,12 +146,12 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
 
               {needsStepInput && (
                 <div className="space-y-4 text-center">
-                  <h2 className="text-lg sm:text-xl font-normal text-[#424242]">現在能做哪一步？</h2>
+                  <h2 className="text-lg sm:text-xl font-normal text-[#424242]">{UI_TEXT.action.whatNext}</h2>
                   <textarea
                     autoFocus
                     value={stepText}
                     onChange={(e) => setStepText(e.target.value)}
-                    placeholder="找出現在做得到的一步..."
+                    placeholder={UI_TEXT.action.whatNextPlaceholder}
                     className="w-full bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] text-xl sm:text-2xl font-light text-center py-3 outline-none resize-none min-h-[80px]"
                   />
                 </div>
@@ -159,7 +159,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
 
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <p className="text-center text-xs text-[#5E5E5E] font-light uppercase tracking-widest">微調方式</p>
+                  <p className="text-center text-xs text-[#5E5E5E] font-light uppercase tracking-widest">{UI_TEXT.action.tweakMethod}</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {currentCategory?.options.map(opt => (
                       <button
@@ -181,21 +181,21 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                   </div>
                 </div>
 
-                {selectedCategory === 'B' && subOption === '記下找誰' && (
+                {selectedCategory === 'B' && subOption === UI_TEXT.action.categories.B.options[0] && (
                   <div className="animate-in fade-in slide-in-from-top-1">
                     <input 
                       value={assignee}
                       onChange={(e) => setAssignee(e.target.value)}
-                      placeholder="你想找誰？"
+                      placeholder={UI_TEXT.action.placeholders.assignee}
                       className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none font-normal"
                     />
                   </div>
                 )}
 
-                {subOption === '安排時間' ? (
+                {subOption === UI_TEXT.action.categories.A.options[1] ? (
                   <div className="animate-in fade-in slide-in-from-top-1 space-y-4">
                     <div className="flex flex-wrap justify-center gap-2">
-                      {['今天稍晚', '明天', '這週末', '下週'].map(time => (
+                      {UI_TEXT.action.quickTimeOptions.map(time => (
                         <button
                           key={time}
                           onClick={() => {
@@ -215,7 +215,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                     <input 
                       value={extraContent}
                       onChange={(e) => setExtraContent(e.target.value)}
-                      placeholder="或輸入自訂時間..."
+                      placeholder={UI_TEXT.action.placeholders.schedule}
                       className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none font-normal"
                     />
                   </div>
@@ -235,7 +235,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                     onClick={handleFinish}
                     className="px-16 py-4 rounded-full bg-[#424242] text-[#FDFDFD] text-base font-normal hover:bg-black transition-all shadow-sm active:scale-95 cursor-pointer"
                   >
-                    記下了
+                    {UI_TEXT.action.buttons.confirm}
                   </button>
                 </div>
               </div>

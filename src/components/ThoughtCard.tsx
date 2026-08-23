@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { UI_TEXT } from '../config/textConfig';
 
 interface ThoughtCardProps {
   thought: Thought;
@@ -55,19 +56,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center space-y-4"
           >
-            <p className="text-sm text-[#424242] font-light">確定要放下這則思緒嗎？</p>
+            <p className="text-sm text-[#424242] font-light">{UI_TEXT.review.card.confirmDropTitle}</p>
             <div className="flex gap-4">
               <button 
                 onClick={() => setIsConfirmingDelete(false)}
                 className="px-5 py-1.5 text-xs rounded-full bg-[#EFEEEB] text-[#5E5E5E] hover:text-[#2C2C2C] transition-colors cursor-pointer"
               >
-                先留著
+                {UI_TEXT.review.card.keepBtn}
               </button>
               <button 
                 onClick={handleConfirmDelete}
                 className="px-5 py-1.5 text-xs rounded-full bg-[#FEECEB] text-[#C62828] hover:bg-[#FCD8D5] transition-colors cursor-pointer"
               >
-                確定放下
+                {UI_TEXT.review.card.dropBtn}
               </button>
             </div>
           </motion.div>
@@ -99,7 +100,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             className="w-full mt-3 py-2.5 px-4 rounded-xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] text-[#5E5E5E] text-sm font-light hover:border-[#424242] hover:text-[#424242] transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-xs active:bg-[#F4F4F0]"
           >
             <span className="group-hover:translate-x-1 transition-transform text-xs">→</span>
-            再往下一步
+            {UI_TEXT.review.card.nextStepBtn}
           </motion.button>
         </div>
 
@@ -117,17 +118,17 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
 const getCategoryLabel = (cat?: string) => {
   switch (cat) {
-    case 'A': return '我自己做';
-    case 'B': return '找人一起做';
-    case 'C': return '暫時放著';
-    case 'D': return '我先不處理';
-    default: return '過去的步驟';
+    case 'A': return UI_TEXT.action.categories.A.label;
+    case 'B': return UI_TEXT.action.categories.B.label;
+    case 'C': return UI_TEXT.action.categories.C.label;
+    case 'D': return UI_TEXT.action.categories.D.label;
+    default: return UI_TEXT.review.card.pastSteps;
   }
 };
 
 const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
   if (thought.type === 'AWARENESS') {
-    return <div className="text-[#5E5E5E] italic font-light">這是一次無聲的覺察</div>;
+    return <div className="text-[#5E5E5E] italic font-light">{UI_TEXT.review.card.awareness}</div>;
   }
 
   if (thought.actionStep) {
@@ -137,7 +138,7 @@ const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
     }
     return (
       <div className="text-sm text-[#A3A3A3] font-light truncate">
-        源自：「{thought.content}」
+        {UI_TEXT.review.card.sourcePrefix}{thought.content}{UI_TEXT.review.card.sourceSuffix}
       </div>
     );
   }
@@ -173,7 +174,7 @@ const ActionInfo: React.FC<{
           </div>
           {thought.actionStep?.assignee && (
             <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
-              找 {thought.actionStep.assignee}
+              {UI_TEXT.review.card.assigneePrefix}{thought.actionStep.assignee}
             </div>
           )}
         </div>
@@ -220,7 +221,7 @@ const StepHistory: React.FC<{ history: any[] }> = ({ history }) => (
             </div>
             {step.assignee && (
               <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
-                找 {step.assignee}
+                {UI_TEXT.review.card.assigneePrefix}{step.assignee}
               </div>
             )}
             {step.completedAt && (

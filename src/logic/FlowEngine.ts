@@ -117,7 +117,20 @@ export class FlowEngine {
   }
 
   public startDeposit() {
+    this.state = 'DEPOSIT_CHOICE';
+  }
+
+  public startDepositDirect() {
     this.state = 'DEPOSIT_PATH';
+  }
+
+  public startFourIts() {
+    this.state = 'FOUR_ITS_FLOW';
+  }
+
+  public completeFourIts() {
+    // 四它走完後強制進行動定義（帶走一小步）
+    this.state = 'ACTION_PATH';
   }
 
   public confirmDeposit() {

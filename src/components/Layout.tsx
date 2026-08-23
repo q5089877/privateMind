@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Heart, X, Phone } from 'lucide-react';
+import { UI_TEXT } from '../config/textConfig';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           className="flex items-center gap-1.5 text-[15px] sm:text-[17px] text-[#A3A3A3] hover:text-[#424242] transition-colors duration-500 cursor-pointer"
         >
           <span className="text-[#A3A3A3] font-light">♡</span>
-          <span>需要即時的支持與資源</span>
+          <span>{UI_TEXT.layout.supportBtn}</span>
         </button>
       </footer>
 
@@ -33,8 +34,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="bg-[#FFFFFF] border border-[#E5E5E1] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-lg space-y-6">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-medium text-[#424242]">低干擾安全資訊</h3>
-                <p className="text-xs text-[#A3A3A3] mt-1">無論何時，你都不需要一個人獨自承擔。</p>
+                <h3 className="text-lg font-medium text-[#424242]">{UI_TEXT.layout.modal.title}</h3>
+                <p className="text-xs text-[#A3A3A3] mt-1">{UI_TEXT.layout.modal.subtitle}</p>
               </div>
               <button 
                 onClick={() => setShowSupportModal(false)}
@@ -47,43 +48,43 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="space-y-3 text-sm">
               <div className="p-3.5 bg-[#F8F7F5] rounded-2xl flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-[#424242]">衛福部安心專線</div>
-                  <div className="text-xs text-[#A3A3A3]">24小時心理諮詢與陪伴</div>
+                  <div className="font-medium text-[#424242]">{UI_TEXT.layout.modal.resources[0].name}</div>
+                  <div className="text-xs text-[#A3A3A3]">{UI_TEXT.layout.modal.resources[0].desc}</div>
                 </div>
                 <a 
-                  href="tel:1925" 
+                  href={`tel:${UI_TEXT.layout.modal.resources[0].number}`}
                   className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 bg-[#424242] text-white rounded-full hover:bg-black transition-colors"
                 >
                   <Phone size={12} />
-                  1925
+                  {UI_TEXT.layout.modal.resources[0].number}
                 </a>
               </div>
 
               <div className="p-3.5 bg-[#F7F7F4] rounded-2xl flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-[#2C2C2C]">生命線協談專線</div>
-                  <div className="text-xs text-[#737373]">24小時專人傾聽與協談</div>
+                  <div className="font-medium text-[#2C2C2C]">{UI_TEXT.layout.modal.resources[1].name}</div>
+                  <div className="text-xs text-[#737373]">{UI_TEXT.layout.modal.resources[1].desc}</div>
                 </div>
                 <a 
-                  href="tel:1995" 
+                  href={`tel:${UI_TEXT.layout.modal.resources[1].number}`}
                   className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 bg-[#2C2C2C] text-white rounded-full hover:bg-black transition-colors"
                 >
                   <Phone size={12} />
-                  1995
+                  {UI_TEXT.layout.modal.resources[1].number}
                 </a>
               </div>
 
               <div className="p-3.5 bg-[#F7F7F4] rounded-2xl flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-[#2C2C2C]">張老師專線</div>
-                  <div className="text-xs text-[#737373]">青少年與各年齡層心靈支持</div>
+                  <div className="font-medium text-[#2C2C2C]">{UI_TEXT.layout.modal.resources[2].name}</div>
+                  <div className="text-xs text-[#737373]">{UI_TEXT.layout.modal.resources[2].desc}</div>
                 </div>
                 <a 
-                  href="tel:1980" 
+                  href={`tel:${UI_TEXT.layout.modal.resources[2].number}`}
                   className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 bg-[#2C2C2C] text-white rounded-full hover:bg-black transition-colors"
                 >
                   <Phone size={12} />
-                  1980
+                  {UI_TEXT.layout.modal.resources[2].number}
                 </a>
               </div>
             </div>
@@ -93,7 +94,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 onClick={() => setShowSupportModal(false)}
                 className="text-xs text-[#737373] hover:text-[#2C2C2C] cursor-pointer"
               >
-                關閉
+                {UI_TEXT.layout.modal.closeBtn}
               </button>
             </div>
           </div>
