@@ -151,9 +151,9 @@ export const UI_TEXT = {
       pastSteps: '',
       assigneePrefix: '找 ',
       awareness: '這是一次無聲的覺察',
-      confirmDropTitle: '要刪除這筆內容嗎？',
-      keepBtn: '取消',
-      dropBtn: '刪除',
+      confirmDropTitle: '準備好放下這個念頭了嗎？',
+      keepBtn: '我改變主意了',
+      dropBtn: '是的，先放下',
       nextStepBtn: '重新處理'
     }
   },
