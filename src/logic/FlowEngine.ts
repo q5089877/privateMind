@@ -1,5 +1,4 @@
-
-import { FlowState, Thought, AppSettings, RetentionSetting } from '../types';
+import { FlowState, Thought, AppSettings, RetentionSetting, ActionDisposition, ThoughtDisposition } from '../types';
 import { IStorageProvider } from './interfaces/IStorageProvider';
 import { LocalStorageManager } from './StorageManager';
 
@@ -106,7 +105,7 @@ export class FlowEngine {
 
   public handleAwareness() {
     this.currentContent = '（無聲覺察）';
-    this.saveFinalThought('AWARENESS');
+    this.saveFinalThought('RELEASE', true);
   }
 
   public cancelEvolve() {
@@ -117,20 +116,7 @@ export class FlowEngine {
   }
 
   public startDeposit() {
-    this.state = 'DEPOSIT_CHOICE';
-  }
-
-  public startDepositDirect() {
     this.state = 'DEPOSIT_PATH';
-  }
-
-  public startFourIts() {
-    this.state = 'FOUR_ITS_FLOW';
-  }
-
-  public completeFourIts() {
-    // 四它走完後強制進行動定義（帶走一小步）
-    this.state = 'ACTION_PATH';
   }
 
   public confirmDeposit() {
@@ -144,53 +130,45 @@ export class FlowEngine {
   public defineActionStep(text: string) {
     this.currentThought.actionStep = {
       text,
-      category: null
+      disposition: null
     };
     this.state = 'ACTION_OPTIONS';
   }
 
-  public setActionCategory(category: any, subOption?: string, extra?: any) {
+  public setActionDisposition(disposition: ActionDisposition, person?: string, scheduledAt?: string) {
     if (!this.currentThought.actionStep) {
-      this.currentThought.actionStep = { text: this.currentContent, category: null };
+      this.currentThought.actionStep = { text: this.currentContent, disposition: null };
     }
     
     const step = this.currentThought.actionStep;
-    step.category = category;
-    step.subOption = subOption;
+    step.disposition = disposition;
     
     // 如果使用者沒填寫具體步驟，則使用原始內容
     if (!step.text || !step.text.trim()) {
       step.text = this.currentContent;
     }
 
-    if (extra) {
-      step.assignee = extra.assignee;
-      step.extraContent = extra.extraContent;
-    } else {
-      // 確保切換到 C/D 類時，清空 A/B 類遺留的資料
-      step.assignee = undefined;
-      step.extraContent = undefined;
-    }
+    step.person = person;
+    step.scheduledAt = scheduledAt;
     
     this.saveFinalThought('ACTION');
   }
 
-  private async saveFinalThought(type: Thought['type']) {
+  private async saveFinalThought(disposition: ThoughtDisposition, awarenessOnly: boolean = false) {
     if (this.existingThoughtId) {
-      await this.updateExistingWithNextStep();
+      await this.updateExistingWithNextStep(disposition);
     } else {
-      await this.createNewThought(type);
+      await this.createNewThought(disposition, awarenessOnly);
     }
 
     this.state = 'COMPLETING';
     
-    // 縮短處理中的延遲，讓儀式能更快開始
     setTimeout(() => {
       this.state = 'COMPLETED';
     }, 400);
   }
 
-  private async createNewThought(type: Thought['type']) {
+  private async createNewThought(disposition: ThoughtDisposition, awarenessOnly: boolean) {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID 
       ? crypto.randomUUID() 
       : `thought-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
@@ -199,42 +177,28 @@ export class FlowEngine {
       id,
       content: this.currentContent,
       createdAt: Date.now(),
-      type,
+      currentDisposition: disposition,
+      awarenessOnly,
       retentionUntil: this.calculateRetention(),
       actionStep: this.currentThought.actionStep,
-      stepHistory: []
     };
 
     this.currentThought = thought;
     await this.storage.saveThought(thought);
   }
 
-  private async updateExistingWithNextStep() {
+  private async updateExistingWithNextStep(disposition: ThoughtDisposition) {
     const thoughts = await this.storage.getThoughts();
     const thoughtIndex = thoughts.findIndex(t => t.id === this.existingThoughtId);
     
     if (thoughtIndex !== -1) {
       const originalThought = thoughts[thoughtIndex];
-      const history = originalThought.stepHistory || [];
       const newStep = this.currentThought.actionStep;
       
-      // 防呆：如果使用者只是改變狀態（例如從「放著」變成「自己做」），但「步驟內容」完全沒變
-      // 我們就不產生新的歷史節點，而是直接原地更新狀態 (覆蓋原有的 actionStep)
-      const isDuplicateText = originalThought.actionStep && newStep &&
-                              originalThought.actionStep.text === newStep.text;
-      
-      if (originalThought.actionStep && !isDuplicateText) {
-        history.push({
-          ...originalThought.actionStep,
-          completedAt: originalThought.actionStep.isCompleted ? Date.now() : undefined
-        });
-      }
-
       const updatedThought: Thought = {
         ...originalThought,
         actionStep: newStep,
-        stepHistory: history,
-        type: 'ACTION'
+        currentDisposition: disposition
       };
 
       this.currentThought = updatedThought;

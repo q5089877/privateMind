@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, Thought, AppSettings, RetentionSetting, ActionCategory } from '../types';
+import { FlowState, Thought, AppSettings, RetentionSetting, ActionDisposition } from '../types';
 
 /**
  * SRP: 此 Hook 僅負責 React 狀態與 FlowEngine 實例的同步
@@ -34,14 +34,11 @@ export function useFlow() {
     submit: (val: string) => { engine.submitInput(val); sync(); },
     handleAwareness: () => { engine.handleAwareness(); sync(); },
     startDeposit: () => { engine.startDeposit(); sync(); },
-    startDepositDirect: () => { engine.startDepositDirect(); sync(); },
-    startFourIts: () => { engine.startFourIts(); sync(); },
-    completeFourIts: () => { engine.completeFourIts(); sync(); },
     confirmDeposit: () => { engine.confirmDeposit(); sync(); },
     startAction: () => { engine.startAction(); sync(); },
     defineActionStep: (text: string) => { engine.defineActionStep(text); sync(); },
-    setCategory: (cat: ActionCategory, sub?: string, extra?: any) => { 
-      engine.setActionCategory(cat, sub, extra); 
+    setDisposition: (disp: ActionDisposition, person?: string, scheduledAt?: string) => { 
+      engine.setActionDisposition(disp, person, scheduledAt); 
       sync(); 
     },
     startNextStep: async (id: string) => { 

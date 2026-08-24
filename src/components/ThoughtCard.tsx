@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, RotateCcw, Feather } from 'lucide-react';
@@ -22,7 +21,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onNextStep
 }) => {
   const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
-  const isC = thought.actionStep?.category === 'C';
+  const isCannotNow = thought.actionStep?.disposition === 'CANNOT_NOW';
 
   const handleConfirmDelete = () => {
     onDelete();
@@ -34,7 +33,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       layout
       className={`p-6 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] transition-all duration-300 shadow-xs relative overflow-hidden`}
     >
-      {/* 放下確認覆蓋層 */}
       <AnimatePresence>
         {isConfirmingDelete && (
           <motion.div 
@@ -73,7 +71,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           {thought.actionStep && (
             <ActionInfo 
               thought={thought} 
-              isC={isC} 
+              isCannotNow={isCannotNow} 
             />
           )}
 
@@ -91,7 +89,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </div>
 
         <ActionButtons 
-          isC={isC}
+          isCannotNow={isCannotNow}
           onActionSelect={onActionSelect}
           onDelete={() => setIsConfirmingDelete(true)}
         />
@@ -100,27 +98,25 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   );
 };
 
-// --- Sub-components for better readability (SRP) ---
-
-const getCategoryLabel = (cat?: string) => {
-  switch (cat) {
-    case 'A': return UI_TEXT.action.categories.A.label;
-    case 'B': return UI_TEXT.action.categories.B.label;
-    case 'C': return UI_TEXT.action.categories.C.label;
-    case 'D': return UI_TEXT.action.categories.D.label;
+const getDispositionLabel = (disp?: string) => {
+  switch (disp) {
+    case 'SELF': return UI_TEXT.action.dispositions.SELF.label;
+    case 'TOGETHER': return UI_TEXT.action.dispositions.TOGETHER.label;
+    case 'CANNOT_NOW': return UI_TEXT.action.dispositions.CANNOT_NOW.label;
+    case 'NOT_PROCESS': return UI_TEXT.action.dispositions.NOT_PROCESS.label;
     default: return UI_TEXT.review.card.pastSteps;
   }
 };
 
 const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
-  if (thought.type === 'AWARENESS') {
+  if (thought.awarenessOnly) {
     return <div className="text-[#5E5E5E] italic font-light">{UI_TEXT.review.card.awareness}</div>;
   }
 
   if (thought.actionStep) {
     const stepText = thought.actionStep.text || thought.content;
     if (stepText === thought.content) {
-      return null; // 若當前步驟與原始念頭文字完全相同，則不顯示冗餘的上下文
+      return null;
     }
     return (
       <div className="text-sm text-[#A3A3A3] font-light truncate">
@@ -138,24 +134,20 @@ const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
 
 const ActionInfo: React.FC<{ 
   thought: Thought, 
-  isC: boolean
-}> = ({ thought, isC }) => {
-  const hasHistory = thought.stepHistory && thought.stepHistory.length > 0;
-
-  const displayTag = getCategoryLabel(thought.actionStep?.category);
+  isCannotNow: boolean
+}> = ({ thought, isCannotNow }) => {
+  const displayTag = getDispositionLabel(thought.actionStep?.disposition || undefined);
 
   return (
     <div className="mt-3 space-y-3">
-      {hasHistory && <StepHistory history={thought.stepHistory!} />}
-
       <div className="p-3.5 rounded-xl border bg-[#FDFDFB] border-[#E0E0E0] shadow-sm transition-all">
         <div className="flex items-center gap-2 mb-2">
           <div className="text-xs text-[#A3A3A3] tracking-widest font-semibold uppercase">
             {displayTag}
           </div>
-          {thought.actionStep?.assignee && (
+          {thought.actionStep?.person && (
             <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
-              {UI_TEXT.review.card.assigneePrefix}{thought.actionStep.assignee}
+              {UI_TEXT.review.card.assigneePrefix}{thought.actionStep.person}
             </div>
           )}
         </div>
@@ -166,9 +158,9 @@ const ActionInfo: React.FC<{
           </div>
         </div>
 
-        {thought.actionStep?.extraContent && (
+        {thought.actionStep?.scheduledAt && (
           <div className="text-sm text-[#5E5E5E] mt-2.5 p-2.5 bg-white/50 rounded-lg border border-[#EFEEEB] italic">
-            {thought.actionStep.extraContent}
+            {thought.actionStep.scheduledAt}
           </div>
         )}
       </div>
@@ -176,52 +168,12 @@ const ActionInfo: React.FC<{
   );
 };
 
-const StepHistory: React.FC<{ history: any[] }> = ({ history }) => (
-  <div className="space-y-3 pl-4 border-l-2 border-[#E0E0E0] ml-3 pb-1">
-    {history.map((step, i) => (
-      <div key={i} className="relative">
-        {/* 節點點點 */}
-        <div className="absolute -left-[23px] top-4 w-2.5 h-2.5 rounded-full bg-[#E0E0E0] ring-4 ring-[#FFFFFF]" />
-        
-        {/* 歷史方塊 */}
-        <div className="bg-[#FDFDFB] border border-[#EFEEEB] rounded-xl p-3 opacity-75 grayscale-[0.2]">
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="text-[10px] text-[#A3A3A3] tracking-widest font-semibold uppercase">
-              {getCategoryLabel(step.category)}
-            </div>
-            {step.assignee && (
-              <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
-                {UI_TEXT.review.card.assigneePrefix}{step.assignee}
-              </div>
-            )}
-            {step.completedAt && (
-              <div className="text-[10px] text-[#D1D1CB] font-mono ml-auto">
-                {new Date(step.completedAt).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
-              </div>
-            )}
-          </div>
-          
-          <div className="text-[13px] text-[#737373]">
-            {step.text}
-          </div>
-          
-          {step.extraContent && (
-             <div className="text-xs text-[#A3A3A3] mt-2 italic truncate">
-               {step.extraContent}
-             </div>
-          )}
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
 const ActionButtons: React.FC<{
-  isC: boolean,
+  isCannotNow: boolean,
   onActionSelect: () => void, onDelete: () => void
-}> = ({ isC, onActionSelect, onDelete }) => (
+}> = ({ isCannotNow, onActionSelect, onDelete }) => (
   <div className="flex flex-col gap-2 pt-1">
-    {isC && (
+    {isCannotNow && (
       <button onClick={onActionSelect} className="p-1.5 text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] rounded-lg transition-colors" title="重新評估">
         <RotateCcw size={18} />
       </button>
@@ -230,12 +182,4 @@ const ActionButtons: React.FC<{
       <Feather size={18} />
     </button>
   </div>
-);
-
-
-const ActionButton: React.FC<{ label: string, onClick: () => void, isDanger?: boolean }> = 
-({ label, onClick, isDanger }) => (
-  <button onClick={onClick} className="text-xs px-3.5 py-1.5 rounded-full bg-[#EFEEEB] text-[#5E5E5E] cursor-pointer hover:text-[#2C2C2C]">
-    {label}
-  </button>
 );

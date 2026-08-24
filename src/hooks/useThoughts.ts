@@ -26,8 +26,8 @@ export function useThoughts() {
   const filteredThoughts = useMemo(() => {
     return thoughts.filter(t => {
       if (filter === 'ALL') return true;
-      if (filter === 'ACTION') return t.type === 'ACTION' && t.actionStep?.category !== 'D';
-      if (filter === 'DEPOSIT') return t.type === 'DEPOSIT' || t.type === 'AWARENESS';
+      if (filter === 'ACTION') return t.currentDisposition === 'ACTION' && t.actionStep?.disposition !== 'NOT_PROCESS';
+      if (filter === 'DEPOSIT') return t.currentDisposition === 'DEPOSIT' || t.currentDisposition === 'RELEASE' || t.awarenessOnly;
       return true;
     }).sort((a, b) => b.createdAt - a.createdAt);
   }, [thoughts, filter]);

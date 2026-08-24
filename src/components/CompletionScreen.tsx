@@ -1,20 +1,20 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
+import { ThoughtDisposition, ActionDisposition } from '../types';
 
 interface CompletionScreenProps {
-  type: 'AWARENESS' | 'DEPOSIT' | 'ACTION';
-  actionCategory?: string;
+  type: ThoughtDisposition;
+  actionDisposition?: ActionDisposition | null;
+  awarenessOnly?: boolean;
   retentionUntil?: number | null;
   onReset: () => void;
 }
 
-export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, actionCategory, retentionUntil, onReset }) => {
+export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, actionDisposition, awarenessOnly, retentionUntil, onReset }) => {
   const [isSettled, setIsSettled] = useState(false);
 
-  // 儀式時間：1.0 秒落座結束觸發震動反饋
   useEffect(() => {
     triggerHaptic(10);
 
@@ -27,8 +27,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
   }, []);
 
   const getCeremonyConfig = () => {
-    // 1. 一般安放／說不上來 -> 落座
-    if (type === 'AWARENESS' || type === 'DEPOSIT') {
+    if (awarenessOnly || type === 'RELEASE' || type === 'DEPOSIT') {
       return {
         initial: { y: -20, scale: 1, opacity: 0 },
         animate: { y: 20, scale: 0.85, opacity: 0.75 },
@@ -37,8 +36,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
       };
     }
 
-    // 2. A／B 行動 -> 停落
-    if (actionCategory === 'A' || actionCategory === 'B') {
+    if (actionDisposition === 'SELF' || actionDisposition === 'TOGETHER') {
       return {
         initial: { y: -10, opacity: 0 },
         animate: { y: 0, opacity: 1 },
@@ -47,8 +45,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
       };
     }
 
-    // 3. C 類 (現在還做不到) -> 淡入輪廓
-    if (actionCategory === 'C') {
+    if (actionDisposition === 'CANNOT_NOW') {
       return {
         initial: { opacity: 0 },
         animate: { opacity: 0.45 },
@@ -57,8 +54,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
       };
     }
 
-    // 4. D 類 (我先不處理) -> 散開消失
-    if (actionCategory === 'D') {
+    if (actionDisposition === 'NOT_PROCESS') {
       return {
         initial: { scale: 1, opacity: 1, filter: 'blur(0px)' },
         animate: { scale: 1.2, opacity: 0, filter: 'blur(8px)' },
@@ -98,7 +94,6 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
       className="text-center space-y-6 sm:space-y-10 py-6 sm:py-10 flex flex-col items-center justify-center min-h-[220px] sm:min-h-[300px]"
     >
       <div className="space-y-6 sm:space-y-8">
-        {/* 文字呈現：遵循落座、停落、淡入、散開的物理規律 */}
         <div className="min-h-[60px] flex items-center justify-center">
           <motion.p 
             initial={config.initial}
@@ -110,7 +105,6 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
           </motion.p>
         </div>
 
-        {/* 僅限安放路徑的誠實留存提示 */}
         {type === 'DEPOSIT' && (
           <motion.p
             initial={{ opacity: 0, y: 4 }}
@@ -123,7 +117,6 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
         )}
       </div>
       
-      {/* 儀式完成後，平靜浮現的返回首頁出口 */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: isSettled ? 1 : 0 }}
@@ -140,5 +133,3 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({ type, action
     </motion.div>
   );
 };
-
-

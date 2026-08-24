@@ -6,8 +6,6 @@ import { ActionScreen } from './components/ActionScreen';
 import { ReviewScreen } from './components/ReviewScreen';
 import { CompletionScreen } from './components/CompletionScreen';
 import { SettingsSetup } from './components/SettingsSetup';
-import { DepositChoiceScreen } from './components/DepositChoiceScreen';
-import { FourItsScreen } from './components/FourItsScreen';
 import { useFlow } from './hooks/useFlow';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -48,20 +46,6 @@ const App: React.FC = () => {
           />
         );
 
-      case 'DEPOSIT_CHOICE':
-        return (
-          <DepositChoiceScreen
-            onDirectDeposit={() => flow.startDepositDirect()}
-            onFourIts={() => flow.startFourIts()}
-          />
-        );
-
-      case 'FOUR_ITS_FLOW':
-        return (
-          <FourItsScreen
-            onComplete={() => flow.completeFourIts()}
-          />
-        );
 
       case 'DEPOSIT_PATH':
         return (
@@ -84,7 +68,7 @@ const App: React.FC = () => {
             thoughtContent={flow.thought.content}
             isEvolving={!!flow.existingThoughtId}
             onStepChange={(text) => flow.defineActionStep(text)}
-            onConfirm={(cat, sub, extra) => flow.setCategory(cat, sub, extra)}
+            onConfirm={(disp, person, sched) => flow.setDisposition(disp, person, sched)}
             onBackToDeposit={() => flow.startDeposit()}
             onCancelEvolve={() => flow.cancelEvolve()}
           />
@@ -106,8 +90,9 @@ const App: React.FC = () => {
       case 'COMPLETED':
         return (
           <CompletionScreen 
-            type={flow.thought.type || 'DEPOSIT'} 
-            actionCategory={flow.thought.actionStep?.category}
+            type={flow.thought.currentDisposition || 'DEPOSIT'} 
+            actionDisposition={flow.thought.actionStep?.disposition}
+            awarenessOnly={flow.thought.awarenessOnly}
             retentionUntil={flow.thought.retentionUntil}
             onReset={() => flow.finish()} 
           />
@@ -122,7 +107,6 @@ const App: React.FC = () => {
     if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
     if (state === 'ACTION_PATH' || state === 'ACTION_OPTIONS') return 'ACTION';
     if (state === 'COMPLETING' || state === 'COMPLETED') return 'COMPLETION';
-    if (state === 'DEPOSIT_CHOICE' || state === 'FOUR_ITS_FLOW') return 'DEPOSIT_FLOW';
     return state;
   };
 

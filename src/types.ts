@@ -1,11 +1,8 @@
-
 export type FlowState = 
   | 'HOME' 
   | 'INPUTTING' 
   | 'SHUNTTING' 
   | 'DEPOSIT_PATH'
-  | 'DEPOSIT_CHOICE'
-  | 'FOUR_ITS_FLOW'
   | 'ACTION_PATH' 
   | 'DEFINE_STEP'
   | 'ACTION_OPTIONS'
@@ -14,7 +11,8 @@ export type FlowState =
   | 'COMPLETING' 
   | 'COMPLETED';
 
-export type ActionCategory = 'A' | 'B' | 'C' | 'D';
+export type ActionDisposition = 'SELF' | 'TOGETHER' | 'CANNOT_NOW' | 'NOT_PROCESS';
+export type ThoughtDisposition = 'DEPOSIT' | 'ACTION' | 'RELEASE';
 
 export type RetentionSetting = 'AWARENESS_ONLY' | '7_DAYS' | '30_DAYS' | '90_DAYS' | 'PERMANENT';
 
@@ -25,36 +23,28 @@ export interface AppSettings {
 
 export interface ActionStep {
   text: string;
-  category: ActionCategory | null;
-  subOption?: string;
-  assignee?: string;
-  extraContent?: string; 
-  isCompleted?: boolean;
-  completedAt?: number; // 新增：記錄完成時間
-  lastReviewAt?: number;
+  disposition: ActionDisposition | null;
+  person?: string;
+  scheduledAt?: string;
 }
 
 export interface Thought {
   id: string;
   content: string;
   createdAt: number;
-  type: 'AWARENESS' | 'DEPOSIT' | 'ACTION';
   retentionUntil?: number | null; 
+  awarenessOnly?: boolean;
+  currentDisposition?: ThoughtDisposition;
   actionStep?: ActionStep;
-  stepHistory?: ActionStep[]; // 新增：單線歷史紀錄，不形成樹狀結構
 }
 
-/**
- * 為了符合架構師規範，我們在核心層定義事件處理介面
- */
 export interface IFlowActions {
   submitInput(content: string): void;
   startShunting(): void;
-  depositDirectly(): void;
   chooseActionPath(): void;
   defineStep(text: string): void;
-  setCategory(category: ActionCategory): void;
-  startNextStep(thoughtId: string): Promise<void>; // 更新：改為非同步，確保狀態切換完成
+  setDisposition(disposition: ActionDisposition, person?: string, scheduledAt?: string): void;
+  startNextStep(thoughtId: string): Promise<void>; 
   completeFlow(): void;
   reset(): void;
 }

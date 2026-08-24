@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
+import { ActionDisposition } from '../types';
 
 interface ActionScreenProps {
   initialStep: string;
   thoughtContent?: string;
   isEvolving?: boolean;
-  onConfirm: (category: ActionCategory, subOption?: string, extra?: any) => void;
+  onConfirm: (disposition: ActionDisposition, person?: string, scheduledAt?: string) => void;
   onBackToDeposit: () => void;
   onCancelEvolve?: () => void;
   onStepChange: (text: string) => void;
@@ -23,60 +24,72 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
   onStepChange
 }) => {
   const [stepText, setStepText] = useState(initialStep);
-  const [selectedCategory, setSelectedCategory] = useState<ActionCategory | null>(null);
+  const [selectedDisposition, setSelectedDisposition] = useState<ActionDisposition | null>(null);
   const [subOption, setSubOption] = useState<string | null>(null);
-  const [assignee, setAssignee] = useState('');
-  const [extraContent, setExtraContent] = useState('');
+  const [person, setPerson] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
 
-  const categories = [
-    { id: 'A', label: UI_TEXT.action.categories.A.label, options: UI_TEXT.action.categories.A.options },
-    { id: 'B', label: UI_TEXT.action.categories.B.label, options: UI_TEXT.action.categories.B.options },
-    { id: 'C', label: UI_TEXT.action.categories.C.label, options: UI_TEXT.action.categories.C.options },
-    { id: 'D', label: UI_TEXT.action.categories.D.label, options: UI_TEXT.action.categories.D.options },
+  const dispositions = [
+    { id: 'SELF', label: UI_TEXT.action.dispositions.SELF.label, options: UI_TEXT.action.dispositions.SELF.options },
+    { id: 'TOGETHER', label: UI_TEXT.action.dispositions.TOGETHER.label, options: UI_TEXT.action.dispositions.TOGETHER.options },
+    { id: 'CANNOT_NOW', label: UI_TEXT.action.dispositions.CANNOT_NOW.label, options: UI_TEXT.action.dispositions.CANNOT_NOW.options },
+    { id: 'NOT_PROCESS', label: UI_TEXT.action.dispositions.NOT_PROCESS.label, options: UI_TEXT.action.dispositions.NOT_PROCESS.options },
   ];
 
-  const handleCategorySelect = (id: ActionCategory) => {
+  const handleDispositionSelect = (id: ActionDisposition) => {
     triggerHaptic(20);
-    setSelectedCategory(id);
+    setSelectedDisposition(id);
     setSubOption(null);
-    setExtraContent('');
+    setScheduledAt('');
   };
 
   const handleFinish = () => {
     triggerHaptic([30, 40, 20]);
-    if (selectedCategory) {
-      // 如果選擇「再縮小」，則重置類別回到決策頁
-      if (subOption === UI_TEXT.action.categories.A.options[2] || subOption === UI_TEXT.action.categories.C.options[2]) {
-        setSelectedCategory(null);
+    if (selectedDisposition) {
+      if (subOption === UI_TEXT.action.dispositions.SELF.options[2] || subOption === UI_TEXT.action.dispositions.CANNOT_NOW.options[2]) {
+        setSelectedDisposition(null);
         setSubOption(null);
         return;
       }
-      // 提交步驟文字後再確認類別
-      if (stepText.trim()) {
-        onStepChange(stepText);
+      
+      let finalStepText = stepText.trim();
+      
+      // 若選了 TOGETHER，且有填寫附註 (如草擬內容或如何幫忙)，附加於 stepText 之後以符合扁平化 Schema
+      if (selectedDisposition === 'TOGETHER' && scheduledAt.trim()) {
+        finalStepText = finalStepText ? `${finalStepText} (${scheduledAt})` : scheduledAt;
+      } else if (selectedDisposition === 'CANNOT_NOW' && scheduledAt.trim()) {
+        finalStepText = finalStepText ? `${finalStepText} (${scheduledAt})` : scheduledAt;
       }
-      onConfirm(selectedCategory, subOption || undefined, { assignee, extraContent });
+
+      if (finalStepText) {
+        onStepChange(finalStepText);
+      }
+      
+      onConfirm(
+        selectedDisposition, 
+        person || undefined, 
+        selectedDisposition === 'SELF' ? (scheduledAt || undefined) : undefined
+      );
     }
   };
 
   const getSubOptionPlaceholder = () => {
     switch (subOption) {
-      case UI_TEXT.action.categories.A.options[1]: return UI_TEXT.action.placeholders.schedule; // 安排時間
-      case UI_TEXT.action.categories.B.options[1]: return UI_TEXT.action.placeholders.howToHelp; // 說明如何協助
-      case UI_TEXT.action.categories.B.options[2]: return UI_TEXT.action.placeholders.draftContent; // 先草擬內容
-      case UI_TEXT.action.categories.C.options[1]: return UI_TEXT.action.placeholders.waitCondition; // 等一個條件成熟
+      case UI_TEXT.action.dispositions.SELF.options[1]: return UI_TEXT.action.placeholders.schedule; 
+      case UI_TEXT.action.dispositions.TOGETHER.options[1]: return UI_TEXT.action.placeholders.howToHelp; 
+      case UI_TEXT.action.dispositions.TOGETHER.options[2]: return UI_TEXT.action.placeholders.draftContent; 
+      case UI_TEXT.action.dispositions.CANNOT_NOW.options[1]: return UI_TEXT.action.placeholders.waitCondition; 
       default: return '';
     }
   };
 
-  const currentCategory = categories.find(c => c.id === selectedCategory);
-  const needsStepInput = selectedCategory === 'A' || selectedCategory === 'B';
+  const currentDisposition = dispositions.find(d => d.id === selectedDisposition);
+  const needsStepInput = selectedDisposition === 'SELF' || selectedDisposition === 'TOGETHER';
 
   return (
     <div className="w-full max-w-xl">
       <AnimatePresence mode="wait">
-        {!selectedCategory ? (
-          /* 第一階段：意圖決策 */
+        {!selectedDisposition ? (
           <motion.div 
             key="decision"
             initial={{ opacity: 0, y: 10 }}
@@ -94,13 +107,13 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {categories.map((cat) => (
+              {dispositions.map((disp) => (
                 <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.id as ActionCategory)}
+                  key={disp.id}
+                  onClick={() => handleDispositionSelect(disp.id as ActionDisposition)}
                   className="p-5 sm:p-8 rounded-2xl border border-[#E0E0E0] bg-white hover:border-[#424242] transition-all duration-200 text-center cursor-pointer active:scale-95 shadow-xs"
                 >
-                  <div className="text-base sm:text-xl font-normal text-[#424242]">{cat.label}</div>
+                  <div className="text-base sm:text-xl font-normal text-[#424242]">{disp.label}</div>
                 </button>
               ))}
             </div>
@@ -124,7 +137,6 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
             </div>
           </motion.div>
         ) : (
-          /* 第二階段：具體定義 */
           <motion.div 
             key="definition"
             initial={{ opacity: 0, x: 20 }}
@@ -134,13 +146,13 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <button 
-                  onClick={() => setSelectedCategory(null)}
+                  onClick={() => setSelectedDisposition(null)}
                   className="text-xs text-[#A3A3A3] hover:text-[#424242] transition-colors"
                 >
                   {UI_TEXT.action.reselectIntent}
                 </button>
                 <div className="text-xs font-medium text-[#424242] px-3 py-1 bg-[#EFEEEB] rounded-full">
-                  {currentCategory?.label}
+                  {currentDisposition?.label}
                 </div>
               </div>
 
@@ -159,15 +171,15 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
 
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <p className="text-center text-xs text-[#5E5E5E] font-light uppercase tracking-widest">{UI_TEXT.action.tweakMethod}</p>
+                  <p className="text-center text-xs text-[#5E5E5E] font-light uppercase tracking-widest">{UI_TEXT.action.tweakLabel}</p>
                   <div className="flex flex-wrap justify-center gap-2">
-                    {currentCategory?.options.map(opt => (
+                    {currentDisposition?.options.map(opt => (
                       <button
                         key={opt}
                         onClick={() => {
                           triggerHaptic(10);
                           setSubOption(opt);
-                          setExtraContent('');
+                          setScheduledAt('');
                         }}
                         className={`px-4 py-2 rounded-full text-xs sm:text-sm font-normal transition-all cursor-pointer ${
                           subOption === opt 
@@ -181,18 +193,18 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                   </div>
                 </div>
 
-                {selectedCategory === 'B' && subOption === UI_TEXT.action.categories.B.options[0] && (
+                {selectedDisposition === 'TOGETHER' && subOption === UI_TEXT.action.dispositions.TOGETHER.options[0] && (
                   <div className="animate-in fade-in slide-in-from-top-1">
                     <input 
-                      value={assignee}
-                      onChange={(e) => setAssignee(e.target.value)}
+                      value={person}
+                      onChange={(e) => setPerson(e.target.value)}
                       placeholder={UI_TEXT.action.placeholders.assignee}
                       className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none font-normal"
                     />
                   </div>
                 )}
 
-                {subOption === UI_TEXT.action.categories.A.options[1] ? (
+                {subOption === UI_TEXT.action.dispositions.SELF.options[1] ? (
                   <div className="animate-in fade-in slide-in-from-top-1 space-y-4">
                     <div className="flex flex-wrap justify-center gap-2">
                       {UI_TEXT.action.quickTimeOptions.map(time => (
@@ -200,10 +212,10 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                           key={time}
                           onClick={() => {
                             triggerHaptic(10);
-                            setExtraContent(time);
+                            setScheduledAt(time);
                           }}
                           className={`px-3.5 py-1.5 rounded-full text-xs transition-colors border cursor-pointer ${
-                            extraContent === time 
+                            scheduledAt === time 
                               ? 'bg-[#424242] text-[#FDFDFD] border-[#424242]' 
                               : 'bg-transparent text-[#5E5E5E] border-[#E0E0E0] hover:bg-[#F8F7F5]'
                           }`}
@@ -213,8 +225,8 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                       ))}
                     </div>
                     <input 
-                      value={extraContent}
-                      onChange={(e) => setExtraContent(e.target.value)}
+                      value={scheduledAt}
+                      onChange={(e) => setScheduledAt(e.target.value)}
                       placeholder={UI_TEXT.action.placeholders.schedule}
                       className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none font-normal"
                     />
@@ -222,8 +234,8 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                 ) : getSubOptionPlaceholder() ? (
                   <div className="animate-in fade-in slide-in-from-top-1">
                     <textarea 
-                      value={extraContent}
-                      onChange={(e) => setExtraContent(e.target.value)}
+                      value={scheduledAt}
+                      onChange={(e) => setScheduledAt(e.target.value)}
                       placeholder={getSubOptionPlaceholder()}
                       className="w-full text-center bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] p-2 outline-none resize-none min-h-[60px] font-normal"
                     />
@@ -246,4 +258,3 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
     </div>
   );
 };
-

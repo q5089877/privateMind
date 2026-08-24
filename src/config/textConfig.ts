@@ -44,43 +44,6 @@ export const UI_TEXT = {
       desc: '只做現在做得到的一步。'
     }
   },
-  depositChoice: {
-    title: '先安放',
-    direct: {
-      label: '直接安放',
-      desc: '現在不用處理它。'
-    },
-    fourIts: {
-      label: '再看一眼',
-      desc: '如果你還想看看它。'
-    }
-  },
-  fourIts: {
-    steps: [
-      {
-        key: 'face',
-        label: '面對它',
-        desc: '看見它現在就在這裡。'
-      },
-      {
-        key: 'accept',
-        label: '接受它',
-        desc: '不急著改變現在的情況。'
-      },
-      {
-        key: 'handle',
-        label: '處理它',
-        desc: '看看現在能做什麼。'
-      },
-      {
-        key: 'release',
-        label: '放下它',
-        desc: '今天先不用再抓著它。'
-      }
-    ],
-    nextBtn: '下一步',
-    finalBtn: '帶走一小步'
-  },
   action: {
     contextPrefix: '關於「',
     contextSuffix: '」',
@@ -89,22 +52,22 @@ export const UI_TEXT = {
     whatNext: '現在能做哪一步？',
     whatNextPlaceholder: '找出現在做得到的一步……',
     tweakLabel: '還可以再調整',
-    categories: {
-      A: {
-        label: '我自己做',
-        options: ['現在做', '找個時間做', '再小一點']
+    dispositions: {
+      SELF: {
+        label: '我自己來',
+        options: ['現在處理', '找個時間', '再退一步']
       },
-      B: {
-        label: '找人一起做',
+      TOGETHER: {
+        label: '需要他人',
         options: ['記下要找誰', '想想需要什麼幫忙', '先寫一句想說的話']
       },
-      C: {
-        label: '我現在做不到',
-        options: ['先安放', '等條件成熟', '再小一點']
+      CANNOT_NOW: {
+        label: '現在還沒辦法',
+        options: ['先安放', '等時機成熟', '再退一步']
       },
-      D: {
-        label: '我決定不處理',
-        options: ['就放下', '放一段時間後消失']
+      NOT_PROCESS: {
+        label: '不打算處理',
+        options: ['就放下', '放著讓它消失']
       }
     },
     placeholders: {

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Heart, X, Phone } from 'lucide-react';
+import { Bird, X, Phone } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 
 interface LayoutProps {
@@ -23,7 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           onClick={() => setShowSupportModal(true)}
           className="flex items-center gap-1.5 text-[15px] sm:text-[17px] text-[#A3A3A3] hover:text-[#424242] transition-colors duration-500 cursor-pointer"
         >
-          <span className="text-[#A3A3A3] font-light">♡</span>
+          <Bird size={16} strokeWidth={1.5} />
           <span>{UI_TEXT.layout.supportBtn}</span>
         </button>
       </footer>
