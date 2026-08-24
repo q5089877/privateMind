@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
+import { HandOpen, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -34,7 +34,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       layout
       className={`p-6 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] transition-all duration-300 shadow-xs relative overflow-hidden`}
     >
-      {/* 刪除確認覆蓋層 */}
+      {/* 放下確認覆蓋層 */}
       <AnimatePresence>
         {isConfirmingDelete && (
           <motion.div 
@@ -83,7 +83,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               e.stopPropagation();
               onNextStep();
             }}
-            className="w-full mt-3 py-2.5 px-4 rounded-xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] text-[#5E5E5E] text-sm font-light hover:border-[#424242] hover:text-[#424242] transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-xs active:bg-[#F4F4F0]"
+            className="w-full mt-3 py-2.5 px-4 rounded-xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] text-[#5E5E5E] text-sm font-light hover:border-[#424242] hover:text-[#424242] transitio[...]
           >
             <span className="group-hover:translate-x-1 transition-transform text-xs">→</span>
             {UI_TEXT.review.card.nextStepBtn}
@@ -226,8 +226,8 @@ const ActionButtons: React.FC<{
         <RotateCcw size={18} />
       </button>
     )}
-    <button onClick={onDelete} className="p-1.5 text-[#A3A3A3] hover:text-[#C62828] cursor-pointer bg-[#F8F7F5] rounded-lg transition-colors" title="放下">
-      <Trash2 size={18} />
+    <button onClick={onDelete} className="p-1.5 text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] rounded-lg transition-colors" title="放下">
+      <HandOpen size={18} />
     </button>
   </div>
 );
