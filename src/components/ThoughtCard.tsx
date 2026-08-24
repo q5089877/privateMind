@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HandOpen, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Leaf, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -83,7 +83,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               e.stopPropagation();
               onNextStep();
             }}
-            className="w-full mt-3 py-2.5 px-4 rounded-xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] text-[#5E5E5E] text-sm font-light hover:border-[#424242] hover:text-[#424242] transitio[...]
+            className="w-full mt-3 py-2.5 px-4 rounded-xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] text-[#5E5E5E] text-sm font-light hover:border-[#424242] hover:text-[#424242] transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-xs active:bg-[#F4F4F0]"
           >
             <span className="group-hover:translate-x-1 transition-transform text-xs">→</span>
             {UI_TEXT.review.card.nextStepBtn}
@@ -227,7 +227,7 @@ const ActionButtons: React.FC<{
       </button>
     )}
     <button onClick={onDelete} className="p-1.5 text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] rounded-lg transition-colors" title="放下">
-      <HandOpen size={18} />
+      <Leaf size={18} />
     </button>
   </div>
 );
