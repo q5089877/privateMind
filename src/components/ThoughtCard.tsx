@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Leaf, CheckCircle2, RotateCcw } from 'lucide-react';
+import { CheckCircle2, RotateCcw } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -226,8 +226,8 @@ const ActionButtons: React.FC<{
         <RotateCcw size={18} />
       </button>
     )}
-    <button onClick={onDelete} className="p-1.5 text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] rounded-lg transition-colors" title="放下">
-      <Leaf size={18} />
+    <button onClick={onDelete} className="p-1.5 w-8 h-8 flex items-center justify-center text-sm cursor-pointer bg-[#F8F7F5] hover:bg-[#EFEEEB] rounded-lg transition-colors" title="放下">
+      🍃
     </button>
   </div>
 );
