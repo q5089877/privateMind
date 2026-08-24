@@ -23,17 +23,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 }) => {
   const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
   const isC = thought.actionStep?.category === 'C';
-  const isAction = thought.type === 'ACTION' && 
-                   (thought.actionStep?.category === 'A' || thought.actionStep?.category === 'B');
-
-  const handleComplete = () => {
-    if (thought.actionStep) {
-      onUpdate({
-        ...thought,
-        actionStep: { ...thought.actionStep, isCompleted: !thought.actionStep.isCompleted }
-      });
-    }
-  };
 
   const handleConfirmDelete = () => {
     onDelete();
@@ -43,9 +32,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   return (
     <motion.div 
       layout
-      className={`p-6 rounded-2xl bg-[#FFFFFF] border transition-all duration-300 shadow-xs relative overflow-hidden ${
-        thought.actionStep?.isCompleted ? 'bg-[#F9F9F8] border-transparent opacity-65' : 'border-[#E0E0E0]'
-      }`}
+      className={`p-6 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] transition-all duration-300 shadow-xs relative overflow-hidden`}
     >
       {/* 刪除確認覆蓋層 */}
       <AnimatePresence>
@@ -87,7 +74,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <ActionInfo 
               thought={thought} 
               isC={isC} 
-              onUpdate={onUpdate}
             />
           )}
 
@@ -152,9 +138,8 @@ const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
 
 const ActionInfo: React.FC<{ 
   thought: Thought, 
-  isC: boolean, 
-  onUpdate: (t: Thought) => void
-}> = ({ thought, isC, onUpdate }) => {
+  isC: boolean
+}> = ({ thought, isC }) => {
   const hasHistory = thought.stepHistory && thought.stepHistory.length > 0;
 
   const displayTag = getCategoryLabel(thought.actionStep?.category);
@@ -163,11 +148,7 @@ const ActionInfo: React.FC<{
     <div className="mt-3 space-y-3">
       {hasHistory && <StepHistory history={thought.stepHistory!} />}
 
-      <div className={`p-3.5 rounded-xl border transition-all ${
-        thought.actionStep?.isCompleted 
-          ? 'bg-[#F9F9F8] border-[#EFEEEB] opacity-80' 
-          : 'bg-[#FDFDFB] border-[#E0E0E0] shadow-sm'
-      }`}>
+      <div className="p-3.5 rounded-xl border bg-[#FDFDFB] border-[#E0E0E0] shadow-sm transition-all">
         <div className="flex items-center gap-2 mb-2">
           <div className="text-xs text-[#A3A3A3] tracking-widest font-semibold uppercase">
             {displayTag}
@@ -180,18 +161,7 @@ const ActionInfo: React.FC<{
         </div>
         
         <div className="flex items-start gap-2.5">
-          {thought.actionStep && !isC && (
-            <input 
-              type="checkbox"
-              checked={!!thought.actionStep.isCompleted}
-              onChange={() => onUpdate({
-                ...thought,
-                actionStep: { ...thought.actionStep!, isCompleted: !thought.actionStep!.isCompleted }
-              })}
-              className="mt-1 w-4 h-4 rounded-sm border-[#E0E0E0] text-[#424242] focus:ring-0 cursor-pointer flex-shrink-0"
-            />
-          )}
-          <div className={`text-[#424242] font-normal text-[17px] leading-relaxed ${thought.actionStep?.isCompleted ? 'line-through text-[#9E9E9E]' : ''}`}>
+          <div className="text-[#424242] font-normal text-[17px] leading-relaxed">
             {thought.actionStep?.text || thought.content}
           </div>
         </div>
@@ -231,7 +201,7 @@ const StepHistory: React.FC<{ history: any[] }> = ({ history }) => (
             )}
           </div>
           
-          <div className={`text-[13px] text-[#737373] ${step.isCompleted ? 'line-through decoration-[#D1D1CB]' : ''}`}>
+          <div className="text-[13px] text-[#737373]">
             {step.text}
           </div>
           
