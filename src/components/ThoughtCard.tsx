@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, RotateCcw } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Feather } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -53,7 +53,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </button>
               <button 
                 onClick={handleConfirmDelete}
-                className="px-5 py-1.5 text-xs rounded-full bg-[#FEECEB] text-[#C62828] hover:bg-[#FCD8D5] transition-colors cursor-pointer"
+                className="px-5 py-1.5 text-xs rounded-full bg-[#E0E0E0] text-[#2C2C2C] hover:bg-[#D1D1CB] transition-colors cursor-pointer"
               >
                 {UI_TEXT.review.card.dropBtn}
               </button>
@@ -226,8 +226,8 @@ const ActionButtons: React.FC<{
         <RotateCcw size={18} />
       </button>
     )}
-    <button onClick={onDelete} className="p-1.5 w-8 h-8 flex items-center justify-center text-sm cursor-pointer bg-[#F8F7F5] hover:bg-[#EFEEEB] rounded-lg transition-colors" title="放下">
-      🍃
+    <button onClick={onDelete} className="p-1.5 w-8 h-8 flex items-center justify-center text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] hover:bg-[#EFEEEB] rounded-lg transition-colors" title="放下">
+      <Feather size={18} />
     </button>
   </div>
 );
@@ -235,7 +235,7 @@ const ActionButtons: React.FC<{
 
 const ActionButton: React.FC<{ label: string, onClick: () => void, isDanger?: boolean }> = 
 ({ label, onClick, isDanger }) => (
-  <button onClick={onClick} className={`text-xs px-3.5 py-1.5 rounded-full bg-[#EFEEEB] text-[#5E5E5E] cursor-pointer ${isDanger ? 'hover:text-[#C62828]' : 'hover:text-[#2C2C2C]'}`}>
+  <button onClick={onClick} className="text-xs px-3.5 py-1.5 rounded-full bg-[#EFEEEB] text-[#5E5E5E] cursor-pointer hover:text-[#2C2C2C]">
     {label}
   </button>
 );
