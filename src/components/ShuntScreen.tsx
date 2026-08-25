@@ -22,11 +22,6 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
     triggerHaptic('settle');
     setIsDepositing(true);
 
-    // 觸覺微震（在沉降過半約 1000ms 時給予著陸感知）
-    setTimeout(() => {
-      triggerHaptic('settle');
-    }, 1000);
-
     // 完整 2.0 秒深層安撫沉降
     setTimeout(() => {
       onChooseDeposit();

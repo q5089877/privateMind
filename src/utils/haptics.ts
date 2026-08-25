@@ -7,19 +7,19 @@ export const triggerHaptic = (type: HapticType = 'settle') => {
     if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
       switch (type) {
         case 'settle':
-          // 沉降落地感：單次短脈衝 (15ms)
-          navigator.vibrate(15);
+          // 沉降落地感：單次充足脈衝 (50ms 克服馬達靜摩擦力)
+          navigator.vibrate(50);
           break;
         case 'step':
-          // 行動微步驟感：輕微雙發脈衝
-          navigator.vibrate([10, 30, 10]);
+          // 行動微步驟感：清晰雙發脈衝
+          navigator.vibrate([35, 40, 35]);
           break;
         case 'release':
-          // 釋放/清除感：單次超短微脈衝 (10ms)
-          navigator.vibrate(10);
+          // 釋放感：單次俐落脈衝 (30ms)
+          navigator.vibrate(30);
           break;
         case 'light':
-          navigator.vibrate(8);
+          navigator.vibrate(20);
           break;
       }
     }
