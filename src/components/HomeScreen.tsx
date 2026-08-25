@@ -27,7 +27,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
 
   const handleQuickSelect = (text: string) => {
     if (isSinking) return;
-    triggerHaptic(15);
     setInputText(text);
     // 不再自動送出，保留修改空間
   };
@@ -44,7 +43,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
 
   const handleContinue = () => {
     if (!inputText.trim() || isSinking) return;
-    triggerHaptic(25);
+    triggerHaptic('settle');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onStartInput(inputText);
@@ -53,7 +52,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
 
   const handleSayNothing = () => {
     if (isSinking) return;
-    triggerHaptic(30);
+    triggerHaptic('settle');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onSayNothing();
@@ -108,7 +107,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
               type="button"
               onClick={() => {
                 if (isSinking) return;
-                triggerHaptic(20);
                 onReview();
               }}
               className="text-ink-muted hover:text-ink text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"

@@ -23,7 +23,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
   };
 
   const handleFinishDeposit = () => {
-    triggerHaptic(20);
+    triggerHaptic('settle');
     onSave({
       id: generateId(),
       content: content.trim(),
@@ -32,7 +32,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
   };
 
   const handleFinishAction = () => {
-    triggerHaptic([30, 40]);
+    triggerHaptic('step');
     onSave({
       id: generateId(),
       content: content.trim(),
@@ -72,7 +72,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
               <button 
                 type="button"
                 disabled={!content.trim()}
-                onClick={() => { triggerHaptic(10); setPhase('PROMPT_ACTION'); }}
+                onClick={() => setPhase('PROMPT_ACTION')}
                 className="px-5 py-1.5 text-xs rounded-full bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-40 transition-all cursor-pointer active:scale-98"
               >
                 繼續
@@ -100,7 +100,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
               </button>
               <button 
                 type="button"
-                onClick={() => { triggerHaptic(10); setPhase('STEP_TEXT'); }}
+                onClick={() => setPhase('STEP_TEXT')}
                 className="px-5 py-2 rounded-full border border-accent bg-accent text-accent-text hover:bg-accent-hover transition-colors text-sm cursor-pointer active:scale-98"
               >
                 {UI_TEXT.addition.optionAction}

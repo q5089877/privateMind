@@ -21,17 +21,16 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const { transition } = useFlow();
 
   const onDeleteClick = (id: string) => {
-    triggerHaptic(25);
+    triggerHaptic('release');
     handleDelete(id);
   };
 
   const onReleaseClick = (id: string) => {
-    triggerHaptic(25);
+    triggerHaptic('release');
     handleRelease(id);
   };
 
   const onUpdateClick = (t: Thought) => {
-    triggerHaptic(15);
     handleUpdate(t);
   };
 
@@ -69,7 +68,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       
       <div className="pt-12 pb-8 text-center">
         <button 
-          onClick={() => { triggerHaptic(10); transition('RELEASED_VIEW'); }}
+          onClick={() => transition('RELEASED_VIEW')}
           className="text-sm text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
         >
           {UI_TEXT.released.title} →

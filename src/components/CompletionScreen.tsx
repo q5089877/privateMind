@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 import { Thought, ThoughtAddition } from '../types';
 import { AdditionForm } from './AdditionForm';
@@ -100,10 +99,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         {!isAdding && (
           <button 
             type="button"
-            onClick={() => {
-              triggerHaptic(15);
-              setIsAdding(true);
-            }}
+            onClick={() => setIsAdding(true)}
             className="text-sm sm:text-base text-ink hover:text-ink-primary font-light py-2 px-5 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98"
           >
             {UI_TEXT.completion.exits.addAddition}
@@ -113,10 +109,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         <div className="flex items-center gap-4 text-xs sm:text-sm text-ink-muted">
           <button 
             type="button"
-            onClick={() => {
-              triggerHaptic(15);
-              onReview();
-            }}
+            onClick={onReview}
             className="hover:text-ink transition-colors py-1 cursor-pointer"
           >
             {UI_TEXT.completion.exits.reviewPast}
@@ -124,10 +117,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           <div className="w-[1px] h-3 bg-border-base"></div>
           <button 
             type="button"
-            onClick={() => {
-              triggerHaptic(15);
-              onReset();
-            }}
+            onClick={onReset}
             className="hover:text-ink transition-colors py-1 cursor-pointer"
           >
             {UI_TEXT.completion.exits.backHome}

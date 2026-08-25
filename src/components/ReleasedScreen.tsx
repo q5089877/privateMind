@@ -12,11 +12,9 @@ export const ReleasedScreen: React.FC = () => {
   const { transition } = useFlow();
 
   const onDeleteClick = (id: string) => {
-    triggerHaptic(25);
+    triggerHaptic('release');
     handleDelete(id);
   };
-
-
 
   if (loading) return null;
 
@@ -27,7 +25,7 @@ export const ReleasedScreen: React.FC = () => {
     >
       <div className="flex items-center sticky top-0 bg-canvas/95 backdrop-blur-md py-4 z-10 border-b border-border-base">
         <button 
-          onClick={() => { triggerHaptic(10); transition('REVIEW'); }}
+          onClick={() => transition('REVIEW')}
           className="p-2 -ml-2 text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-full transition-colors cursor-pointer flex items-center gap-1.5"
         >
           <ArrowLeft size={18} />

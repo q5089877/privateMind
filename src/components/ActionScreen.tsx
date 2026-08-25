@@ -17,7 +17,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
   const [stepText, setStepText] = useState('');
 
   const handleFinish = () => {
-    triggerHaptic([30, 40, 20]);
+    triggerHaptic('step');
     onConfirm(stepText.trim() || thoughtContent || '');
   };
 
@@ -64,7 +64,6 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
             <button 
               type="button"
               onClick={() => {
-                triggerHaptic(15);
                 onBackToDeposit();
               }}
               className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer py-1"
