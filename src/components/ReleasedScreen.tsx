@@ -1,11 +1,29 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
 import { useFlow } from '../hooks/useFlow';
 import { UI_TEXT } from '../config/textConfig';
+
+const cardVariants = {
+  initial: { opacity: 0, y: -6 },
+  animate: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1, 
+    filter: 'blur(0px)', 
+    transition: { duration: 0.3, ease: 'easeOut' } 
+  },
+  exit: {
+    y: 8,
+    scale: 0.98,
+    opacity: 0,
+    filter: 'blur(4px)',
+    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] }
+  }
+};
 
 export const ReleasedScreen: React.FC = () => {
   const { releasedThoughts, loading, handleDelete, handleAddAddition, handleRemoveAddition } = useThoughts();
@@ -44,17 +62,28 @@ export const ReleasedScreen: React.FC = () => {
             {UI_TEXT.released.emptyState}
           </div>
         ) : (
-          releasedThoughts.map((t, idx) => (
-            <ThoughtCard 
-              key={`released-${t.id}-${idx}`} 
-              thought={t} 
-              onDelete={() => onDeleteClick(t.id)}
-              onRelease={() => {}}
-              onUpdate={() => {}}
-              onAddAddition={(addition) => handleAddAddition(t.id, addition)}
-              onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
-            />
-          ))
+          <AnimatePresence mode="popLayout">
+            {releasedThoughts.map((t) => (
+              <motion.div
+                key={t.id}
+                layout
+                variants={cardVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={{ layout: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
+              >
+                <ThoughtCard 
+                  thought={t} 
+                  onDelete={() => onDeleteClick(t.id)}
+                  onRelease={() => {}}
+                  onUpdate={() => {}}
+                  onAddAddition={(addition) => handleAddAddition(t.id, addition)}
+                  onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
       </div>
     </motion.div>
