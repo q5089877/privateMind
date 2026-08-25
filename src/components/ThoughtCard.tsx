@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Leaf } from 'lucide-react';
 import { Thought, ThoughtAddition } from '../types';
-import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 import { AdditionForm } from './AdditionForm';
 
@@ -19,7 +18,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   thought, 
   onDelete, 
   onRelease,
-  onUpdate, 
   onAddAddition,
   onRemoveAddition
 }) => {
@@ -27,7 +25,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [isAdditionsExpanded, setIsAdditionsExpanded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   
-  const isReleased = thought.currentDisposition === 'RELEASE' || thought.actionStep?.disposition === 'NOT_PROCESS';
+  const isReleased = thought.currentDisposition === 'RELEASE';
 
   const handleConfirm = () => {
     if (confirmType === 'DELETE') {
@@ -47,7 +45,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   return (
     <motion.div 
       layout
-      className={`p-6 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] transition-all duration-300 shadow-xs relative overflow-hidden`}
+      className="p-6 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] transition-all duration-300 shadow-xs relative overflow-hidden"
     >
       <AnimatePresence>
         {confirmType && (
@@ -55,7 +53,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center space-y-4"
+            className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4"
           >
             <p className="text-sm text-[#424242] font-light">
               {confirmType === 'DELETE' ? UI_TEXT.review.card.confirmDeleteTitle : UI_TEXT.review.card.confirmReleaseTitle}
@@ -79,7 +77,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       </AnimatePresence>
 
       <div className="flex justify-between items-start gap-4">
-        <div className="space-y-1.5 flex-grow">
+        <div className="space-y-2 flex-grow">
           <div className="text-xs text-[#A3A3A3] font-mono">
             {new Date(thought.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             {isReleased && <span className="ml-2">· {UI_TEXT.review.filters.RELEASED}</span>}
@@ -87,8 +85,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           
           <ThoughtContent thought={thought} />
 
-          {thought.actionStep && !isReleased && (
-            <ActionInfo thought={thought} />
+          {thought.actionStep?.text && !isReleased && (
+            <div className="p-3.5 bg-[#F8F7F5] rounded-xl border border-[#E8E8E4] space-y-1">
+              <div className="text-xs text-[#9E9E9E] font-medium">下一步</div>
+              <div className="text-base font-normal text-[#424242]">
+                {thought.actionStep.text}
+              </div>
+            </div>
           )}
 
           {isReleased && (
@@ -130,7 +133,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     initial={{ opacity: 0, height: 0 }} 
                     animate={{ opacity: 1, height: 'auto' }} 
                     exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 overflow-hidden"
+                    className="space-y-3 overflow-hidden"
                   >
                     {thought.additions.map(add => (
                       <div key={add.id} className="pl-3 border-l-2 border-[#E0E0E0] space-y-1 relative group">
@@ -145,10 +148,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                           {new Date(add.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="text-sm font-light text-[#424242] whitespace-pre-wrap">{add.content}</div>
-                        {add.actionStep && (
-                          <div className="mt-1.5 p-2 bg-[#F8F7F5] rounded-lg text-xs">
-                            <span className="font-medium text-[#737373] mr-2">[{getDispositionLabel(add.actionStep.disposition)}]</span>
-                            <span className="text-[#5E5E5E]">{add.actionStep.text}</span>
+                        {add.actionStep?.text && (
+                          <div className="mt-1 p-2 bg-[#F8F7F5] rounded-lg text-xs text-[#5E5E5E]">
+                            下一步：{add.actionStep.text}
                           </div>
                         )}
                       </div>
@@ -198,57 +200,14 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   );
 };
 
-const getDispositionLabel = (disp?: string) => {
-  switch (disp) {
-    case 'SELF': return UI_TEXT.action.dispositions.SELF.label;
-    case 'TOGETHER': return UI_TEXT.action.dispositions.TOGETHER.label;
-    case 'CANNOT_NOW': return UI_TEXT.action.dispositions.CANNOT_NOW.label;
-    case 'NOT_PROCESS': return UI_TEXT.action.dispositions.NOT_PROCESS.label;
-    default: return UI_TEXT.review.card.pastSteps;
-  }
-};
-
 const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
   if (thought.awarenessOnly) {
     return <div className="text-[#5E5E5E] italic font-light">{UI_TEXT.review.card.awareness}</div>;
   }
 
   return (
-    <div className={`text-lg font-light leading-relaxed whitespace-pre-wrap text-[#424242]`}>
+    <div className="text-lg font-light leading-relaxed whitespace-pre-wrap text-[#424242]">
       {thought.content}
-    </div>
-  );
-};
-
-const ActionInfo: React.FC<{ thought: Thought }> = ({ thought }) => {
-  const displayTag = getDispositionLabel(thought.actionStep?.disposition || undefined);
-
-  return (
-    <div className="mt-3 space-y-3">
-      <div className="p-3.5 rounded-xl border bg-[#FDFDFB] border-[#E0E0E0] shadow-sm transition-all">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="text-xs text-[#A3A3A3] tracking-widest font-semibold uppercase">
-            {displayTag}
-          </div>
-          {thought.actionStep?.person && (
-            <div className="text-[10px] bg-[#EFEEEB] text-[#5E5E5E] px-1.5 py-0.5 rounded font-medium">
-              {UI_TEXT.review.card.assigneePrefix}{thought.actionStep.person}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-start gap-2.5">
-          <div className="text-[#424242] font-normal text-[17px] leading-relaxed">
-            {thought.actionStep?.text || thought.content}
-          </div>
-        </div>
-
-        {thought.actionStep?.scheduledAt && (
-          <div className="text-sm text-[#5E5E5E] mt-2.5 p-2.5 bg-white/50 rounded-lg border border-[#EFEEEB] italic">
-            {thought.actionStep.scheduledAt}
-          </div>
-        )}
-      </div>
     </div>
   );
 };

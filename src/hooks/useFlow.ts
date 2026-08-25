@@ -1,11 +1,9 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, Thought, AppSettings, RetentionSetting, ActionDisposition } from '../types';
+import { FlowState, Thought, AppSettings, RetentionSetting } from '../types';
 
 /**
  * SRP: 此 Hook 僅負責 React 狀態與 FlowEngine 實例的同步
- * FlowEngine singleton 由 FlowContext 提供，所有 consumer 共享同一 instance
  */
 export function useFlow() {
   const engine = useFlowEngine();
@@ -33,13 +31,8 @@ export function useFlow() {
     submit: (val: string) => { engine.submitInput(val); sync(); },
     handleAwareness: () => { engine.handleAwareness(); sync(); },
     startDeposit: () => { engine.startDeposit(); sync(); },
-    confirmDeposit: () => { engine.confirmDeposit(); sync(); },
     startAction: () => { engine.startAction(); sync(); },
-    defineActionStep: (text: string) => { engine.defineActionStep(text); sync(); },
-    setDisposition: (disp: ActionDisposition, person?: string, scheduledAt?: string) => { 
-      engine.setActionDisposition(disp, person, scheduledAt); 
-      sync(); 
-    },
+    submitActionStep: (text: string) => { engine.submitActionStep(text); sync(); },
     releaseThought: async (id: string) => {
       await engine.releaseThought(id);
       sync();

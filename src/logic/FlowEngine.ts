@@ -1,9 +1,9 @@
-import { FlowState, Thought, AppSettings, RetentionSetting, ActionDisposition, ThoughtDisposition } from '../types';
+import { FlowState, Thought, AppSettings, RetentionSetting, ThoughtDisposition } from '../types';
 import { IStorageProvider } from './interfaces/IStorageProvider';
 import { LocalStorageManager } from './StorageManager';
 
 /**
- * MVP 遊戲架構師規範：
+ * MVP 架構規範：
  * 1. OOP 優先：使用類別管理狀態機。
  * 2. 方法行數限制：所有邏輯控制在 25 行內。
  */
@@ -14,6 +14,7 @@ export class FlowEngine {
   private settings: AppSettings = { defaultRetention: '30_DAYS', hasSetup: false };
   private storage: IStorageProvider;
   private listeners: (() => void)[] = [];
+  private completionTimer: ReturnType<typeof setTimeout> | null = null;
 
   get state(): FlowState {
     return this._state;
@@ -85,8 +86,6 @@ export class FlowEngine {
     this.state = 'SHUNTTING';
   }
 
-
-
   public async releaseThought(thoughtId: string) {
     const thoughts = await this.storage.getThoughts();
     const thought = thoughts.find(t => t.id === thoughtId);
@@ -102,10 +101,6 @@ export class FlowEngine {
   }
 
   public startDeposit() {
-    this.state = 'DEPOSIT_PATH';
-  }
-
-  public confirmDeposit() {
     this.saveFinalThought('DEPOSIT');
   }
 
@@ -113,34 +108,11 @@ export class FlowEngine {
     this.state = 'ACTION_PATH';
   }
 
-  public defineActionStep(text: string) {
-    this.currentThought.actionStep = {
-      text,
-      disposition: null
-    };
-    this.state = 'ACTION_OPTIONS';
-  }
-
-  public setActionDisposition(disposition: ActionDisposition, person?: string, scheduledAt?: string) {
-    if (!this.currentThought.actionStep) {
-      this.currentThought.actionStep = { text: this.currentContent, disposition: null };
-    }
-    
-    const step = this.currentThought.actionStep;
-    step.disposition = disposition;
-    
-    // 如果使用者沒填寫具體步驟，則使用原始內容
-    if (!step.text || !step.text.trim()) {
-      step.text = this.currentContent;
-    }
-
-    step.person = person;
-    step.scheduledAt = scheduledAt;
-    
+  public submitActionStep(text: string) {
+    const finalText = text.trim() || this.currentContent;
+    this.currentThought.actionStep = { text: finalText };
     this.saveFinalThought('ACTION');
   }
-
-  private completionTimer: ReturnType<typeof setTimeout> | null = null;
 
   private async saveFinalThought(disposition: ThoughtDisposition, awarenessOnly: boolean = false) {
     await this.createNewThought(disposition, awarenessOnly);
@@ -169,13 +141,12 @@ export class FlowEngine {
       awarenessOnly,
       retentionUntil: this.calculateRetention(),
       actionStep: this.currentThought.actionStep,
+      additions: []
     };
 
     this.currentThought = thought;
     await this.storage.saveThought(thought);
   }
-
-
 
   private calculateRetention(): number | null {
     if (this.settings.defaultRetention === 'AWARENESS_ONLY') return 0;
@@ -210,6 +181,10 @@ export class FlowEngine {
 
   public async updateThought(thought: Thought) {
     await this.storage.updateThought(thought);
+    if (this.currentThought.id === thought.id) {
+      this.currentThought = thought;
+      this.notify();
+    }
   }
 
   public saveSettings(settings: Partial<AppSettings>) {

@@ -1,13 +1,6 @@
 export const UI_TEXT = {
   settings: {
     title: '歡迎來到思緒停靠',
-    subtitle: '',
-    disclaimerTitle: '',
-    disclaimerP1: '',
-    disclaimerP2: '',
-    disclaimerHighlight: '',
-    disclaimerP3: '',
-    disclaimerP4: '',
     tagline: '這裡只為當下的念頭留一個位置。',
     taglineSub: '你可以寫下來、先放著，或只留下一次覺察。',
     instruction: '你希望寫下的內容保留多久？',
@@ -34,61 +27,31 @@ export const UI_TEXT = {
     submit: '繼續'
   },
   shunt: {
-    title: '現在，你想怎麼對待它？',
+    title: '你想怎麼對待它？',
     deposit: {
-      label: '先安放',
+      label: '先放著',
       desc: '現在不用處理它。'
     },
     action: {
       label: '帶走一小步',
-      desc: '只做現在做得到的一步。'
+      desc: '如果只往前一點，只做現在做得到的一步。'
     }
   },
   action: {
     contextPrefix: '關於「',
     contextSuffix: '」',
-    title: '這一步，你想怎麼做？',
-    reselectIntent: '← 重新選擇',
-    whatNext: '現在能做哪一步？',
-    whatNextPlaceholder: '找出現在做得到的一步……',
-    tweakLabel: '還可以再調整',
-    dispositions: {
-      SELF: {
-        label: '我自己來',
-        options: ['現在處理', '找個時間', '再退一步']
-      },
-      TOGETHER: {
-        label: '需要他人',
-        options: ['記下要找誰', '想想需要什麼幫忙', '先寫一句想說的話']
-      },
-      CANNOT_NOW: {
-        label: '現在還沒辦法',
-        options: ['先安放', '等時機成熟', '再退一步']
-      },
-      NOT_PROCESS: {
-        label: '不打算處理',
-        options: ['就放下', '放著讓它消失']
-      }
-    },
-    placeholders: {
-      schedule: '什麼時候？',
-      assignee: '你想找誰？',
-      howToHelp: '希望對方怎麼幫你？',
-      draftContent: '先寫一句想說的話……',
-      waitCondition: '在等什麼？'
-    },
-    quickTimeOptions: ['今天稍晚', '明天', '這週末', '下週'],
+    title: '如果只往前一點，你想怎麼做？',
+    whatNextPlaceholder: '寫下現在做得到的一步……',
     buttons: {
-      backToDeposit: '先安放就好',
+      backToDeposit: '先放著就好',
       confirm: '記下了'
     }
   },
   completion: {
     ceremony: {
       awareness: '看見了。',
-      action: '記下了。',
-      cannotDo: '先放在這裡。',
-      drop: '放下了。'
+      deposit: '看見了。',
+      action: '記下了。'
     },
     retention: {
       permanent: '已保留',
@@ -96,7 +59,11 @@ export const UI_TEXT = {
       daysPrefix: '保留 ',
       daysSuffix: ' 天'
     },
-    backHome: '返回'
+    exits: {
+      addAddition: '＋ 後來又想到……',
+      reviewPast: '回來看看',
+      backHome: '返回首頁'
+    }
   },
   review: {
     title: '回望',
@@ -111,8 +78,6 @@ export const UI_TEXT = {
     card: {
       sourcePrefix: '「',
       sourceSuffix: '」',
-      pastSteps: '',
-      assigneePrefix: '找 ',
       awareness: '這是一次無聲的覺察',
       confirmReleaseTitle: '準備好放下這個念頭了嗎？',
       confirmDeleteTitle: '要從裝置上永久刪除這筆紀錄嗎？',
@@ -127,12 +92,12 @@ export const UI_TEXT = {
   addition: {
     addBtn: '＋ 後來又想到……',
     inputPlaceholder: '寫下後來的念頭……',
-    promptAction: '要不要往前一點？',
+    promptAction: '你想怎麼對待它？',
     optionDeposit: '先放著',
-    optionAction: '做一小步',
-    actionPlaceholder: '現在能做的一小步是？',
-    howToDoPrompt: '怎麼做？',
-    saveBtn: '完成',
+    optionAction: '帶走一小步',
+    actionTitle: '如果只往前一點，你想怎麼做？',
+    actionPlaceholder: '寫下現在做得到的一步……',
+    saveBtn: '記下了',
     cancelBtn: '取消'
   },
   released: {

@@ -4,15 +4,12 @@ export type FlowState =
   | 'SHUNTTING' 
   | 'DEPOSIT_PATH'
   | 'ACTION_PATH' 
-  | 'DEFINE_STEP'
-  | 'ACTION_OPTIONS'
   | 'REVIEW'
-  | 'SETTINGS_SETUP'
+  | 'SETTINGS_SETUP' 
   | 'COMPLETING' 
   | 'COMPLETED'
   | 'RELEASED_VIEW';
 
-export type ActionDisposition = 'SELF' | 'TOGETHER' | 'CANNOT_NOW' | 'NOT_PROCESS';
 export type ThoughtDisposition = 'DEPOSIT' | 'ACTION' | 'RELEASE';
 
 export type RetentionSetting = 'AWARENESS_ONLY' | '7_DAYS' | '30_DAYS' | '90_DAYS' | 'PERMANENT';
@@ -24,20 +21,13 @@ export interface AppSettings {
 
 export interface ActionStep {
   text: string;
-  disposition: ActionDisposition | null;
-  person?: string;
-  scheduledAt?: string;
 }
 
 export interface ThoughtAddition {
   id: string;
   content: string;
   createdAt: number;
-  actionStep?: {
-    text: string;
-    disposition: 'SELF' | 'TOGETHER' | 'CANNOT_NOW';
-    person?: string;
-  };
+  actionStep?: ActionStep;
 }
 
 export interface Thought {
@@ -53,11 +43,10 @@ export interface Thought {
 
 export interface IFlowActions {
   submitInput(content: string): void;
-  startShunting(): void;
-  chooseActionPath(): void;
-  defineStep(text: string): void;
-  setDisposition(disposition: ActionDisposition, person?: string, scheduledAt?: string): void;
+  startDeposit(): void;
+  confirmDeposit(): void;
+  startAction(): void;
+  submitActionStep(text: string): void;
   releaseThought(thoughtId: string): Promise<void>; 
-  completeFlow(): void;
   reset(): void;
 }

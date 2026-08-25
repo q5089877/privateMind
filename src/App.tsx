@@ -8,6 +8,7 @@ import { ReleasedScreen } from './components/ReleasedScreen';
 import { CompletionScreen } from './components/CompletionScreen';
 import { SettingsSetup } from './components/SettingsSetup';
 import { useFlow } from './hooks/useFlow';
+import { Thought } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
 const App: React.FC = () => {
@@ -46,41 +47,24 @@ const App: React.FC = () => {
           />
         );
 
-
-      case 'DEPOSIT_PATH':
-        return (
-          <div className="space-y-12 text-center">
-            <h2 className="text-2xl font-light text-gray-800">這個念頭現在在這裡</h2>
-            <button 
-              onClick={() => flow.confirmDeposit()}
-              className="px-16 py-3 bg-gray-900 text-white rounded-full text-lg font-light"
-            >
-              安放
-            </button>
-          </div>
-        );
-
       case 'ACTION_PATH':
-      case 'ACTION_OPTIONS':
         return (
           <ActionScreen 
-            initialStep={flow.thought.actionStep?.text || ''}
             thoughtContent={flow.thought.content}
-            onStepChange={(text) => flow.defineActionStep(text)}
-            onConfirm={(disp, person, sched) => flow.setDisposition(disp, person, sched)}
+            onConfirm={(stepText) => flow.submitActionStep(stepText)}
             onBackToDeposit={() => flow.startDeposit()}
           />
         );
 
       case 'COMPLETING':
         return (
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center py-20">
             <motion.div 
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="text-gray-300 tracking-[0.5em] font-light italic"
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="text-[#A3A3A3] tracking-[0.4em] font-light text-base"
             >
-              安放中...
+              安放中……
             </motion.div>
           </div>
         );
@@ -88,11 +72,18 @@ const App: React.FC = () => {
       case 'COMPLETED':
         return (
           <CompletionScreen 
-            type={flow.thought.currentDisposition || 'DEPOSIT'} 
-            actionDisposition={flow.thought.actionStep?.disposition}
-            awarenessOnly={flow.thought.awarenessOnly}
-            retentionUntil={flow.thought.retentionUntil}
+            thought={flow.thought}
             onReset={() => flow.finish()} 
+            onReview={() => flow.transition('REVIEW')}
+            onAddAddition={async (addition) => {
+              if (flow.thought.id) {
+                const updated = {
+                  ...flow.thought as Thought,
+                  additions: [...(flow.thought.additions || []), addition]
+                };
+                await flow.updateThought(updated);
+              }
+            }}
           />
         );
 
@@ -103,7 +94,7 @@ const App: React.FC = () => {
 
   const getAnimationKey = (state: string) => {
     if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
-    if (state === 'ACTION_PATH' || state === 'ACTION_OPTIONS') return 'ACTION';
+    if (state === 'ACTION_PATH') return 'ACTION';
     if (state === 'COMPLETING' || state === 'COMPLETED') return 'COMPLETION';
     return state;
   };
@@ -116,7 +107,7 @@ const App: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.5 }}
           className="w-full flex justify-center"
         >
           {renderContent()}
