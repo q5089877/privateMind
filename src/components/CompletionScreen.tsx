@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -23,46 +23,22 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   const isDeposit = thought.currentDisposition === 'DEPOSIT' || thought.awarenessOnly;
   const ceremonyText = isDeposit ? UI_TEXT.completion.ceremony.deposit : UI_TEXT.completion.ceremony.action;
 
-  useEffect(() => {
-    // 著陸觸覺回饋（於慢速沉降落座 800ms 觸發溫柔微震）
-    const landingTimer = setTimeout(() => {
-      triggerHaptic([15, 20]);
-    }, 800);
-
-    return () => clearTimeout(landingTimer);
-  }, []);
-
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.4 }}
       className="w-full max-w-lg space-y-6 sm:space-y-8 py-4 sm:py-6 flex flex-col items-center justify-center text-center"
     >
-      {/* 沉降定格字樣（在卡片上方緩緩浮現） */}
-      <motion.p 
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.2, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="text-2xl sm:text-3xl font-light text-[#424242] tracking-wide"
-      >
-        {ceremonyText}
-      </motion.p>
+      {/* 沉降定格字樣 */}
+      <div className="min-h-[40px] flex items-center justify-center">
+        <p className="text-2xl sm:text-3xl font-light text-[#424242] tracking-wide">
+          {ceremonyText}
+        </p>
+      </div>
 
-      {/* 原地物理沉降落座卡片（1.6s 慢速、超阻尼深沉下沉 28px） */}
-      <motion.div
-        initial={{ y: 0, scale: 1, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04)" }}
-        animate={{ 
-          y: [0, 16, 28], 
-          scale: [1, 0.992, 1],
-          boxShadow: "0 12px 32px -4px rgba(0, 0, 0, 0.07)"
-        }}
-        transition={{ 
-          duration: 1.6, 
-          ease: [0.16, 1, 0.3, 1] 
-        }}
-        className="w-full p-6 sm:p-7 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] text-left space-y-4 will-change-transform"
-      >
+      {/* 已原地安放落座的念頭卡片 */}
+      <div className="w-full p-6 sm:p-7 rounded-2xl bg-[#FAF9F6] border border-[#E8E8E4] shadow-sm text-left space-y-4">
         <div className="text-xs text-[#A3A3A3] font-mono">
           {new Date(thought.createdAt || Date.now()).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -72,17 +48,12 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </div>
 
         {thought.actionStep?.text && (
-          <motion.div 
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
-            className="p-3.5 bg-[#F8F7F5] rounded-xl border border-[#E8E8E4] space-y-1"
-          >
+          <div className="p-3.5 bg-white/70 rounded-xl border border-[#E0E0E0] space-y-1">
             <div className="text-xs text-[#9E9E9E] font-medium">下一步</div>
             <div className="text-sm sm:text-base font-normal text-[#424242]">
               {thought.actionStep.text}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* 顯示後來的 Additions (若有) */}
@@ -94,7 +65,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
                 <div key={add.id} className="pl-3 border-l-2 border-[#D1D1CB] text-sm text-[#5E5E5E] space-y-1">
                   <div>{add.content}</div>
                   {add.actionStep?.text && (
-                    <div className="text-xs text-[#737373] bg-[#F8F7F5] p-1.5 rounded">
+                    <div className="text-xs text-[#737373] bg-white/70 p-1.5 rounded">
                       下一步：{add.actionStep.text}
                     </div>
                   )}
@@ -118,13 +89,13 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
             </div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
 
-      {/* 底部安靜出口 (落座完全定格後平緩浮現) */}
+      {/* 底部安靜出口 */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" }}
+        transition={{ delay: 0.2, duration: 0.6 }}
         className="w-full flex flex-col items-center gap-3 pt-2"
       >
         {!isAdding && (
