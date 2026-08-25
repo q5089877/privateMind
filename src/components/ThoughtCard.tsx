@@ -24,9 +24,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 }) => {
   const [confirmType, setConfirmType] = useState<'DELETE' | 'RELEASE' | null>(null);
   
-  const isC = thought.currentDisposition === 'ACTION' && thought.actionStep?.disposition === 'CANNOT_NOW';
+  const isC = (thought.currentDisposition === 'ACTION' || (!thought.currentDisposition && thought.actionStep != null)) && thought.actionStep?.disposition === 'CANNOT_NOW';
   const isReleased = thought.currentDisposition === 'RELEASE' || thought.actionStep?.disposition === 'NOT_PROCESS';
-  const isDeposit = (thought.currentDisposition === 'DEPOSIT' || thought.awarenessOnly) && !isReleased;
+  const isLegacyDeposit = !thought.currentDisposition && !thought.actionStep;
+  const isDeposit = (thought.currentDisposition === 'DEPOSIT' || thought.awarenessOnly || isLegacyDeposit) && !isReleased;
 
   const handleConfirm = () => {
     if (confirmType === 'DELETE') {
