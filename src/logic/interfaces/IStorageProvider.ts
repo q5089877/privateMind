@@ -8,6 +8,7 @@ export interface IStorageProvider {
   saveThought(thought: Thought): Promise<void>;
   getThoughts(): Promise<Thought[]>;
   deleteThought(id: string): Promise<void>;
+  deleteThoughts(ids: string[]): Promise<void>;
   updateThought(thought: Thought): Promise<void>;
   
   saveSettings(settings: AppSettings): Promise<void>;

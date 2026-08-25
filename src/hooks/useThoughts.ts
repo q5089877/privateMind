@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Thought } from '../types';
 import { useFlow } from './useFlow';
 
-export type ReviewFilter = 'ALL' | 'ACTION' | 'DEPOSIT';
+export type ReviewFilter = 'ALL' | 'ACTION' | 'DEPOSIT' | 'RELEASED';
 
 /**
  * SRP: 此 Hook 專注於回望頁面的資料流與過濾邏輯
@@ -27,7 +27,6 @@ export function useThoughts() {
       const isReleased = t.currentDisposition === 'RELEASE' || t.actionStep?.disposition === 'NOT_PROCESS';
       if (isReleased) return false;
       
-      if (filter === 'ALL') return true;
       if (filter === 'ACTION') return t.currentDisposition === 'ACTION';
       if (filter === 'DEPOSIT') return t.currentDisposition === 'DEPOSIT' || t.awarenessOnly;
       return true;
@@ -39,6 +38,11 @@ export function useThoughts() {
       t.currentDisposition === 'RELEASE' || t.actionStep?.disposition === 'NOT_PROCESS'
     ).sort((a, b) => b.createdAt - a.createdAt);
   }, [thoughts]);
+
+  const displayedThoughts = useMemo(() => {
+    if (filter === 'RELEASED') return releasedThoughts;
+    return activeThoughts;
+  }, [filter, activeThoughts, releasedThoughts]);
 
   const handleDelete = async (id: string) => {
     await deleteThought(id);
@@ -88,6 +92,7 @@ export function useThoughts() {
   return {
     activeThoughts,
     releasedThoughts,
+    displayedThoughts,
     filter,
     setFilter,
     loading,

@@ -53,7 +53,6 @@ export const ReleasedScreen: React.FC = () => {
               onDelete={() => onDeleteClick(t.id)}
               onRelease={() => {}}
               onUpdate={() => {}}
-              onActionSelect={() => {}}
               onAddAddition={(addition) => handleAddAddition(t.id, addition)}
               onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
             />

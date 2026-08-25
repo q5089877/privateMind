@@ -23,22 +23,24 @@ flowchart TD
 
     %% ACTION 分支
     ACTION_PATH -- "輸入步驟內容" --> ACTION_OPTIONS["ACTION_OPTIONS\n(選擇處置方式)"]
-    ACTION_OPTIONS -- "選擇 SELF/TOGETHER\nCANNOT_NOW/NOT_PROCESS" --> COMPLETING
+    ACTION_OPTIONS -- "選擇 SELF / TOGETHER\nCANNOT_NOW / NOT_PROCESS" --> COMPLETING
 
     %% 儀式與完成
-    COMPLETING["COMPLETING\n(過場 400ms)"] --> COMPLETED["COMPLETED\n(落座/停落儀式)"]
-    COMPLETED -- "返回" --> HOME
+    COMPLETING["COMPLETING\n(過場 400ms)"] --> COMPLETED["COMPLETED\n(落座停駐儀式)"]
+    COMPLETED -- "返回 (自主決定)" --> HOME
 
-    %% 回望與重新處理
-    REVIEW -- "放下 / 刪除" --> Delete(("移除資料"))
-    REVIEW -- "重新處理 (Next Step)" --> ACTION_PATH_REENTRY["ACTION_PATH\n(重新定義行動)"]
+    %% 回望與線性軌跡
+    REVIEW -- "＋ 後來又想到……" --> ADDITION["AdditionForm\n(輕量處置: 先放著 / 做一小步)"]
+    ADDITION --> REVIEW
+    REVIEW -- "放下 (Release)" --> RELEASED_VIEW["RELEASED_VIEW\n(已放下清單)"]
+    REVIEW -- "刪除 (Delete)" --> Delete(("抹除資料"))
     
     %% Style tweaks
     classDef state fill:#FFFFFF,stroke:#E0E0E0,stroke-width:1px,color:#424242;
     classDef decision fill:#F8F7F5,stroke:#E0E0E0,stroke-width:1px,color:#424242,shape:hexagon;
     classDef ending fill:#EFEEEB,stroke:#D1D1CB,stroke-width:1px,color:#424242;
     
-    class HOME,SHUNTTING,DEPOSIT_PATH,ACTION_PATH,ACTION_OPTIONS,REVIEW,SETUP state;
+    class HOME,SHUNTTING,DEPOSIT_PATH,ACTION_PATH,ACTION_OPTIONS,REVIEW,SETUP,ADDITION,RELEASED_VIEW state;
     class InitCheck decision;
     class COMPLETING,COMPLETED,Delete ending;
 ```

@@ -79,7 +79,6 @@ export const UI_TEXT = {
     },
     quickTimeOptions: ['今天稍晚', '明天', '這週末', '下週'],
     buttons: {
-      cancelEvolve: '取消，保留原本狀態',
       backToDeposit: '先安放就好',
       confirm: '記下了'
     }
@@ -120,12 +119,9 @@ export const UI_TEXT = {
       keepBtn: '取消',
       releaseBtn: '不再處理',
       deleteBtn: '確認刪除',
-      nextStepBtn: '重新處理',
       releasedSubtitle: '這個念頭曾經來過。',
       retentionPrefix: '保存至 ',
-      keepReleasedBtn: '繼續放著',
-      reprocessHint: '如果你現在想重新看看它',
-      reprocessBtn: '重新帶走一小步'
+      keepReleasedBtn: '繼續放著'
     }
   },
   addition: {

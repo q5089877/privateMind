@@ -57,8 +57,8 @@ export class FlowEngine {
     const expired = thoughts.filter(t =>
       typeof t.retentionUntil === 'number' && t.retentionUntil > 0 && t.retentionUntil < now
     );
-    for (const t of expired) {
-      await this.storage.deleteThought(t.id);
+    if (expired.length > 0) {
+      await this.storage.deleteThoughts(expired.map(t => t.id));
     }
   }
 
@@ -101,12 +101,6 @@ export class FlowEngine {
     this.saveFinalThought('RELEASE', true);
   }
 
-  public cancelEvolve() {
-    this.currentThought = {};
-    this.currentContent = '';
-    this.state = 'REVIEW';
-  }
-
   public startDeposit() {
     this.state = 'DEPOSIT_PATH';
   }
@@ -146,13 +140,19 @@ export class FlowEngine {
     this.saveFinalThought('ACTION');
   }
 
+  private completionTimer: ReturnType<typeof setTimeout> | null = null;
+
   private async saveFinalThought(disposition: ThoughtDisposition, awarenessOnly: boolean = false) {
     await this.createNewThought(disposition, awarenessOnly);
 
     this.state = 'COMPLETING';
     
-    setTimeout(() => {
+    if (this.completionTimer) {
+      clearTimeout(this.completionTimer);
+    }
+    this.completionTimer = setTimeout(() => {
       this.state = 'COMPLETED';
+      this.completionTimer = null;
     }, 400);
   }
 
@@ -187,6 +187,10 @@ export class FlowEngine {
   }
 
   public reset() {
+    if (this.completionTimer) {
+      clearTimeout(this.completionTimer);
+      this.completionTimer = null;
+    }
     this.state = 'HOME';
     this.currentContent = '';
     this.currentThought = {};

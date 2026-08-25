@@ -26,6 +26,14 @@ export class LocalStorageManager implements IStorageProvider {
     this.persistThoughts(filtered);
   }
 
+  async deleteThoughts(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    const thoughts = await this.getThoughts();
+    const filtered = thoughts.filter(t => !idSet.has(t.id));
+    this.persistThoughts(filtered);
+  }
+
   async updateThought(thought: Thought): Promise<void> {
     const thoughts = await this.getThoughts();
     const index = thoughts.findIndex(t => t.id === thought.id);

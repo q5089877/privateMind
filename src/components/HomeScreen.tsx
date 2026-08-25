@@ -32,11 +32,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     // 不再自動送出，保留修改空間
   };
 
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   const handleContinue = () => {
     if (!inputText.trim() || isSinking) return;
     triggerHaptic(25);
     setIsSinking(true);
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       onStartInput(inputText);
     }, 1000);
   };
@@ -45,7 +55,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     if (isSinking) return;
     triggerHaptic(30);
     setIsSinking(true);
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       onSayNothing();
     }, 1000);
   };

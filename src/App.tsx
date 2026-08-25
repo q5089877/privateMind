@@ -32,10 +32,6 @@ const App: React.FC = () => {
         return (
           <ReviewScreen 
             onClose={() => flow.finish()}
-            onActionSelect={(t) => {
-              flow.submit(t.content);
-              flow.transition('SHUNTTING');
-            }}
           />
         );
 

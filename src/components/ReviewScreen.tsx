@@ -10,12 +10,11 @@ import { UI_TEXT } from '../config/textConfig';
 
 interface ReviewScreenProps {
   onClose: () => void;
-  onActionSelect: (thought: Thought) => void;
 }
 
-export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSelect }) => {
+export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const { 
-    activeThoughts, filter, setFilter, loading, 
+    displayedThoughts, filter, setFilter, loading, 
     handleDelete, handleUpdate, handleRelease, handleAddAddition, handleRemoveAddition
   } = useThoughts();
   
@@ -36,8 +35,6 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
     handleUpdate(t);
   };
 
-
-
   if (loading) return null;
 
   return (
@@ -53,17 +50,16 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
       </div>
 
       <div className="space-y-4">
-        {activeThoughts.length === 0 ? (
+        {displayedThoughts.length === 0 ? (
           <EmptyState />
         ) : (
-          activeThoughts.map((t, idx) => (
+          displayedThoughts.map((t, idx) => (
             <ThoughtCard 
               key={`thought-${t.id}-${idx}`} 
               thought={t} 
               onDelete={() => onDeleteClick(t.id)}
               onRelease={() => onReleaseClick(t.id)}
               onUpdate={onUpdateClick}
-              onActionSelect={() => onActionSelect(t)}
               onAddAddition={(addition) => handleAddAddition(t.id, addition)}
               onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
             />

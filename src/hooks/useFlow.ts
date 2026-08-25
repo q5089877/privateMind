@@ -44,7 +44,6 @@ export function useFlow() {
       await engine.releaseThought(id);
       sync();
     },
-    cancelEvolve: () => { engine.cancelEvolve(); sync(); },
     finish: () => { engine.reset(); sync(); },
     transition: (s: FlowState) => { engine.transition(s); sync(); },
     getAllThoughts: () => engine.getAllThoughts(),

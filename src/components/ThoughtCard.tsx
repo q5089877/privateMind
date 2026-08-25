@@ -11,7 +11,6 @@ interface ThoughtCardProps {
   onDelete: () => void;
   onRelease: () => void;
   onUpdate: (t: Thought) => void;
-  onActionSelect: () => void;
   onAddAddition: (addition: ThoughtAddition) => void;
   onRemoveAddition: (additionId: string) => void;
 }
@@ -21,7 +20,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onDelete, 
   onRelease,
   onUpdate, 
-  onActionSelect,
   onAddAddition,
   onRemoveAddition
 }) => {
