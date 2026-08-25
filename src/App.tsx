@@ -82,9 +82,10 @@ const App: React.FC = () => {
 
   const getAnimationKey = (state: string) => {
     if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
-    if (state === 'ACTION_PATH') return 'ACTION';
-    if (state === 'COMPLETED') return 'COMPLETION';
-    return state;
+    if (state === 'REVIEW') return 'REVIEW';
+    if (state === 'RELEASED_VIEW') return 'RELEASED';
+    if (state === 'SETTINGS_SETUP') return 'SETUP';
+    return 'ACTIVE_FLOW';
   };
 
   return (
