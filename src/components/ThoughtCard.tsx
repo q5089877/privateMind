@@ -45,7 +45,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   return (
     <motion.div 
       layout
-      className="p-6 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] transition-all duration-300 shadow-xs relative overflow-hidden"
+      className="p-6 rounded-2xl bg-surface border border-border-base transition-all duration-300 shadow-xs relative overflow-hidden"
     >
       <AnimatePresence>
         {confirmType && (
@@ -53,21 +53,21 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4"
+            className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4"
           >
-            <p className="text-sm text-[#424242] font-light">
+            <p className="text-sm text-ink font-light">
               {confirmType === 'DELETE' ? UI_TEXT.review.card.confirmDeleteTitle : UI_TEXT.review.card.confirmReleaseTitle}
             </p>
             <div className="flex gap-4">
               <button 
                 onClick={() => setConfirmType(null)}
-                className="px-5 py-1.5 text-xs rounded-full bg-[#EFEEEB] text-[#5E5E5E] hover:text-[#2C2C2C] transition-colors cursor-pointer"
+                className="px-5 py-1.5 text-xs rounded-full bg-surface-muted text-ink-secondary hover:text-ink transition-colors cursor-pointer"
               >
                 {UI_TEXT.review.card.keepBtn}
               </button>
               <button 
                 onClick={handleConfirm}
-                className="px-5 py-1.5 text-xs rounded-full bg-[#E0E0E0] text-[#2C2C2C] hover:bg-[#D1D1CB] transition-colors cursor-pointer"
+                className="px-5 py-1.5 text-xs rounded-full bg-border-base text-ink hover:bg-surface-hover transition-colors cursor-pointer"
               >
                 {confirmType === 'DELETE' ? UI_TEXT.review.card.deleteBtn : UI_TEXT.review.card.releaseBtn}
               </button>
@@ -78,7 +78,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
       <div className="flex justify-between items-start gap-4">
         <div className="space-y-2 flex-grow">
-          <div className="text-xs text-[#A3A3A3] font-mono">
+          <div className="text-xs text-ink-muted font-mono">
             {new Date(thought.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             {isReleased && <span className="ml-2">· {UI_TEXT.review.filters.RELEASED}</span>}
           </div>
@@ -86,42 +86,42 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           <ThoughtContent thought={thought} />
 
           {thought.actionStep?.text && !isReleased && (
-            <div className="p-3.5 bg-[#F8F7F5] rounded-xl border border-[#E8E8E4] space-y-1">
-              <div className="text-xs text-[#9E9E9E] font-medium">下一步</div>
-              <div className="text-base font-normal text-[#424242]">
+            <div className="p-3.5 bg-surface-subtle rounded-xl border border-border-base space-y-1">
+              <div className="text-xs text-ink-muted font-medium">下一步</div>
+              <div className="text-base font-normal text-ink">
                 {thought.actionStep.text}
               </div>
             </div>
           )}
 
           {isReleased && (
-            <div className="mt-4 pt-4 border-t border-[#E0E0E0]/50 space-y-4">
-              <p className="text-sm text-[#737373] font-light text-center">{UI_TEXT.review.card.releasedSubtitle}</p>
+            <div className="mt-4 pt-4 border-t border-border-subtle space-y-4">
+              <p className="text-sm text-ink-muted font-light text-center">{UI_TEXT.review.card.releasedSubtitle}</p>
               
               <div className="flex justify-center gap-3">
-                <button className="px-5 py-1.5 text-xs rounded-full bg-[#F8F7F5] text-[#737373] hover:bg-[#EFEEEB] transition-colors cursor-default">
+                <button className="px-5 py-1.5 text-xs rounded-full bg-surface-subtle text-ink-secondary hover:bg-surface-hover transition-colors cursor-default">
                   {UI_TEXT.review.card.keepReleasedBtn}
                 </button>
                 <button 
                   onClick={() => setConfirmType('DELETE')} 
-                  className="px-5 py-1.5 text-xs rounded-full bg-[#F8F7F5] text-[#A3A3A3] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                  className="px-5 py-1.5 text-xs rounded-full bg-surface-subtle text-ink-muted hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
                   {UI_TEXT.review.card.deleteBtn}
                 </button>
               </div>
 
               {retentionText && (
-                <p className="text-xs text-[#A3A3A3] text-center font-light">{retentionText}</p>
+                <p className="text-xs text-ink-muted text-center font-light">{retentionText}</p>
               )}
             </div>
           )}
 
           {/* Additions List */}
           {thought.additions && thought.additions.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-[#E0E0E0]/50 space-y-3">
+            <div className="mt-4 pt-4 border-t border-border-subtle space-y-3">
               <button 
                 onClick={() => setIsAdditionsExpanded(!isAdditionsExpanded)}
-                className="text-xs text-[#737373] hover:text-[#424242] transition-colors cursor-pointer flex items-center gap-1"
+                className="text-xs text-ink-secondary hover:text-ink transition-colors cursor-pointer flex items-center gap-1"
               >
                 {isAdditionsExpanded ? '隱藏後來的念頭' : `後來又想到 ${thought.additions.length} 筆`}
                 <span className="text-[10px] ml-1">{isAdditionsExpanded ? '▲' : '▼'}</span>
@@ -136,20 +136,20 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     className="space-y-3 overflow-hidden"
                   >
                     {thought.additions.map(add => (
-                      <div key={add.id} className="pl-3 border-l-2 border-[#E0E0E0] space-y-1 relative group">
+                      <div key={add.id} className="pl-3 border-l-2 border-border-base space-y-1 relative group">
                         <button 
                           onClick={() => onRemoveAddition(add.id)}
-                          className="absolute -right-2 top-0 p-1 opacity-0 group-hover:opacity-100 text-[#A3A3A3] hover:text-red-500 transition-all cursor-pointer"
+                          className="absolute -right-2 top-0 p-1 opacity-0 group-hover:opacity-100 text-ink-muted hover:text-red-600 transition-all cursor-pointer"
                           title="刪除這筆痕跡"
                         >
                           ✕
                         </button>
-                        <div className="text-[10px] text-[#A3A3A3] font-mono">
+                        <div className="text-[10px] text-ink-muted font-mono">
                           {new Date(add.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <div className="text-sm font-light text-[#424242] whitespace-pre-wrap">{add.content}</div>
+                        <div className="text-sm font-light text-ink whitespace-pre-wrap">{add.content}</div>
                         {add.actionStep?.text && (
-                          <div className="mt-1 p-2 bg-[#F8F7F5] rounded-lg text-xs text-[#5E5E5E]">
+                          <div className="mt-1 p-2 bg-surface-subtle rounded-lg text-xs text-ink-secondary">
                             下一步：{add.actionStep.text}
                           </div>
                         )}
@@ -166,7 +166,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             {!isAdding ? (
               <button 
                 onClick={() => setIsAdding(true)}
-                className="text-xs text-[#A3A3A3] hover:text-[#5E5E5E] transition-colors cursor-pointer"
+                className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
               >
                 {UI_TEXT.addition.addBtn}
               </button>
@@ -188,7 +188,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           {!isReleased && (
             <button 
               onClick={() => setConfirmType('RELEASE')} 
-              className="p-1.5 w-8 h-8 flex items-center justify-center text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] hover:bg-[#EFEEEB] rounded-lg transition-colors" 
+              className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors" 
               title={UI_TEXT.review.card.releaseBtn}
             >
               <Leaf size={18} />
@@ -202,11 +202,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
 const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
   if (thought.awarenessOnly) {
-    return <div className="text-[#5E5E5E] italic font-light">{UI_TEXT.review.card.awareness}</div>;
+    return <div className="text-ink-secondary italic font-light">{UI_TEXT.review.card.awareness}</div>;
   }
 
   return (
-    <div className="text-lg font-light leading-relaxed whitespace-pre-wrap text-[#424242]">
+    <div className="text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
       {thought.content}
     </div>
   );

@@ -66,7 +66,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
         isSinking ? 'sink-animation pointer-events-none' : ''
       }`}
     >
-      <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-[#424242] mb-6 sm:mb-10 text-center">
+      <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-ink mb-6 sm:mb-10 text-center">
         {UI_TEXT.home.title}
       </h1>
 
@@ -77,7 +77,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           placeholder={UI_TEXT.home.inputPlaceholder}
-          className="w-full bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] placeholder:font-light transition-colors duration-300 py-2.5 sm:py-3.5 text-[20px] sm:text-[23px] outline-none resize-none text-center leading-[1.5]"
+          className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted placeholder:font-light transition-colors duration-300 py-2.5 sm:py-3.5 text-[20px] sm:text-[23px] outline-none resize-none text-center leading-[1.5]"
           autoFocus
         />
 
@@ -88,7 +88,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
               <button
                 key={`quick-opt-${idx}`}
                 onClick={() => handleQuickSelect(option)}
-                className="w-full py-3.5 px-4 bg-[#FFFFFF] border border-[#E0E0E0] hover:border-[#424242] text-[#5E5E5E] hover:text-[#424242] rounded-xl text-[16px] sm:text-[18px] transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-xs"
+                className="w-full py-3.5 px-4 bg-surface border border-border-base hover:border-border-focus text-ink-secondary hover:text-ink rounded-xl text-[16px] sm:text-[18px] transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-xs"
               >
                 {option}
               </button>
@@ -99,11 +99,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             <button
               type="button"
               onClick={handleSayNothing}
-              className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
+              className="text-ink-muted hover:text-ink text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
             >
               {UI_TEXT.home.sayNothing}
             </button>
-            <div className="w-[1px] h-[14px] bg-[#E0E0E0]"></div>
+            <div className="w-[1px] h-[14px] bg-border-base"></div>
             <button
               type="button"
               onClick={() => {
@@ -111,7 +111,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
                 triggerHaptic(20);
                 onReview();
               }}
-              className="text-[#9E9E9E] hover:text-[#424242] text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
+              className="text-ink-muted hover:text-ink text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
             >
               {UI_TEXT.home.reviewPast}
             </button>
@@ -125,7 +125,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           type="button"
           onClick={handleContinue}
           disabled={!inputText.trim()}
-          className={`px-8 sm:px-10 py-2.5 sm:py-3.5 bg-[#424242] text-[#F8F7F5] rounded-full text-[18px] sm:text-[21px] font-normal tracking-wide transition-all duration-400 cursor-pointer active:scale-98 ${
+          className={`px-8 sm:px-10 py-2.5 sm:py-3.5 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-[18px] sm:text-[21px] font-normal tracking-wide transition-all duration-400 cursor-pointer active:scale-98 ${
             inputText.trim()
               ? 'opacity-100 translate-y-0 pointer-events-auto'
               : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'

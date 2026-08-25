@@ -48,7 +48,7 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
           initial={{ opacity: 0, y: isDepositing ? -8 : 0 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-          className={`font-light text-[#424242] tracking-wide ${
+          className={`font-light text-ink tracking-wide ${
             isDepositing ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'
           }`}
         >
@@ -62,15 +62,15 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
           isDepositing 
             ? { 
                 y: 36, 
-                backgroundColor: '#FAF9F6',
-                borderColor: '#E8E8E4',
-                boxShadow: "0 14px 36px -6px rgba(0, 0, 0, 0.08)"
+                backgroundColor: 'var(--surface-subtle)',
+                borderColor: 'var(--border-base)',
+                boxShadow: "0 14px 36px -6px rgba(28, 39, 32, 0.08)"
               } 
             : { 
                 y: 0, 
-                backgroundColor: '#FFFFFF',
-                borderColor: '#E0E0E0',
-                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04)"
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--border-base)',
+                boxShadow: "0 1px 3px 0 rgba(28, 39, 32, 0.04)"
               }
         }
         transition={{ 
@@ -79,10 +79,10 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
         }}
         className="w-full p-6 sm:p-7 rounded-2xl border text-left space-y-3 will-change-transform"
       >
-        <div className="text-xs text-[#A3A3A3] font-mono">
+        <div className="text-xs text-ink-muted font-mono">
           {new Date().toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
-        <div className="text-lg sm:text-xl font-light leading-relaxed text-[#424242] whitespace-pre-wrap">
+        <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
           {thoughtContent || ''}
         </div>
       </motion.div>
@@ -103,24 +103,24 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
         <div className="grid gap-3 sm:gap-4">
           <button 
             onClick={handleDeposit}
-            className="group flex items-center justify-between px-5 sm:px-7 py-4 sm:py-5 bg-[#FFFFFF] border border-[#E0E0E0] hover:border-[#424242] rounded-2xl transition-all duration-200 text-left shadow-xs cursor-pointer active:scale-[0.98]"
+            className="group flex items-center justify-between px-5 sm:px-7 py-4 sm:py-5 bg-surface border border-border-base hover:border-border-focus rounded-2xl transition-all duration-200 text-left shadow-xs cursor-pointer active:scale-[0.98]"
           >
             <div className="space-y-0.5">
-              <div className="text-base sm:text-lg font-normal text-[#424242]">{UI_TEXT.shunt.deposit.label}</div>
-              <div className="text-xs sm:text-sm text-[#5E5E5E]">{UI_TEXT.shunt.deposit.desc}</div>
+              <div className="text-base sm:text-lg font-normal text-ink">{UI_TEXT.shunt.deposit.label}</div>
+              <div className="text-xs sm:text-sm text-ink-secondary">{UI_TEXT.shunt.deposit.desc}</div>
             </div>
-            <Archive size={20} className="text-[#9E9E9E] group-hover:text-[#424242] transition-colors" />
+            <Archive size={20} className="text-ink-muted group-hover:text-ink transition-colors" />
           </button>
 
           <button 
             onClick={handleAction}
-            className="group flex items-center justify-between px-5 sm:px-7 py-4 sm:py-5 bg-[#FFFFFF] border border-[#E0E0E0] hover:border-[#424242] rounded-2xl transition-all duration-200 text-left shadow-xs cursor-pointer active:scale-[0.98]"
+            className="group flex items-center justify-between px-5 sm:px-7 py-4 sm:py-5 bg-surface border border-border-base hover:border-border-focus rounded-2xl transition-all duration-200 text-left shadow-xs cursor-pointer active:scale-[0.98]"
           >
             <div className="space-y-0.5">
-              <div className="text-base sm:text-lg font-normal text-[#424242]">{UI_TEXT.shunt.action.label}</div>
-              <div className="text-xs sm:text-sm text-[#5E5E5E]">{UI_TEXT.shunt.action.desc}</div>
+              <div className="text-base sm:text-lg font-normal text-ink">{UI_TEXT.shunt.action.label}</div>
+              <div className="text-xs sm:text-sm text-ink-secondary">{UI_TEXT.shunt.action.desc}</div>
             </div>
-            <ArrowRight size={20} className="text-[#9E9E9E] group-hover:text-[#424242] transition-colors" />
+            <ArrowRight size={20} className="text-ink-muted group-hover:text-ink transition-colors" />
           </button>
         </div>
       </motion.div>

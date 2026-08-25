@@ -24,15 +24,15 @@ export const SettingsSetup: React.FC<SettingsSetupProps> = ({ onConfirm }) => {
     >
       <div className="space-y-6">
         <div className="text-center space-y-3">
-          <h2 className="text-2xl sm:text-3xl font-light text-[#424242]">{UI_TEXT.settings.title}</h2>
-          <p className="text-sm text-[#5E5E5E] leading-relaxed">
+          <h2 className="text-2xl sm:text-3xl font-light text-ink">{UI_TEXT.settings.title}</h2>
+          <p className="text-sm text-ink-secondary leading-relaxed">
             {UI_TEXT.settings.tagline}<br/>
-            <span className="text-[#A3A3A3]">{UI_TEXT.settings.taglineSub}</span>
+            <span className="text-ink-muted">{UI_TEXT.settings.taglineSub}</span>
           </p>
         </div>
 
         <div className="text-center pt-2">
-          <p className="text-sm text-[#5E5E5E] font-medium">{UI_TEXT.settings.instruction}</p>
+          <p className="text-sm text-ink-secondary font-medium">{UI_TEXT.settings.instruction}</p>
         </div>
       </div>
 
@@ -41,15 +41,15 @@ export const SettingsSetup: React.FC<SettingsSetupProps> = ({ onConfirm }) => {
           <button
             key={opt.id}
             onClick={() => onConfirm(opt.id)}
-            className="w-full group p-5 bg-[#FFFFFF] border border-[#E0E0E0] rounded-2xl hover:border-[#424242] transition-all text-left shadow-xs cursor-pointer active:scale-[0.99]"
+            className="w-full group p-5 bg-surface border border-border-base rounded-2xl hover:border-border-focus transition-all text-left shadow-xs cursor-pointer active:scale-[0.99]"
           >
-            <div className="text-base font-normal text-[#424242]">{opt.label}</div>
-            <div className="text-xs text-[#A3A3A3] mt-0.5">{opt.desc}</div>
+            <div className="text-base font-normal text-ink">{opt.label}</div>
+            <div className="text-xs text-ink-muted mt-0.5">{opt.desc}</div>
           </button>
         ))}
       </div>
 
-      <p className="text-xs text-[#A3A3A3] text-center px-6 leading-relaxed">
+      <p className="text-xs text-ink-muted text-center px-6 leading-relaxed">
         {UI_TEXT.settings.footerNote}
       </p>
     </motion.div>

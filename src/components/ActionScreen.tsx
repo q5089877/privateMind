@@ -29,18 +29,18 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
       className="w-full max-w-lg space-y-6 sm:space-y-8 py-4 sm:py-6 flex flex-col items-center justify-center text-center"
     >
       {/* 念頭實體卡片（維持在同一個位置） */}
-      <div className="w-full p-6 sm:p-7 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] shadow-xs text-left space-y-3">
-        <div className="text-xs text-[#A3A3A3] font-mono">
+      <div className="w-full p-6 sm:p-7 rounded-2xl bg-surface border border-border-base shadow-xs text-left space-y-3">
+        <div className="text-xs text-ink-muted font-mono">
           {new Date().toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
-        <div className="text-lg sm:text-xl font-light leading-relaxed text-[#424242] whitespace-pre-wrap">
+        <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
           {thoughtContent || ''}
         </div>
       </div>
 
       {/* 微步驟輸入區 */}
       <div className="w-full space-y-5 pt-1">
-        <h2 className="text-xl sm:text-2xl font-light text-[#424242] tracking-wide">
+        <h2 className="text-xl sm:text-2xl font-light text-ink tracking-wide">
           {UI_TEXT.action.title}
         </h2>
 
@@ -50,13 +50,13 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
             value={stepText}
             onChange={(e) => setStepText(e.target.value)}
             placeholder={UI_TEXT.action.whatNextPlaceholder}
-            className="w-full bg-white/70 border border-[#E0E0E0] focus:border-[#424242] rounded-2xl text-[#424242] placeholder:text-[#9E9E9E] placeholder:font-light text-base sm:text-lg font-light p-4 outline-none resize-none min-h-[90px] leading-relaxed transition-colors"
+            className="w-full bg-surface/80 border border-border-base focus:border-border-focus rounded-2xl text-ink placeholder:text-ink-muted placeholder:font-light text-base sm:text-lg font-light p-4 outline-none resize-none min-h-[90px] leading-relaxed transition-colors"
           />
 
           <div className="flex flex-col items-center gap-3 pt-2">
             <button
               onClick={handleFinish}
-              className="px-14 py-3.5 rounded-full bg-[#424242] text-[#FDFDFD] text-base sm:text-lg font-normal hover:bg-black transition-all shadow-xs active:scale-98 cursor-pointer"
+              className="px-14 py-3.5 rounded-full bg-accent text-accent-text text-base sm:text-lg font-normal hover:bg-accent-hover transition-all shadow-xs active:scale-98 cursor-pointer"
             >
               {UI_TEXT.action.buttons.confirm}
             </button>
@@ -67,7 +67,7 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
                 triggerHaptic(15);
                 onBackToDeposit();
               }}
-              className="text-xs sm:text-sm text-[#A3A3A3] hover:text-[#424242] transition-colors cursor-pointer py-1"
+              className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer py-1"
             >
               {UI_TEXT.action.buttons.backToDeposit}
             </button>

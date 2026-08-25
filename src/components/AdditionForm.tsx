@@ -44,7 +44,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
   };
 
   return (
-    <div className="mt-4 p-4 sm:p-5 rounded-2xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] overflow-hidden">
+    <div className="mt-4 p-4 sm:p-5 rounded-2xl border border-dashed border-border-base bg-surface-subtle overflow-hidden">
       <AnimatePresence mode="wait">
         {phase === 'TEXT' && (
           <motion.div 
@@ -59,13 +59,13 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={UI_TEXT.addition.inputPlaceholder}
-              className="w-full bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] font-light outline-none resize-none min-h-[60px]"
+              className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted font-light outline-none resize-none min-h-[60px]"
             />
             <div className="flex justify-end gap-3 items-center">
               <button 
                 type="button"
                 onClick={onCancel} 
-                className="text-xs text-[#A3A3A3] hover:text-[#5E5E5E] transition-colors cursor-pointer px-3 py-1.5"
+                className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer px-3 py-1.5"
               >
                 {UI_TEXT.addition.cancelBtn}
               </button>
@@ -73,7 +73,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
                 type="button"
                 disabled={!content.trim()}
                 onClick={() => { triggerHaptic(10); setPhase('PROMPT_ACTION'); }}
-                className="px-5 py-1.5 text-xs rounded-full bg-[#424242] text-[#FDFDFD] disabled:opacity-40 transition-all cursor-pointer active:scale-98"
+                className="px-5 py-1.5 text-xs rounded-full bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-40 transition-all cursor-pointer active:scale-98"
               >
                 繼續
               </button>
@@ -89,19 +89,19 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
             exit={{ opacity: 0, x: -16 }}
             className="space-y-4 text-center py-2"
           >
-            <p className="text-sm font-light text-[#424242]">{UI_TEXT.addition.promptAction}</p>
+            <p className="text-sm font-light text-ink">{UI_TEXT.addition.promptAction}</p>
             <div className="flex justify-center gap-3">
               <button 
                 type="button"
                 onClick={handleFinishDeposit}
-                className="px-5 py-2 rounded-full border border-[#E0E0E0] text-[#5E5E5E] hover:border-[#424242] hover:text-[#424242] transition-colors text-sm cursor-pointer active:scale-98"
+                className="px-5 py-2 rounded-full border border-border-base text-ink-secondary hover:border-border-focus hover:text-ink transition-colors text-sm cursor-pointer active:scale-98"
               >
                 {UI_TEXT.addition.optionDeposit}
               </button>
               <button 
                 type="button"
                 onClick={() => { triggerHaptic(10); setPhase('STEP_TEXT'); }}
-                className="px-5 py-2 rounded-full border border-[#424242] bg-[#424242] text-[#FDFDFD] hover:bg-black transition-colors text-sm cursor-pointer active:scale-98"
+                className="px-5 py-2 rounded-full border border-accent bg-accent text-accent-text hover:bg-accent-hover transition-colors text-sm cursor-pointer active:scale-98"
               >
                 {UI_TEXT.addition.optionAction}
               </button>
@@ -117,19 +117,19 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) 
             exit={{ opacity: 0, x: -16 }}
             className="space-y-4 text-center"
           >
-            <p className="text-sm font-light text-[#424242]">{UI_TEXT.addition.actionTitle}</p>
+            <p className="text-sm font-light text-ink">{UI_TEXT.addition.actionTitle}</p>
             <textarea
               autoFocus
               value={stepText}
               onChange={(e) => setStepText(e.target.value)}
               placeholder={UI_TEXT.addition.actionPlaceholder}
-              className="w-full bg-transparent border-b border-[#E0E0E0] focus:border-[#424242] text-[#424242] placeholder:text-[#9E9E9E] font-light text-center outline-none resize-none min-h-[60px]"
+              className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted font-light text-center outline-none resize-none min-h-[60px]"
             />
             <div className="flex justify-end gap-3 pt-2">
               <button 
                 type="button"
                 onClick={handleFinishAction}
-                className="px-6 py-2 text-xs sm:text-sm rounded-full bg-[#424242] text-[#FDFDFD] hover:bg-black transition-all cursor-pointer active:scale-98"
+                className="px-6 py-2 text-xs sm:text-sm rounded-full bg-accent text-accent-text hover:bg-accent-hover transition-all cursor-pointer active:scale-98"
               >
                 {UI_TEXT.addition.saveBtn}
               </button>
