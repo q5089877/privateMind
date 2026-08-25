@@ -17,6 +17,6 @@ html {
   }
   100% {
     opacity: 0.75;
-    transform: translateY(32px) scale(0.85);
+    transform: translateY(32px) scale(0.5);
   }
 }
