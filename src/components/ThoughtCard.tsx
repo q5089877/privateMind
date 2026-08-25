@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RotateCcw, Feather, Trash2 } from 'lucide-react';
+import { RotateCcw, Leaf, Trash2 } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -139,22 +139,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </div>
 
         <div className="flex flex-col gap-2 pt-1">
-          {isC && (
+          {(isC || isDeposit) && (
             <button 
               onClick={() => setConfirmType('RELEASE')} 
               className="p-1.5 w-8 h-8 flex items-center justify-center text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] hover:bg-[#EFEEEB] rounded-lg transition-colors" 
               title={UI_TEXT.review.card.releaseBtn}
             >
-              <Feather size={18} />
-            </button>
-          )}
-          {isDeposit && (
-            <button 
-              onClick={() => setConfirmType('DELETE')} 
-              className="p-1.5 w-8 h-8 flex items-center justify-center text-[#A3A3A3] hover:text-red-500 cursor-pointer bg-[#F8F7F5] hover:bg-red-50 rounded-lg transition-colors" 
-              title={UI_TEXT.review.card.deleteBtn}
-            >
-              <Trash2 size={18} />
+              <Leaf size={18} />
             </button>
           )}
         </div>
