@@ -33,7 +33,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       setConfirmType(null);
     } else if (confirmType === 'RELEASE') {
       onRelease();
-      // 不手動關閉遮罩，由 AnimatePresence 帶領整張卡片平滑淡出消散
+      setConfirmType(null);
     }
   };
 
@@ -44,8 +44,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   }
 
   return (
-    <div 
-      className="p-6 rounded-2xl bg-surface border border-border-base shadow-xs relative overflow-hidden"
+    <motion.div 
+      layout
+      animate={{
+        y: isReleased ? 4 : 0,
+        scale: isReleased ? 0.99 : 1,
+        opacity: isReleased ? 0.92 : 1,
+      }}
+      transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
+      className={`p-6 rounded-2xl border transition-colors duration-1000 relative overflow-hidden ${
+        isReleased 
+          ? 'bg-surface-subtle border-border-subtle shadow-none' 
+          : 'bg-surface border-border-base shadow-xs'
+      }`}
     >
       <AnimatePresence>
         {confirmType && (
@@ -78,33 +89,38 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
       <div className="flex justify-between items-start gap-4">
         <div className="space-y-2 flex-grow">
-          <div className="text-xs text-ink-muted font-mono">
-            {new Date(thought.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            {isReleased && <span className="ml-2">· {UI_TEXT.review.filters.RELEASED}</span>}
+          <div className="text-xs text-ink-muted font-mono flex items-center gap-2">
+            <span>{new Date(thought.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            {isReleased && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface text-ink-muted border border-border-subtle font-sans">
+                放下了。
+              </span>
+            )}
           </div>
           
           <ThoughtContent thought={thought} />
 
-          {thought.actionStep?.text && !isReleased && (
-            <div className="p-3.5 bg-surface-subtle rounded-xl border border-border-base space-y-1">
+          {thought.actionStep?.text && (
+            <div className={`p-3.5 rounded-xl border space-y-1 transition-colors duration-700 ${
+              isReleased 
+                ? 'bg-surface/50 border-border-subtle opacity-75' 
+                : 'bg-surface-subtle border-border-base'
+            }`}>
               <div className="text-xs text-ink-muted font-medium">下一步</div>
-              <div className="text-base font-normal text-ink">
+              <div className={`text-base font-normal ${isReleased ? 'text-ink-secondary' : 'text-ink'}`}>
                 {thought.actionStep.text}
               </div>
             </div>
           )}
 
           {isReleased && (
-            <div className="mt-4 pt-4 border-t border-border-subtle space-y-4">
+            <div className="mt-4 pt-4 border-t border-border-subtle space-y-3">
               <p className="text-sm text-ink-muted font-light text-center">{UI_TEXT.review.card.releasedSubtitle}</p>
               
               <div className="flex justify-center gap-3">
-                <button className="px-5 py-1.5 text-xs rounded-full bg-surface-subtle text-ink-secondary hover:bg-surface-hover transition-colors cursor-default">
-                  {UI_TEXT.review.card.keepReleasedBtn}
-                </button>
                 <button 
-                  onClick={() => setConfirmDelete(true)} 
-                  className="px-5 py-1.5 text-xs rounded-full bg-surface-subtle text-ink-muted hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  onClick={() => setConfirmType('DELETE')} 
+                  className="px-4 py-1 text-xs rounded-full bg-surface text-ink-muted hover:text-red-600 hover:bg-red-50/50 transition-colors cursor-pointer"
                 >
                   {UI_TEXT.review.card.deleteBtn}
                 </button>
@@ -185,7 +201,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </div>
 
         <div className="flex flex-col gap-2 pt-1">
-          {!isReleased && (
+          {!isReleased ? (
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -196,10 +212,17 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             >
               <Leaf size={18} />
             </button>
+          ) : (
+            <div 
+              className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/40 rounded-lg" 
+              title="放下了。"
+            >
+              <Leaf size={18} />
+            </div>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

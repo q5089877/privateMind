@@ -23,15 +23,10 @@ export function useThoughts() {
   }, []);
 
   const activeThoughts = useMemo(() => {
-    return thoughts.filter(t => {
-      const isReleased = t.currentDisposition === 'RELEASE' || t.actionStep?.disposition === 'NOT_PROCESS';
-      if (isReleased) return false;
-      
-      if (filter === 'ACTION') return t.currentDisposition === 'ACTION';
-      if (filter === 'DEPOSIT') return t.currentDisposition === 'DEPOSIT' || t.awarenessOnly;
-      return true;
-    }).sort((a, b) => b.createdAt - a.createdAt);
-  }, [thoughts, filter]);
+    return thoughts.filter(t => 
+      t.currentDisposition !== 'RELEASE' && t.actionStep?.disposition !== 'NOT_PROCESS'
+    ).sort((a, b) => b.createdAt - a.createdAt);
+  }, [thoughts]);
 
   const releasedThoughts = useMemo(() => {
     return thoughts.filter(t => 
@@ -40,9 +35,16 @@ export function useThoughts() {
   }, [thoughts]);
 
   const displayedThoughts = useMemo(() => {
-    if (filter === 'RELEASED') return releasedThoughts;
-    return activeThoughts;
-  }, [filter, activeThoughts, releasedThoughts]);
+    return thoughts.filter(t => {
+      const isReleased = t.currentDisposition === 'RELEASE' || t.actionStep?.disposition === 'NOT_PROCESS';
+      
+      if (filter === 'ACTION') return t.currentDisposition === 'ACTION' && !isReleased;
+      if (filter === 'DEPOSIT') return (t.currentDisposition === 'DEPOSIT' || t.awarenessOnly) && !isReleased;
+      if (filter === 'RELEASED') return isReleased;
+      // ALL: 保留所有念頭，已放下的念頭以鬆手（Unclenched）靜默態呈現
+      return true;
+    }).sort((a, b) => b.createdAt - a.createdAt);
+  }, [thoughts, filter]);
 
   const handleDelete = async (id: string) => {
     setThoughts(prev => prev.filter(t => t.id !== id));
