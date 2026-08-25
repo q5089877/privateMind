@@ -45,18 +45,18 @@ export function useThoughts() {
   }, [filter, activeThoughts, releasedThoughts]);
 
   const handleDelete = async (id: string) => {
-    await deleteThought(id);
     setThoughts(prev => prev.filter(t => t.id !== id));
+    await deleteThought(id);
   };
 
   const handleUpdate = async (thought: Thought) => {
-    await updateThought(thought);
     setThoughts(prev => prev.map(t => t.id === thought.id ? thought : t));
+    await updateThought(thought);
   };
 
   const handleRelease = async (id: string) => {
-    await releaseThought(id);
     setThoughts(prev => prev.map(t => t.id === id ? { ...t, currentDisposition: 'RELEASE' } : t));
+    await releaseThought(id);
   };
 
   const handleAddAddition = async (thoughtId: string, addition: import('../types').ThoughtAddition) => {

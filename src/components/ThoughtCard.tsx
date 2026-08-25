@@ -30,10 +30,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const handleConfirm = () => {
     if (confirmType === 'DELETE') {
       onDelete();
+      setConfirmType(null);
     } else if (confirmType === 'RELEASE') {
       onRelease();
+      // 不手動關閉遮罩，由 AnimatePresence 帶領整張卡片平滑淡出消散
     }
-    setConfirmType(null);
   };
 
   let retentionText = '';
@@ -43,9 +44,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   }
 
   return (
-    <motion.div 
-      layout
-      className="p-6 rounded-2xl bg-surface border border-border-base transition-all duration-300 shadow-xs relative overflow-hidden"
+    <div 
+      className="p-6 rounded-2xl bg-surface border border-border-base shadow-xs relative overflow-hidden"
     >
       <AnimatePresence>
         {confirmType && (
@@ -103,7 +103,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                   {UI_TEXT.review.card.keepReleasedBtn}
                 </button>
                 <button 
-                  onClick={() => setConfirmType('DELETE')} 
+                  onClick={() => setConfirmDelete(true)} 
                   className="px-5 py-1.5 text-xs rounded-full bg-surface-subtle text-ink-muted hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
                   {UI_TEXT.review.card.deleteBtn}
@@ -187,7 +187,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         <div className="flex flex-col gap-2 pt-1">
           {!isReleased && (
             <button 
-              onClick={() => setConfirmType('RELEASE')} 
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmType('RELEASE');
+              }} 
               className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors" 
               title={UI_TEXT.review.card.releaseBtn}
             >
@@ -196,7 +199,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
