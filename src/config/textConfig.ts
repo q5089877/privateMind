@@ -18,9 +18,9 @@ export const UI_TEXT = {
     inputPlaceholder: '寫下一點就好……',
     quickOptions: [
       '腦袋一直轉不停',
-      '單純覺得好累',
+      '心裡慌慌的',
       '有點亂糟糟的',
-      '突然想到一件事'
+      '單純覺得好累'
     ],
     sayNothing: '我現在說不上來',
     reviewPast: '回望',
