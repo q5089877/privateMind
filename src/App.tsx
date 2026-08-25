@@ -42,6 +42,7 @@ const App: React.FC = () => {
       case 'SHUNTTING':
         return (
           <ShuntScreen 
+            thoughtContent={flow.thought.content}
             onChooseDeposit={() => flow.startDeposit()} 
             onChooseAction={() => flow.startAction()} 
           />
@@ -54,19 +55,6 @@ const App: React.FC = () => {
             onConfirm={(stepText) => flow.submitActionStep(stepText)}
             onBackToDeposit={() => flow.startDeposit()}
           />
-        );
-
-      case 'COMPLETING':
-        return (
-          <div className="flex items-center justify-center py-20">
-            <motion.div 
-              animate={{ opacity: [0.3, 0.7, 0.3] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              className="text-[#A3A3A3] tracking-[0.4em] font-light text-base"
-            >
-              安放中……
-            </motion.div>
-          </div>
         );
 
       case 'COMPLETED':
@@ -95,7 +83,7 @@ const App: React.FC = () => {
   const getAnimationKey = (state: string) => {
     if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
     if (state === 'ACTION_PATH') return 'ACTION';
-    if (state === 'COMPLETING' || state === 'COMPLETED') return 'COMPLETION';
+    if (state === 'COMPLETED') return 'COMPLETION';
     return state;
   };
 
@@ -107,7 +95,7 @@ const App: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           className="w-full flex justify-center"
         >
           {renderContent()}

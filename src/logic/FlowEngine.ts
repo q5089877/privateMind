@@ -116,16 +116,7 @@ export class FlowEngine {
 
   private async saveFinalThought(disposition: ThoughtDisposition, awarenessOnly: boolean = false) {
     await this.createNewThought(disposition, awarenessOnly);
-
-    this.state = 'COMPLETING';
-    
-    if (this.completionTimer) {
-      clearTimeout(this.completionTimer);
-    }
-    this.completionTimer = setTimeout(() => {
-      this.state = 'COMPLETED';
-      this.completionTimer = null;
-    }, 400);
+    this.state = 'COMPLETED';
   }
 
   private async createNewThought(disposition: ThoughtDisposition, awarenessOnly: boolean) {

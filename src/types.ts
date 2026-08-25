@@ -2,11 +2,9 @@ export type FlowState =
   | 'HOME' 
   | 'INPUTTING' 
   | 'SHUNTTING' 
-  | 'DEPOSIT_PATH'
   | 'ACTION_PATH' 
   | 'REVIEW'
   | 'SETTINGS_SETUP' 
-  | 'COMPLETING' 
   | 'COMPLETED'
   | 'RELEASED_VIEW';
 
@@ -44,7 +42,6 @@ export interface Thought {
 export interface IFlowActions {
   submitInput(content: string): void;
   startDeposit(): void;
-  confirmDeposit(): void;
   startAction(): void;
   submitActionStep(text: string): void;
   releaseThought(thoughtId: string): Promise<void>; 
