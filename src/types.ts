@@ -9,7 +9,8 @@ export type FlowState =
   | 'REVIEW'
   | 'SETTINGS_SETUP'
   | 'COMPLETING' 
-  | 'COMPLETED';
+  | 'COMPLETED'
+  | 'RELEASED_VIEW';
 
 export type ActionDisposition = 'SELF' | 'TOGETHER' | 'CANNOT_NOW' | 'NOT_PROCESS';
 export type ThoughtDisposition = 'DEPOSIT' | 'ACTION' | 'RELEASE';

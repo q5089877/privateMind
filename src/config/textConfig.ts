@@ -106,8 +106,7 @@ export const UI_TEXT = {
     filters: {
       ALL: '全部',
       ACTION: '行動',
-      DEPOSIT: '安放',
-      RELEASED: '放下的念頭'
+      DEPOSIT: '安放'
     },
     card: {
       sourcePrefix: '「',
@@ -127,6 +126,12 @@ export const UI_TEXT = {
       reprocessHint: '如果你現在想重新看看它',
       reprocessBtn: '重新帶走一小步'
     }
+  },
+  released: {
+    title: '已放下',
+    subtitle: '已經決定暫時不處理的念頭，\n留在這裡，不需要回來。',
+    emptyState: '目前沒有放下的念頭',
+    backBtn: '返回'
   },
   layout: {
     supportBtn: '需要找人聊聊？',

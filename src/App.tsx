@@ -4,6 +4,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { ShuntScreen } from './components/ShuntScreen';
 import { ActionScreen } from './components/ActionScreen';
 import { ReviewScreen } from './components/ReviewScreen';
+import { ReleasedScreen } from './components/ReleasedScreen';
 import { CompletionScreen } from './components/CompletionScreen';
 import { SettingsSetup } from './components/SettingsSetup';
 import { useFlow } from './hooks/useFlow';
@@ -37,6 +38,9 @@ const App: React.FC = () => {
             }}
           />
         );
+
+      case 'RELEASED_VIEW':
+        return <ReleasedScreen />;
 
       case 'SHUNTTING':
         return (

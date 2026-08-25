@@ -15,11 +15,11 @@ interface ReviewScreenProps {
 
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSelect }) => {
   const { 
-    filteredThoughts, filter, setFilter, loading, 
+    activeThoughts, filter, setFilter, loading, 
     handleDelete, handleUpdate, handleRelease 
   } = useThoughts();
   
-  const { startNextStep } = useFlow();
+  const { startNextStep, transition } = useFlow();
 
   const onDeleteClick = (id: string) => {
     triggerHaptic(25);
@@ -56,10 +56,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
       </div>
 
       <div className="space-y-4">
-        {filteredThoughts.length === 0 ? (
+        {activeThoughts.length === 0 ? (
           <EmptyState />
         ) : (
-          filteredThoughts.map((t, idx) => (
+          activeThoughts.map((t, idx) => (
             <ThoughtCard 
               key={`thought-${t.id}-${idx}`} 
               thought={t} 
@@ -71,6 +71,15 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
             />
           ))
         )}
+      </div>
+      
+      <div className="pt-12 pb-8 text-center">
+        <button 
+          onClick={() => { triggerHaptic(10); transition('RELEASED_VIEW'); }}
+          className="text-sm text-[#A3A3A3] hover:text-[#5E5E5E] transition-colors cursor-pointer"
+        >
+          {UI_TEXT.released.title} →
+        </button>
       </div>
     </motion.div>
   );

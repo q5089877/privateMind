@@ -1,0 +1,67 @@
+import React from 'react';
+import { motion } from 'motion/react';
+import { ArrowLeft } from 'lucide-react';
+import { triggerHaptic } from '../utils/haptics';
+import { ThoughtCard } from './ThoughtCard';
+import { useThoughts } from '../hooks/useThoughts';
+import { useFlow } from '../hooks/useFlow';
+import { UI_TEXT } from '../config/textConfig';
+
+export const ReleasedScreen: React.FC = () => {
+  const { releasedThoughts, loading, handleDelete } = useThoughts();
+  const { startNextStep, transition } = useFlow();
+
+  const onDeleteClick = (id: string) => {
+    triggerHaptic(25);
+    handleDelete(id);
+  };
+
+  const onNextStepClick = async (id: string) => {
+    triggerHaptic(20);
+    await startNextStep(id);
+  };
+
+  if (loading) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="w-full max-w-2xl space-y-6 pb-16"
+    >
+      <div className="flex items-center sticky top-0 bg-[#F7F7F4]/95 backdrop-blur-md py-4 z-10 border-b border-[#E8E8E4]">
+        <button 
+          onClick={() => { triggerHaptic(10); transition('REVIEW'); }}
+          className="p-2 -ml-2 text-[#5E5E5E] hover:text-[#424242] hover:bg-[#EAEAE6] rounded-full transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <ArrowLeft size={18} />
+          <span className="text-sm">{UI_TEXT.released.backBtn}</span>
+        </button>
+      </div>
+
+      <div className="space-y-1.5 sm:space-y-2 mb-8 sm:mb-12 text-center pt-4">
+        <h2 className="text-2xl sm:text-3xl font-light text-[#424242]">{UI_TEXT.released.title}</h2>
+        <p className="text-[#5E5E5E] font-light text-sm sm:text-base whitespace-pre-wrap">{UI_TEXT.released.subtitle}</p>
+      </div>
+
+      <div className="space-y-4">
+        {releasedThoughts.length === 0 ? (
+          <div className="py-20 text-center text-[#737373] font-light">
+            {UI_TEXT.released.emptyState}
+          </div>
+        ) : (
+          releasedThoughts.map((t, idx) => (
+            <ThoughtCard 
+              key={`released-${t.id}-${idx}`} 
+              thought={t} 
+              onDelete={() => onDeleteClick(t.id)}
+              onRelease={() => {}}
+              onUpdate={() => {}}
+              onActionSelect={() => {}}
+              onNextStep={() => onNextStepClick(t.id)}
+            />
+          ))
+        )}
+      </div>
+    </motion.div>
+  );
+};
