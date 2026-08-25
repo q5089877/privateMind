@@ -48,7 +48,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onStartInput(inputText);
-    }, 1000);
+    }, 1400);
   };
 
   const handleSayNothing = () => {
@@ -57,7 +57,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onSayNothing();
-    }, 1000);
+    }, 1400);
   };
 
   return (

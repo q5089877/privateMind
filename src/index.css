@@ -5,7 +5,7 @@ html {
 }
 
 .sink-animation {
-  animation: sinkAndFade 1.0s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: sinkAndFade 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes sinkAndFade {
@@ -14,7 +14,7 @@ html {
     transform: translateY(0) scale(1);
   }
   100% {
-    opacity: 0.4;
-    transform: translateY(60px) scale(0.5);
+    opacity: 0.35;
+    transform: translateY(48px) scale(0.5);
   }
 }

@@ -24,10 +24,10 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   const ceremonyText = isDeposit ? UI_TEXT.completion.ceremony.deposit : UI_TEXT.completion.ceremony.action;
 
   useEffect(() => {
-    // 著陸觸覺回饋（於原地沉降落座 450ms 時觸發微震）
+    // 著陸觸覺回饋（於慢速沉降落座 800ms 觸發溫柔微震）
     const landingTimer = setTimeout(() => {
-      triggerHaptic(20);
-    }, 450);
+      triggerHaptic([15, 20]);
+    }, 800);
 
     return () => clearTimeout(landingTimer);
   }, []);
@@ -36,30 +36,30 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className="w-full max-w-lg space-y-6 sm:space-y-8 py-4 sm:py-6 flex flex-col items-center justify-center text-center"
     >
-      {/* 沉降定格字樣（在卡片上方平穩浮現） */}
+      {/* 沉降定格字樣（在卡片上方緩緩浮現） */}
       <motion.p 
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 1.2, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="text-2xl sm:text-3xl font-light text-[#424242] tracking-wide"
       >
         {ceremonyText}
       </motion.p>
 
-      {/* 原地物理沉降落座卡片（不跳出、不從天降，原地向下沉降 24px 落定） */}
+      {/* 原地物理沉降落座卡片（1.6s 慢速、超阻尼深沉下沉 28px） */}
       <motion.div
-        initial={{ y: 0, scale: 1, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)" }}
+        initial={{ y: 0, scale: 1, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04)" }}
         animate={{ 
-          y: [0, 18, 24], 
-          scale: [1, 0.995, 1],
-          boxShadow: "0 10px 28px -4px rgba(0, 0, 0, 0.08)"
+          y: [0, 16, 28], 
+          scale: [1, 0.992, 1],
+          boxShadow: "0 12px 32px -4px rgba(0, 0, 0, 0.07)"
         }}
         transition={{ 
-          duration: 0.9, 
-          ease: [0.22, 1, 0.36, 1] 
+          duration: 1.6, 
+          ease: [0.16, 1, 0.3, 1] 
         }}
         className="w-full p-6 sm:p-7 rounded-2xl bg-[#FFFFFF] border border-[#E0E0E0] text-left space-y-4 will-change-transform"
       >
@@ -75,7 +75,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           <motion.div 
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
+            transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
             className="p-3.5 bg-[#F8F7F5] rounded-xl border border-[#E8E8E4] space-y-1"
           >
             <div className="text-xs text-[#9E9E9E] font-medium">下一步</div>
@@ -120,11 +120,11 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </AnimatePresence>
       </motion.div>
 
-      {/* 底部安靜出口 (落座定格後平緩浮現) */}
+      {/* 底部安靜出口 (落座完全定格後平緩浮現) */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.75, duration: 0.5 }}
+        transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" }}
         className="w-full flex flex-col items-center gap-3 pt-2"
       >
         {!isAdding && (
