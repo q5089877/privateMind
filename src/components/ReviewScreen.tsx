@@ -16,7 +16,7 @@ interface ReviewScreenProps {
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSelect }) => {
   const { 
     filteredThoughts, filter, setFilter, loading, 
-    handleDelete, handleUpdate 
+    handleDelete, handleUpdate, handleRelease 
   } = useThoughts();
   
   const { startNextStep } = useFlow();
@@ -24,6 +24,11 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
   const onDeleteClick = (id: string) => {
     triggerHaptic(25);
     handleDelete(id);
+  };
+
+  const onReleaseClick = (id: string) => {
+    triggerHaptic(25);
+    handleRelease(id);
   };
 
   const onUpdateClick = (t: Thought) => {
@@ -59,6 +64,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
               key={`thought-${t.id}-${idx}`} 
               thought={t} 
               onDelete={() => onDeleteClick(t.id)}
+              onRelease={() => onReleaseClick(t.id)}
               onUpdate={onUpdateClick}
               onActionSelect={() => onActionSelect(t)}
               onNextStep={() => onNextStepClick(t.id)}
@@ -83,6 +89,7 @@ const ReviewHeader: React.FC<{ filter: ReviewFilter, setFilter: (f: ReviewFilter
         <option value="ALL">{UI_TEXT.review.filters.ALL}</option>
         <option value="ACTION">{UI_TEXT.review.filters.ACTION}</option>
         <option value="DEPOSIT">{UI_TEXT.review.filters.DEPOSIT}</option>
+        <option value="RELEASED">{UI_TEXT.review.filters.RELEASED}</option>
       </select>
       <button onClick={onClose} className="p-2 text-[#555555] hover:bg-[#EAEAE6] rounded-full transition-colors cursor-pointer">
         <X size={20} />

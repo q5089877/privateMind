@@ -45,6 +45,10 @@ export function useFlow() {
       await engine.startNextStep(id); 
       sync(); 
     },
+    releaseThought: async (id: string) => {
+      await engine.releaseThought(id);
+      sync();
+    },
     cancelEvolve: () => { engine.cancelEvolve(); sync(); },
     finish: () => { engine.reset(); sync(); },
     transition: (s: FlowState) => { engine.transition(s); sync(); },

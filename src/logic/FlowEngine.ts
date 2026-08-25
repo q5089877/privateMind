@@ -91,15 +91,26 @@ export class FlowEngine {
     const thoughts = await this.storage.getThoughts();
     const thought = thoughts.find(t => t.id === thoughtId);
     
-    if (thought) {
+    const isC = thought?.currentDisposition === 'ACTION' && thought?.actionStep?.disposition === 'CANNOT_NOW';
+    const isReleased = thought?.currentDisposition === 'RELEASE' || thought?.actionStep?.disposition === 'NOT_PROCESS';
+
+    if (thought && (isC || isReleased)) {
       this.existingThoughtId = thoughtId;
       this.currentContent = thought.content;
-      // 保持原始念頭，但清除當前步驟文字，讓 UI 呈現空白輸入
       this.currentThought = { 
         ...thought,
         actionStep: undefined 
       };
       this.state = 'ACTION_PATH';
+    }
+  }
+
+  public async releaseThought(thoughtId: string) {
+    const thoughts = await this.storage.getThoughts();
+    const thought = thoughts.find(t => t.id === thoughtId);
+    if (thought) {
+      thought.currentDisposition = 'RELEASE';
+      await this.storage.updateThought(thought);
     }
   }
 

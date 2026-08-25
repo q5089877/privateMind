@@ -45,6 +45,7 @@ export interface IFlowActions {
   defineStep(text: string): void;
   setDisposition(disposition: ActionDisposition, person?: string, scheduledAt?: string): void;
   startNextStep(thoughtId: string): Promise<void>; 
+  releaseThought(thoughtId: string): Promise<void>; 
   completeFlow(): void;
   reset(): void;
 }

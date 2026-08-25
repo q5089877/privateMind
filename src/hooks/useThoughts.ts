@@ -3,13 +3,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { Thought } from '../types';
 import { useFlow } from './useFlow';
 
-export type ReviewFilter = 'ALL' | 'ACTION' | 'DEPOSIT';
+export type ReviewFilter = 'ALL' | 'ACTION' | 'DEPOSIT' | 'RELEASED';
 
 /**
  * SRP: 此 Hook 專注於回望頁面的資料流與過濾邏輯
  */
 export function useThoughts() {
-  const { getAllThoughts, deleteThought, updateThought } = useFlow();
+  const { getAllThoughts, deleteThought, updateThought, releaseThought } = useFlow();
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [filter, setFilter] = useState<ReviewFilter>('ALL');
   const [loading, setLoading] = useState(true);
@@ -42,12 +42,18 @@ export function useThoughts() {
     setThoughts(prev => prev.map(t => t.id === thought.id ? thought : t));
   };
 
+  const handleRelease = async (id: string) => {
+    await releaseThought(id);
+    setThoughts(prev => prev.filter(t => t.id !== id));
+  };
+
   return {
     filteredThoughts,
     filter,
     setFilter,
     loading,
     handleDelete,
-    handleUpdate
+    handleUpdate,
+    handleRelease
   };
 }

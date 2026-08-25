@@ -106,7 +106,8 @@ export const UI_TEXT = {
     filters: {
       ALL: '全部',
       ACTION: '行動',
-      DEPOSIT: '安放'
+      DEPOSIT: '安放',
+      RELEASED: '放下的念頭'
     },
     card: {
       sourcePrefix: '「',
@@ -114,10 +115,17 @@ export const UI_TEXT = {
       pastSteps: '',
       assigneePrefix: '找 ',
       awareness: '這是一次無聲的覺察',
-      confirmDropTitle: '準備好放下這個念頭了嗎？',
-      keepBtn: '我改變主意了',
-      dropBtn: '是的，先放下',
-      nextStepBtn: '重新處理'
+      confirmReleaseTitle: '準備好放下這個念頭了嗎？',
+      confirmDeleteTitle: '要從裝置上永久刪除這筆紀錄嗎？',
+      keepBtn: '取消',
+      releaseBtn: '不再處理',
+      deleteBtn: '確認刪除',
+      nextStepBtn: '重新處理',
+      releasedSubtitle: '這個念頭曾經來過。',
+      retentionPrefix: '保存至 ',
+      keepReleasedBtn: '繼續放著',
+      reprocessHint: '如果你現在想重新看看它',
+      reprocessBtn: '重新帶走一小步'
     }
   },
   layout: {
