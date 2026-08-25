@@ -106,7 +106,8 @@ export const UI_TEXT = {
     filters: {
       ALL: '全部',
       ACTION: '行動',
-      DEPOSIT: '安放'
+      DEPOSIT: '安放',
+      RELEASED: '已放下'
     },
     card: {
       sourcePrefix: '「',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RotateCcw, Leaf, Trash2 } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { Thought } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
@@ -27,7 +27,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const isC = (thought.currentDisposition === 'ACTION' || (!thought.currentDisposition && thought.actionStep != null)) && thought.actionStep?.disposition === 'CANNOT_NOW';
   const isReleased = thought.currentDisposition === 'RELEASE' || thought.actionStep?.disposition === 'NOT_PROCESS';
   const isLegacyData = !thought.currentDisposition;
-  const isDeposit = (thought.currentDisposition === 'DEPOSIT' || thought.awarenessOnly || isLegacyData) && !isReleased && !isC;
 
   const handleConfirm = () => {
     if (confirmType === 'DELETE') {
@@ -140,7 +139,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </div>
 
         <div className="flex flex-col gap-2 pt-1">
-          {(isC || isDeposit) && (
+          {!isReleased && (
             <button 
               onClick={() => setConfirmType('RELEASE')} 
               className="p-1.5 w-8 h-8 flex items-center justify-center text-[#A3A3A3] hover:text-[#424242] cursor-pointer bg-[#F8F7F5] hover:bg-[#EFEEEB] rounded-lg transition-colors" 
