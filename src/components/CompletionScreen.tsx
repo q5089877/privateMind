@@ -24,12 +24,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   const ceremonyText = isDeposit ? UI_TEXT.completion.ceremony.deposit : UI_TEXT.completion.ceremony.action;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="w-full max-w-lg space-y-6 sm:space-y-8 py-4 sm:py-6 flex flex-col items-center justify-center text-center"
-    >
+    <div className="w-full max-w-lg space-y-6 sm:space-y-8 flex flex-col items-center text-center">
       {/* 沉降定格字樣 */}
       <div className="min-h-[40px] flex items-center justify-center">
         <p className="text-2xl sm:text-3xl font-light text-[#424242] tracking-wide">
@@ -37,8 +32,11 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </p>
       </div>
 
-      {/* 已原地安放落座的念頭卡片 */}
-      <div className="w-full p-6 sm:p-7 rounded-2xl bg-[#FAF9F6] border border-[#E8E8E4] shadow-sm text-left space-y-4">
+      {/* 已原地安放落座的念頭卡片（與沉降後位置高度完全一致，0px 跳動） */}
+      <div 
+        style={{ transform: 'translateY(36px)' }}
+        className="w-full p-6 sm:p-7 rounded-2xl bg-[#FAF9F6] border border-[#E8E8E4] shadow-sm text-left space-y-4 will-change-transform"
+      >
         <div className="text-xs text-[#A3A3A3] font-mono">
           {new Date(thought.createdAt || Date.now()).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -95,7 +93,8 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
+        transition={{ delay: 0.1, duration: 0.8 }}
+        style={{ transform: 'translateY(36px)' }}
         className="w-full flex flex-col items-center gap-3 pt-2"
       >
         {!isAdding && (
@@ -135,6 +134,6 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };

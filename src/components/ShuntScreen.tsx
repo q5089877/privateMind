@@ -19,18 +19,18 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
 
   const handleDeposit = () => {
     if (isDepositing) return;
-    triggerHaptic([20, 30]);
+    triggerHaptic([25, 35]);
     setIsDepositing(true);
 
-    // 觸覺微震（在沉降過半約 900ms 時給予著陸感知）
+    // 觸覺微震（在沉降過半約 1000ms 時給予著陸感知）
     setTimeout(() => {
       triggerHaptic([15, 20]);
-    }, 900);
+    }, 1000);
 
-    // 完整的 1.8 秒深層安撫下沉儀式
+    // 完整 2.0 秒深層安撫沉降
     setTimeout(() => {
       onChooseDeposit();
-    }, 1800);
+    }, 2000);
   };
 
   const handleAction = () => {
@@ -40,14 +40,14 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
   };
 
   return (
-    <div className="w-full max-w-lg space-y-6 sm:space-y-8 py-4 sm:py-6 flex flex-col items-center justify-center text-center">
+    <div className="w-full max-w-lg space-y-6 sm:space-y-8 flex flex-col items-center text-center">
       {/* 標題區（點擊先放著時，柔和變為「看見了。」） */}
       <div className="min-h-[40px] flex items-center justify-center">
         <motion.p
           key={isDepositing ? 'settled' : 'question'}
           initial={{ opacity: 0, y: isDepositing ? -8 : 0 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
+          transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
           className={`font-light text-[#424242] tracking-wide ${
             isDepositing ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'
           }`}
@@ -56,12 +56,12 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
         </motion.p>
       </div>
 
-      {/* 念頭卡片（點擊先放著時，原地 1.8 秒深層緩慢向下沉降 40px 並柔化陰影） */}
+      {/* 念頭卡片（點擊先放著時，原地 2.0 秒深層緩慢向下沉降 36px 並加深陰影） */}
       <motion.div
         animate={
           isDepositing 
             ? { 
-                y: 40, 
+                y: 36, 
                 backgroundColor: '#FAF9F6',
                 borderColor: '#E8E8E4',
                 boxShadow: "0 14px 36px -6px rgba(0, 0, 0, 0.08)"
@@ -74,7 +74,7 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
               }
         }
         transition={{ 
-          duration: 1.8, 
+          duration: 2.0, 
           ease: [0.25, 1, 0.5, 1] 
         }}
         className="w-full p-6 sm:p-7 rounded-2xl border text-left space-y-3 will-change-transform"
@@ -87,15 +87,15 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
         </div>
       </motion.div>
 
-      {/* 分流按鈕區（點擊先放著時，按鈕向下滑落融化淡出） */}
+      {/* 分流按鈕區（點擊先放著時，按鈕向下平緩融化淡出） */}
       <motion.div 
         animate={
           isDepositing 
-            ? { opacity: 0, y: 36, pointerEvents: 'none' } 
+            ? { opacity: 0, y: 28, pointerEvents: 'none' } 
             : { opacity: 1, y: 0, pointerEvents: 'auto' }
         }
         transition={{ 
-          duration: 0.8, 
+          duration: 1.0, 
           ease: [0.25, 1, 0.5, 1] 
         }}
         className="w-full space-y-4 pt-1"
