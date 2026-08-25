@@ -55,6 +55,36 @@ export function useThoughts() {
     setThoughts(prev => prev.map(t => t.id === id ? { ...t, currentDisposition: 'RELEASE' } : t));
   };
 
+  const handleAddAddition = async (thoughtId: string, addition: import('../types').ThoughtAddition) => {
+    setThoughts(prev => {
+      const newThoughts = [...prev];
+      const index = newThoughts.findIndex(t => t.id === thoughtId);
+      if (index !== -1) {
+        const updatedThought = { ...newThoughts[index] };
+        updatedThought.additions = [...(updatedThought.additions || []), addition];
+        newThoughts[index] = updatedThought;
+        updateThought(updatedThought); // Async fire-and-forget to storage
+      }
+      return newThoughts;
+    });
+  };
+
+  const handleRemoveAddition = async (thoughtId: string, additionId: string) => {
+    setThoughts(prev => {
+      const newThoughts = [...prev];
+      const index = newThoughts.findIndex(t => t.id === thoughtId);
+      if (index !== -1) {
+        const updatedThought = { ...newThoughts[index] };
+        if (updatedThought.additions) {
+          updatedThought.additions = updatedThought.additions.filter(a => a.id !== additionId);
+          newThoughts[index] = updatedThought;
+          updateThought(updatedThought); // Async fire-and-forget to storage
+        }
+      }
+      return newThoughts;
+    });
+  };
+
   return {
     activeThoughts,
     releasedThoughts,
@@ -63,6 +93,8 @@ export function useThoughts() {
     loading,
     handleDelete,
     handleUpdate,
-    handleRelease
+    handleRelease,
+    handleAddAddition,
+    handleRemoveAddition
   };
 }

@@ -11,7 +11,6 @@ export class FlowEngine {
   private _state: FlowState = 'HOME';
   private currentContent: string = '';
   private currentThought: Partial<Thought> = {};
-  private existingThoughtId: string | null = null;
   private settings: AppSettings = { defaultRetention: '30_DAYS', hasSetup: false };
   private storage: IStorageProvider;
   private listeners: (() => void)[] = [];
@@ -68,7 +67,6 @@ export class FlowEngine {
   getContent(): string { return this.currentContent; }
   getThought(): Partial<Thought> { return this.currentThought; }
   getSettings(): AppSettings { return this.settings; }
-  getExistingThoughtId(): string | null { return this.existingThoughtId; }
 
   // --- State Transitions ---
   
@@ -87,23 +85,7 @@ export class FlowEngine {
     this.state = 'SHUNTTING';
   }
 
-  public async startNextStep(thoughtId: string) {
-    const thoughts = await this.storage.getThoughts();
-    const thought = thoughts.find(t => t.id === thoughtId);
-    
-    const isC = thought?.currentDisposition === 'ACTION' && thought?.actionStep?.disposition === 'CANNOT_NOW';
-    const isReleased = thought?.currentDisposition === 'RELEASE' || thought?.actionStep?.disposition === 'NOT_PROCESS';
 
-    if (thought && (isC || isReleased)) {
-      this.existingThoughtId = thoughtId;
-      this.currentContent = thought.content;
-      this.currentThought = { 
-        ...thought,
-        actionStep: undefined 
-      };
-      this.state = 'ACTION_PATH';
-    }
-  }
 
   public async releaseThought(thoughtId: string) {
     const thoughts = await this.storage.getThoughts();
@@ -120,7 +102,6 @@ export class FlowEngine {
   }
 
   public cancelEvolve() {
-    this.existingThoughtId = null;
     this.currentThought = {};
     this.currentContent = '';
     this.state = 'REVIEW';
@@ -166,11 +147,7 @@ export class FlowEngine {
   }
 
   private async saveFinalThought(disposition: ThoughtDisposition, awarenessOnly: boolean = false) {
-    if (this.existingThoughtId) {
-      await this.updateExistingWithNextStep(disposition);
-    } else {
-      await this.createNewThought(disposition, awarenessOnly);
-    }
+    await this.createNewThought(disposition, awarenessOnly);
 
     this.state = 'COMPLETING';
     
@@ -198,25 +175,7 @@ export class FlowEngine {
     await this.storage.saveThought(thought);
   }
 
-  private async updateExistingWithNextStep(disposition: ThoughtDisposition) {
-    const thoughts = await this.storage.getThoughts();
-    const thoughtIndex = thoughts.findIndex(t => t.id === this.existingThoughtId);
-    
-    if (thoughtIndex !== -1) {
-      const originalThought = thoughts[thoughtIndex];
-      const newStep = this.currentThought.actionStep;
-      
-      const updatedThought: Thought = {
-        ...originalThought,
-        actionStep: newStep,
-        currentDisposition: disposition
-      };
 
-      this.currentThought = updatedThought;
-      await this.storage.updateThought(updatedThought);
-    }
-    this.existingThoughtId = null;
-  }
 
   private calculateRetention(): number | null {
     if (this.settings.defaultRetention === 'AWARENESS_ONLY') return 0;
@@ -231,7 +190,6 @@ export class FlowEngine {
     this.state = 'HOME';
     this.currentContent = '';
     this.currentThought = {};
-    this.existingThoughtId = null;
   }
 
   public transition(newState: FlowState) {

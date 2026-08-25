@@ -29,6 +29,17 @@ export interface ActionStep {
   scheduledAt?: string;
 }
 
+export interface ThoughtAddition {
+  id: string;
+  content: string;
+  createdAt: number;
+  actionStep?: {
+    text: string;
+    disposition: 'SELF' | 'TOGETHER' | 'CANNOT_NOW';
+    person?: string;
+  };
+}
+
 export interface Thought {
   id: string;
   content: string;
@@ -37,6 +48,7 @@ export interface Thought {
   awarenessOnly?: boolean;
   currentDisposition?: ThoughtDisposition;
   actionStep?: ActionStep;
+  additions?: ThoughtAddition[];
 }
 
 export interface IFlowActions {
@@ -45,7 +57,6 @@ export interface IFlowActions {
   chooseActionPath(): void;
   defineStep(text: string): void;
   setDisposition(disposition: ActionDisposition, person?: string, scheduledAt?: string): void;
-  startNextStep(thoughtId: string): Promise<void>; 
   releaseThought(thoughtId: string): Promise<void>; 
   completeFlow(): void;
   reset(): void;

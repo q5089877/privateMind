@@ -8,18 +8,15 @@ import { useFlow } from '../hooks/useFlow';
 import { UI_TEXT } from '../config/textConfig';
 
 export const ReleasedScreen: React.FC = () => {
-  const { releasedThoughts, loading, handleDelete } = useThoughts();
-  const { startNextStep, transition } = useFlow();
+  const { releasedThoughts, loading, handleDelete, handleAddAddition, handleRemoveAddition } = useThoughts();
+  const { transition } = useFlow();
 
   const onDeleteClick = (id: string) => {
     triggerHaptic(25);
     handleDelete(id);
   };
 
-  const onNextStepClick = async (id: string) => {
-    triggerHaptic(20);
-    await startNextStep(id);
-  };
+
 
   if (loading) return null;
 
@@ -57,7 +54,8 @@ export const ReleasedScreen: React.FC = () => {
               onRelease={() => {}}
               onUpdate={() => {}}
               onActionSelect={() => {}}
-              onNextStep={() => onNextStepClick(t.id)}
+              onAddAddition={(addition) => handleAddAddition(t.id, addition)}
+              onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
             />
           ))
         )}

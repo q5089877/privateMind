@@ -128,6 +128,17 @@ export const UI_TEXT = {
       reprocessBtn: '重新帶走一小步'
     }
   },
+  addition: {
+    addBtn: '＋ 後來又想到……',
+    inputPlaceholder: '寫下後來的念頭……',
+    promptAction: '要不要往前一點？',
+    optionDeposit: '先放著',
+    optionAction: '做一小步',
+    actionPlaceholder: '現在能做的一小步是？',
+    howToDoPrompt: '怎麼做？',
+    saveBtn: '完成',
+    cancelBtn: '取消'
+  },
   released: {
     title: '已放下',
     subtitle: '已經決定暫時不處理的念頭，\n留在這裡，不需要回來。',

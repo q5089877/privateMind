@@ -26,7 +26,6 @@ export function useFlow() {
     content,
     thought: engine.getThought(),
     settings: engine.getSettings(),
-    existingThoughtId: engine.getExistingThoughtId(),
     
     // Actions
     setup: (retention: RetentionSetting) => { engine.setInitialSettings(retention); sync(); },
@@ -39,10 +38,6 @@ export function useFlow() {
     defineActionStep: (text: string) => { engine.defineActionStep(text); sync(); },
     setDisposition: (disp: ActionDisposition, person?: string, scheduledAt?: string) => { 
       engine.setActionDisposition(disp, person, scheduledAt); 
-      sync(); 
-    },
-    startNextStep: async (id: string) => { 
-      await engine.startNextStep(id); 
       sync(); 
     },
     releaseThought: async (id: string) => {

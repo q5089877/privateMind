@@ -70,11 +70,9 @@ const App: React.FC = () => {
           <ActionScreen 
             initialStep={flow.thought.actionStep?.text || ''}
             thoughtContent={flow.thought.content}
-            isEvolving={!!flow.existingThoughtId}
             onStepChange={(text) => flow.defineActionStep(text)}
             onConfirm={(disp, person, sched) => flow.setDisposition(disp, person, sched)}
             onBackToDeposit={() => flow.startDeposit()}
-            onCancelEvolve={() => flow.cancelEvolve()}
           />
         );
 

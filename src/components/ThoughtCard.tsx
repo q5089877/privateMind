@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Leaf } from 'lucide-react';
-import { Thought } from '../types';
+import { Thought, ThoughtAddition } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
+import { AdditionForm } from './AdditionForm';
 
 interface ThoughtCardProps {
   thought: Thought;
@@ -11,7 +12,8 @@ interface ThoughtCardProps {
   onRelease: () => void;
   onUpdate: (t: Thought) => void;
   onActionSelect: () => void;
-  onNextStep: () => void;
+  onAddAddition: (addition: ThoughtAddition) => void;
+  onRemoveAddition: (additionId: string) => void;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({ 
@@ -20,13 +22,14 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onRelease,
   onUpdate, 
   onActionSelect,
-  onNextStep
+  onAddAddition,
+  onRemoveAddition
 }) => {
   const [confirmType, setConfirmType] = useState<'DELETE' | 'RELEASE' | null>(null);
+  const [isAdditionsExpanded, setIsAdditionsExpanded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   
-  const isC = (thought.currentDisposition === 'ACTION' || (!thought.currentDisposition && thought.actionStep != null)) && thought.actionStep?.disposition === 'CANNOT_NOW';
   const isReleased = thought.currentDisposition === 'RELEASE' || thought.actionStep?.disposition === 'NOT_PROCESS';
-  const isLegacyData = !thought.currentDisposition;
 
   const handleConfirm = () => {
     if (confirmType === 'DELETE') {
@@ -90,20 +93,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <ActionInfo thought={thought} />
           )}
 
-          {isC && (
-            <motion.button 
-              whileTap={{ scale: 0.98 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onNextStep();
-              }}
-              className="w-full mt-3 py-2.5 px-4 rounded-xl border border-dashed border-[#D1D1CB] bg-[#FDFDFB] text-[#5E5E5E] text-sm font-light hover:border-[#424242] hover:text-[#424242] transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-xs active:bg-[#F4F4F0]"
-            >
-              <span className="group-hover:translate-x-1 transition-transform text-xs">→</span>
-              {UI_TEXT.review.card.nextStepBtn}
-            </motion.button>
-          )}
-
           {isReleased && (
             <div className="mt-4 pt-4 border-t border-[#E0E0E0]/50 space-y-4">
               <p className="text-sm text-[#737373] font-light text-center">{UI_TEXT.review.card.releasedSubtitle}</p>
@@ -123,18 +112,75 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               {retentionText && (
                 <p className="text-xs text-[#A3A3A3] text-center font-light">{retentionText}</p>
               )}
-              
-              <div className="pt-3 text-center">
-                <span className="text-xs text-[#A3A3A3] mr-2">{UI_TEXT.review.card.reprocessHint} → </span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onNextStep(); }} 
-                  className="text-xs text-[#5E5E5E] hover:text-[#424242] underline underline-offset-4 transition-colors cursor-pointer"
-                >
-                  {UI_TEXT.review.card.reprocessBtn}
-                </button>
-              </div>
             </div>
           )}
+
+          {/* Additions List */}
+          {thought.additions && thought.additions.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#E0E0E0]/50 space-y-3">
+              <button 
+                onClick={() => setIsAdditionsExpanded(!isAdditionsExpanded)}
+                className="text-xs text-[#737373] hover:text-[#424242] transition-colors cursor-pointer flex items-center gap-1"
+              >
+                {isAdditionsExpanded ? '隱藏後來的念頭' : `後來又想到 ${thought.additions.length} 筆`}
+                <span className="text-[10px] ml-1">{isAdditionsExpanded ? '▲' : '▼'}</span>
+              </button>
+              
+              <AnimatePresence>
+                {isAdditionsExpanded && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 overflow-hidden"
+                  >
+                    {thought.additions.map(add => (
+                      <div key={add.id} className="pl-3 border-l-2 border-[#E0E0E0] space-y-1 relative group">
+                        <button 
+                          onClick={() => onRemoveAddition(add.id)}
+                          className="absolute -right-2 top-0 p-1 opacity-0 group-hover:opacity-100 text-[#A3A3A3] hover:text-red-500 transition-all cursor-pointer"
+                          title="刪除這筆痕跡"
+                        >
+                          ✕
+                        </button>
+                        <div className="text-[10px] text-[#A3A3A3] font-mono">
+                          {new Date(add.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="text-sm font-light text-[#424242] whitespace-pre-wrap">{add.content}</div>
+                        {add.actionStep && (
+                          <div className="mt-1.5 p-2 bg-[#F8F7F5] rounded-lg text-xs">
+                            <span className="font-medium text-[#737373] mr-2">[{getDispositionLabel(add.actionStep.disposition)}]</span>
+                            <span className="text-[#5E5E5E]">{add.actionStep.text}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Add Addition Form */}
+          <div className="mt-4 pt-2">
+            {!isAdding ? (
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="text-xs text-[#A3A3A3] hover:text-[#5E5E5E] transition-colors cursor-pointer"
+              >
+                {UI_TEXT.addition.addBtn}
+              </button>
+            ) : (
+              <AdditionForm 
+                onSave={(addition) => {
+                  onAddAddition(addition);
+                  setIsAdding(false);
+                  setIsAdditionsExpanded(true);
+                }}
+                onCancel={() => setIsAdding(false)}
+              />
+            )}
+          </div>
 
         </div>
 

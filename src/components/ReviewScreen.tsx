@@ -16,10 +16,10 @@ interface ReviewScreenProps {
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSelect }) => {
   const { 
     activeThoughts, filter, setFilter, loading, 
-    handleDelete, handleUpdate, handleRelease 
+    handleDelete, handleUpdate, handleRelease, handleAddAddition, handleRemoveAddition
   } = useThoughts();
   
-  const { startNextStep, transition } = useFlow();
+  const { transition } = useFlow();
 
   const onDeleteClick = (id: string) => {
     triggerHaptic(25);
@@ -36,10 +36,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
     handleUpdate(t);
   };
 
-  const onNextStepClick = async (id: string) => {
-    triggerHaptic(20);
-    await startNextStep(id);
-  };
+
 
   if (loading) return null;
 
@@ -67,7 +64,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose, onActionSel
               onRelease={() => onReleaseClick(t.id)}
               onUpdate={onUpdateClick}
               onActionSelect={() => onActionSelect(t)}
-              onNextStep={() => onNextStepClick(t.id)}
+              onAddAddition={(addition) => handleAddAddition(t.id, addition)}
+              onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
             />
           ))
         )}

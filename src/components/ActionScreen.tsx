@@ -7,20 +7,16 @@ import { ActionDisposition } from '../types';
 interface ActionScreenProps {
   initialStep: string;
   thoughtContent?: string;
-  isEvolving?: boolean;
   onConfirm: (disposition: ActionDisposition, person?: string, scheduledAt?: string) => void;
   onBackToDeposit: () => void;
-  onCancelEvolve?: () => void;
   onStepChange: (text: string) => void;
 }
 
 export const ActionScreen: React.FC<ActionScreenProps> = ({ 
   initialStep, 
   thoughtContent,
-  isEvolving,
   onConfirm, 
   onBackToDeposit,
-  onCancelEvolve,
   onStepChange
 }) => {
   const [stepText, setStepText] = useState(initialStep);
@@ -118,23 +114,14 @@ export const ActionScreen: React.FC<ActionScreenProps> = ({
               ))}
             </div>
 
-            <div className="flex justify-center pt-4">
-              {isEvolving ? (
-                <button 
-                  onClick={onCancelEvolve}
-                  className="text-xs sm:text-sm text-[#A3A3A3] hover:text-[#424242] transition-colors cursor-pointer py-2 px-4"
-                >
-                  {UI_TEXT.action.buttons.cancelEvolve}
-                </button>
-              ) : (
+              <div className="flex justify-center pt-4">
                 <button 
                   onClick={onBackToDeposit}
                   className="text-xs sm:text-sm text-[#A3A3A3] hover:text-[#424242] transition-colors cursor-pointer py-2 px-4"
                 >
                   {UI_TEXT.action.buttons.backToDeposit}
                 </button>
-              )}
-            </div>
+              </div>
           </motion.div>
         ) : (
           <motion.div 
