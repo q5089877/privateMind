@@ -26,6 +26,10 @@ export interface ThoughtAddition {
   content: string;
   createdAt: number;
   actionStep?: ActionStep;
+  reflection?: {
+    feeling?: string;
+    reaction?: string;
+  };
 }
 
 export interface Thought {
@@ -37,6 +41,10 @@ export interface Thought {
   currentDisposition?: ThoughtDisposition;
   actionStep?: ActionStep;
   additions?: ThoughtAddition[];
+  reflection?: {
+    feeling?: string;
+    reaction?: string;
+  };
 }
 
 export interface IFlowActions {

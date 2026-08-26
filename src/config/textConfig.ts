@@ -100,6 +100,22 @@ export const UI_TEXT = {
     saveBtn: '記下了',
     cancelBtn: '取消'
   },
+  reprocess: {
+    btn: '重新處理',
+    title: '如果只往前一點，你想怎麼做？',
+    placeholder: '寫下現在做得到的一步……',
+    confirmBtn: '記下了',
+    cancelBtn: '取消'
+  },
+  deepening: {
+    btn: '再看看……',
+    hideBtn: '收起',
+    feelingTitle: '看看我現在的感受',
+    feelingPlaceholder: '身體或心情有什麼感覺？（自由填寫）',
+    reactionTitle: '看看我對這個感受的反應',
+    reactionPlaceholder: '我對這個感覺有什麼反應？（自由填寫）',
+    saveBtn: '留存'
+  },
   released: {
     title: '已放下',
     subtitle: '已經決定暫時不處理的念頭，\n留在這裡，不需要回來。',

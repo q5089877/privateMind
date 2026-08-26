@@ -26,7 +26,7 @@ const cardVariants = {
 };
 
 export const ReleasedScreen: React.FC = () => {
-  const { releasedThoughts, loading, handleDelete, handleAddAddition, handleRemoveAddition } = useThoughts();
+  const { releasedThoughts, loading, handleDelete, handleUpdate, handleAddAddition, handleRemoveAddition } = useThoughts();
   const { transition } = useFlow();
 
   const onDeleteClick = (id: string) => {
@@ -77,7 +77,7 @@ export const ReleasedScreen: React.FC = () => {
                   thought={t} 
                   onDelete={() => onDeleteClick(t.id)}
                   onRelease={() => {}}
-                  onUpdate={() => {}}
+                  onUpdate={(updated) => handleUpdate(updated)}
                   onAddAddition={(addition) => handleAddAddition(t.id, addition)}
                   onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
                 />
