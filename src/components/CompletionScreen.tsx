@@ -40,9 +40,11 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           {new Date(thought.createdAt || Date.now()).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
 
-        <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
-          {thought.isAwarenessRecord ? '（已記錄停靠時間）' : thought.content}
-        </div>
+        {!thought.isAwarenessRecord && thought.content && (
+          <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
+            {thought.content}
+          </div>
+        )}
 
         {thought.actionStep?.text && (
           <div className="p-3.5 bg-surface/80 rounded-xl border border-border-base space-y-1">

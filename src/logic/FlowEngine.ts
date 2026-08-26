@@ -70,6 +70,7 @@ export class FlowEngine {
 
     if (existing) {
       existing.awarenessTimestamps = [...(existing.awarenessTimestamps || []), now];
+      existing.createdAt = now;
       await this.storage.updateThought(existing);
       this.currentThought = existing;
     } else {
