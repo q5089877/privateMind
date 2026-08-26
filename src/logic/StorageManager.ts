@@ -1,12 +1,13 @@
 
 import { IStorageProvider } from './interfaces/IStorageProvider';
-import { Thought } from '../types';
+import { Thought, UnspokenEvent } from '../types';
 
 /**
  * OOP: 封裝 - 封裝瀏覽器 LocalStorage 的存取細節
  */
 export class LocalStorageManager implements IStorageProvider {
   private readonly THOUGHTS_KEY = 'thought_shunt_records';
+  private readonly UNSPOKEN_EVENTS_KEY = 'unspoken_events';
 
   async saveThought(thought: Thought): Promise<void> {
     const thoughts = await this.getThoughts();
@@ -42,7 +43,19 @@ export class LocalStorageManager implements IStorageProvider {
     }
   }
 
+  async saveUnspokenEvent(event: UnspokenEvent): Promise<void> {
+    const events = await this.getUnspokenEvents();
+    events.push(event);
+    localStorage.setItem(this.UNSPOKEN_EVENTS_KEY, JSON.stringify(events));
+  }
+
+  async getUnspokenEvents(): Promise<UnspokenEvent[]> {
+    const data = localStorage.getItem(this.UNSPOKEN_EVENTS_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
   private persistThoughts(thoughts: Thought[]): void {
     localStorage.setItem(this.THOUGHTS_KEY, JSON.stringify(thoughts));
   }
 }
+

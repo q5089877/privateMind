@@ -55,17 +55,9 @@ const App: React.FC = () => {
             thought={flow.thought}
             onReset={() => flow.finish()} 
             onReview={() => flow.transition('REVIEW')}
-            onAddAddition={async (addition) => {
-              if (flow.thought.id) {
-                const updated = {
-                  ...flow.thought as Thought,
-                  additions: [...(flow.thought.additions || []), addition]
-                };
-                await flow.updateThought(updated);
-              }
-            }}
           />
         );
+
 
       default:
         return <div>{flow.state}</div>;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Leaf, Trash2, X } from 'lucide-react';
+import { Leaf, Trash2 } from 'lucide-react';
 import { Thought, ThoughtAddition } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
@@ -51,9 +51,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const handleSaveReprocess = () => {
     if (!reprocessStepText.trim()) return;
     triggerHaptic('step');
+    const prevText = thought.actionStep?.text || '';
+    const newText = reprocessStepText.trim();
+    const existingRevisions = thought.actionStep?.revisions || [];
+    const updatedRevisions = prevText && prevText !== newText
+      ? [...existingRevisions, { text: prevText, updatedAt: Date.now() }]
+      : existingRevisions;
+
     onUpdate({
       ...thought,
-      actionStep: { text: reprocessStepText.trim() }
+      actionStep: {
+        text: newText,
+        revisions: updatedRevisions
+      }
     });
     setIsReprocessing(false);
   };
@@ -68,18 +78,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     });
   };
 
-  const handleRemoveTimestamp = (tsToRemove: number) => {
-    if (!thought.awarenessTimestamps) return;
-    const filtered = thought.awarenessTimestamps.filter(ts => ts !== tsToRemove);
-    if (filtered.length === 0) {
-      onDelete();
-    } else {
-      onUpdate({
-        ...thought,
-        awarenessTimestamps: filtered
-      });
-    }
-  };
 
   return (
     <motion.div 
@@ -136,10 +134,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             )}
           </div>
           
-          <ThoughtContent 
-            thought={thought} 
-            onRemoveTimestamp={handleRemoveTimestamp}
-          />
+          <div className="text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+            {thought.content}
+          </div>
+
 
           {/* 既有行動步驟與「重新處理」 */}
           {thought.actionStep?.text && (
@@ -373,48 +371,3 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   );
 };
 
-const ThoughtContent: React.FC<{ 
-  thought: Thought; 
-  onRemoveTimestamp: (ts: number) => void; 
-}> = ({ thought, onRemoveTimestamp }) => {
-  if (thought.isAwarenessRecord) {
-    const timestamps = thought.awarenessTimestamps || [];
-    return (
-      <div className="space-y-2 py-1">
-        <div className="text-sm font-medium text-ink-secondary">
-          {UI_TEXT.review.card.awarenessTitle}
-        </div>
-        <div className="flex flex-wrap gap-2 pt-1">
-          {timestamps.map(ts => (
-            <span 
-              key={ts} 
-              className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-surface-subtle text-ink-secondary rounded-lg border border-border-subtle group"
-            >
-              <span>
-                {new Date(ts).toLocaleString('zh-TW', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </span>
-              <button 
-                onClick={() => onRemoveTimestamp(ts)} 
-                className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity cursor-pointer ml-0.5"
-                title="移除此時間戳"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
-      {thought.content}
-    </div>
-  );
-};

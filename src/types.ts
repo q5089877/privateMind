@@ -8,8 +8,14 @@ export type FlowState =
 
 export type ThoughtDisposition = 'DEPOSIT' | 'ACTION' | 'RELEASE';
 
+export interface ActionRevision {
+  text: string;
+  updatedAt: number;
+}
+
 export interface ActionStep {
   text: string;
+  revisions?: ActionRevision[];
 }
 
 export interface ThoughtAddition {
@@ -30,7 +36,11 @@ export interface Thought {
     reaction?: string;
   };
   isAwarenessRecord?: boolean;
-  awarenessTimestamps?: number[];
+}
+
+export interface UnspokenEvent {
+  id: string;
+  timestamp: number;
 }
 
 export interface IFlowActions {

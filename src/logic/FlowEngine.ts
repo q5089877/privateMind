@@ -64,30 +64,20 @@ export class FlowEngine {
   }
 
   public async handleAwareness() {
-    const thoughts = await this.storage.getThoughts();
-    const existing = thoughts.find(t => t.isAwarenessRecord);
     const now = Date.now();
+    const eventId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `unspoken-${now}-${Math.random().toString(36).slice(2, 11)}`;
 
-    if (existing) {
-      existing.awarenessTimestamps = [...(existing.awarenessTimestamps || []), now];
-      existing.createdAt = now;
-      await this.storage.updateThought(existing);
-      this.currentThought = existing;
-    } else {
-      const newRecord: Thought = {
-        id: typeof crypto !== 'undefined' && crypto.randomUUID 
-          ? crypto.randomUUID() 
-          : `awareness-${now}`,
-        content: '',
-        createdAt: now,
-        currentDisposition: 'DEPOSIT',
-        isAwarenessRecord: true,
-        awarenessTimestamps: [now],
-        additions: []
-      };
-      await this.storage.saveThought(newRecord);
-      this.currentThought = newRecord;
-    }
+    await this.storage.saveUnspokenEvent({
+      id: eventId,
+      timestamp: now
+    });
+
+    this.currentThought = {
+      isAwarenessRecord: true,
+      createdAt: now
+    };
 
     this.state = 'COMPLETED';
   }
@@ -102,7 +92,7 @@ export class FlowEngine {
 
   public submitActionStep(text: string) {
     const finalText = text.trim() || this.currentContent;
-    this.currentThought.actionStep = { text: finalText };
+    this.currentThought.actionStep = { text: finalText, revisions: [] };
     this.saveFinalThought('ACTION');
   }
 
@@ -140,7 +130,8 @@ export class FlowEngine {
   }
 
   public async getAllThoughts(): Promise<Thought[]> {
-    return await this.storage.getThoughts();
+    const thoughts = await this.storage.getThoughts();
+    return thoughts.filter(t => !t.isAwarenessRecord && t.content?.trim());
   }
 
   public async deleteThought(id: string) {
