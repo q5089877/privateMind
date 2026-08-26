@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Leaf } from 'lucide-react';
+import { Leaf, Trash2 } from 'lucide-react';
 import { Thought, ThoughtAddition } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { AdditionForm } from './AdditionForm';
@@ -212,24 +212,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             </div>
           )}
 
-          {isReleased && (
-            <div className="mt-4 pt-4 border-t border-border-subtle space-y-3">
-              <p className="text-sm text-ink-muted font-light text-center">{UI_TEXT.review.card.releasedSubtitle}</p>
-              
-              <div className="flex justify-center gap-3">
-                <button 
-                  onClick={() => setConfirmType('DELETE')} 
-                  className="px-4 py-1 text-xs rounded-full bg-surface text-ink-muted hover:text-red-600 hover:bg-red-50/50 transition-colors cursor-pointer"
-                >
-                  {UI_TEXT.review.card.deleteBtn}
-                </button>
-              </div>
 
-              {retentionText && (
-                <p className="text-xs text-ink-muted text-center font-light">{retentionText}</p>
-              )}
-            </div>
-          )}
 
           {/* Additions List */}
           {thought.additions && thought.additions.length > 0 && (
@@ -402,7 +385,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
         </div>
 
-        <div className="flex flex-col gap-2 pt-1">
+        <div className="flex flex-col gap-1.5 pt-1 items-center">
           {!isReleased ? (
             <button 
               onClick={(e) => {
@@ -415,12 +398,24 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               <Leaf size={18} />
             </button>
           ) : (
-            <div 
-              className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/40 rounded-lg" 
-              title="放下了。"
-            >
-              <Leaf size={18} />
-            </div>
+            <>
+              <div 
+                className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/30 rounded-lg" 
+                title="放下了。"
+              >
+                <Leaf size={18} />
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmType('DELETE');
+                }}
+                className="p-1.5 w-7 h-7 flex items-center justify-center text-ink-muted/40 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
+                title={UI_TEXT.review.card.deleteBtn}
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
           )}
         </div>
       </div>
