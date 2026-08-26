@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Leaf, Trash2 } from 'lucide-react';
+import { Leaf, Trash2, X } from 'lucide-react';
 import { Thought, ThoughtAddition } from '../types';
 import { UI_TEXT } from '../config/textConfig';
+import { triggerHaptic } from '../utils/haptics';
 import { AdditionForm } from './AdditionForm';
 
 interface ThoughtCardProps {
@@ -17,7 +18,7 @@ interface ThoughtCardProps {
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({ 
   thought, 
   onDelete, 
-  onRelease,
+  onRelease, 
   onUpdate,
   onAddAddition,
   onRemoveAddition
@@ -26,11 +27,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [isAdditionsExpanded, setIsAdditionsExpanded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   
-  // 重新處理 (Re-process) 狀態
+  // 重新處理 (Re-process) 狀態 - 僅限原始行動步驟
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [reprocessStepText, setReprocessStepText] = useState(thought.actionStep?.text || '');
-  const [reprocessingAdditionId, setReprocessingAdditionId] = useState<string | null>(null);
-  const [reprocessAdditionText, setReprocessAdditionText] = useState('');
 
   // 再看看 (Deepening Tool) 狀態
   const [isDeepeningOpen, setIsDeepeningOpen] = useState(false);
@@ -59,19 +58,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     setIsReprocessing(false);
   };
 
-  const handleSaveAdditionReprocess = (additionId: string) => {
-    if (!reprocessAdditionText.trim() || !thought.additions) return;
-    triggerHaptic('step');
-    const updatedAdditions = thought.additions.map(a => 
-      a.id === additionId ? { ...a, actionStep: { text: reprocessAdditionText.trim() } } : a
-    );
-    onUpdate({
-      ...thought,
-      additions: updatedAdditions
-    });
-    setReprocessingAdditionId(null);
-  };
-
   const handleSaveReflection = (newFeeling: string, newReaction: string) => {
     onUpdate({
       ...thought,
@@ -82,11 +68,18 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     });
   };
 
-  let retentionText = '';
-  if (thought.retentionUntil) {
-    const d = new Date(thought.retentionUntil);
-    retentionText = `${UI_TEXT.review.card.retentionPrefix}${d.getMonth() + 1} 月 ${d.getDate()} 日`;
-  }
+  const handleRemoveTimestamp = (tsToRemove: number) => {
+    if (!thought.awarenessTimestamps) return;
+    const filtered = thought.awarenessTimestamps.filter(ts => ts !== tsToRemove);
+    if (filtered.length === 0) {
+      onDelete();
+    } else {
+      onUpdate({
+        ...thought,
+        awarenessTimestamps: filtered
+      });
+    }
+  };
 
   return (
     <motion.div 
@@ -138,12 +131,15 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <span>{new Date(thought.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             {isReleased && (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface text-ink-muted border border-border-subtle font-sans">
-                放下了。
+                {UI_TEXT.review.card.releasedBadge}
               </span>
             )}
           </div>
           
-          <ThoughtContent thought={thought} />
+          <ThoughtContent 
+            thought={thought} 
+            onRemoveTimestamp={handleRemoveTimestamp}
+          />
 
           {/* 既有行動步驟與「重新處理」 */}
           {thought.actionStep?.text && (
@@ -212,9 +208,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             </div>
           )}
 
-
-
-          {/* Additions List */}
+          {/* Additions List (純時間痕跡，無子任務) */}
           {thought.additions && thought.additions.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border-subtle space-y-3">
               <button 
@@ -246,52 +240,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                           {new Date(add.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="text-sm font-light text-ink whitespace-pre-wrap">{add.content}</div>
-                        
-                        {/* Addition 的下一步及重新處理 */}
-                        {add.actionStep?.text && (
-                          <div className="mt-1 p-2.5 bg-surface-subtle rounded-lg text-xs space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-ink-muted font-medium">下一步：{add.actionStep.text}</span>
-                              {reprocessingAdditionId !== add.id && !isReleased && (
-                                <button
-                                  onClick={() => {
-                                    setReprocessAdditionText(add.actionStep?.text || '');
-                                    setReprocessingAdditionId(add.id);
-                                  }}
-                                  className="text-[10px] text-ink-muted hover:text-ink transition-colors cursor-pointer"
-                                >
-                                  {UI_TEXT.reprocess.btn}
-                                </button>
-                              )}
-                            </div>
-                            {reprocessingAdditionId === add.id && (
-                              <div className="space-y-2 pt-1">
-                                <input
-                                  type="text"
-                                  autoFocus
-                                  value={reprocessAdditionText}
-                                  onChange={(e) => setReprocessAdditionText(e.target.value)}
-                                  placeholder={UI_TEXT.reprocess.placeholder}
-                                  className="w-full bg-surface border border-border-base rounded p-1.5 text-xs text-ink outline-none"
-                                />
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    onClick={() => setReprocessingAdditionId(null)}
-                                    className="text-[10px] text-ink-muted hover:text-ink cursor-pointer"
-                                  >
-                                    {UI_TEXT.reprocess.cancelBtn}
-                                  </button>
-                                  <button
-                                    onClick={() => handleSaveAdditionReprocess(add.id)}
-                                    className="px-2.5 py-0.5 text-[10px] rounded-full bg-accent text-accent-text hover:bg-accent-hover cursor-pointer"
-                                  >
-                                    {UI_TEXT.reprocess.confirmBtn}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </motion.div>
@@ -302,7 +250,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
           {/* 可選深化工具「再看看」展開介面 */}
           <AnimatePresence>
-            {isDeepeningOpen && (
+            {isDeepeningOpen && !thought.isAwarenessRecord && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -351,37 +299,39 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </AnimatePresence>
 
           {/* 底部操作區：後來又想到 & 再看看 */}
-          <div className="mt-4 pt-2 flex items-center justify-between">
-            {!isAdding ? (
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setIsAdding(true)}
-                  className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
-                >
-                  {UI_TEXT.addition.addBtn}
-                </button>
-                {!isDeepeningOpen && !isReleased && (
-                  <button
-                    onClick={() => setIsDeepeningOpen(true)}
+          {!thought.isAwarenessRecord && (
+            <div className="mt-4 pt-2 flex items-center justify-between">
+              {!isAdding ? (
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setIsAdding(true)}
                     className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
                   >
-                    {UI_TEXT.deepening.btn}
+                    {UI_TEXT.addition.addBtn}
                   </button>
-                )}
-              </div>
-            ) : (
-              <div className="w-full">
-                <AdditionForm 
-                  onSave={(addition) => {
-                    onAddAddition(addition);
-                    setIsAdding(false);
-                    setIsAdditionsExpanded(true);
-                  }}
-                  onCancel={() => setIsAdding(false)}
-                />
-              </div>
-            )}
-          </div>
+                  {!isDeepeningOpen && !isReleased && (
+                    <button
+                      onClick={() => setIsDeepeningOpen(true)}
+                      className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
+                    >
+                      {UI_TEXT.deepening.btn}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full">
+                  <AdditionForm 
+                    onSave={(addition) => {
+                      onAddAddition(addition);
+                      setIsAdding(false);
+                      setIsAdditionsExpanded(true);
+                    }}
+                    onCancel={() => setIsAdding(false)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
 
@@ -401,15 +351,15 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <>
               <div 
                 className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/30 rounded-lg" 
-                title="放下了。"
+                title={UI_TEXT.review.card.releasedBadge}
               >
                 <Leaf size={18} />
               </div>
-              <button
+              <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setConfirmType('DELETE');
-                }}
+                }} 
                 className="p-1.5 w-7 h-7 flex items-center justify-center text-ink-muted/40 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
                 title={UI_TEXT.review.card.deleteBtn}
               >
@@ -423,9 +373,43 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   );
 };
 
-const ThoughtContent: React.FC<{ thought: Thought }> = ({ thought }) => {
-  if (thought.awarenessOnly) {
-    return <div className="text-ink-secondary italic font-light">{UI_TEXT.review.card.awareness}</div>;
+const ThoughtContent: React.FC<{ 
+  thought: Thought; 
+  onRemoveTimestamp: (ts: number) => void; 
+}> = ({ thought, onRemoveTimestamp }) => {
+  if (thought.isAwarenessRecord) {
+    const timestamps = thought.awarenessTimestamps || [];
+    return (
+      <div className="space-y-2 py-1">
+        <div className="text-sm font-medium text-ink-secondary">
+          {UI_TEXT.review.card.awarenessTitle}
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {timestamps.map(ts => (
+            <span 
+              key={ts} 
+              className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-surface-subtle text-ink-secondary rounded-lg border border-border-subtle group"
+            >
+              <span>
+                {new Date(ts).toLocaleString('zh-TW', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </span>
+              <button 
+                onClick={() => onRemoveTimestamp(ts)} 
+                className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity cursor-pointer ml-0.5"
+                title="移除此時間戳"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

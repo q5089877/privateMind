@@ -1,16 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Thought } from '../types';
+import { Thought, ThoughtAddition } from '../types';
 import { useFlow } from './useFlow';
 
-export type ReviewFilter = 'ALL' | 'ACTION' | 'DEPOSIT' | 'RELEASED';
-
 /**
- * SRP: 此 Hook 專注於「重新遇見」頁面的資料流與過濾邏輯
+ * SRP: 此 Hook 專注於「重新遇見」頁面的資料流
  */
 export function useThoughts() {
   const { getAllThoughts, deleteThought, updateThought, releaseThought } = useFlow();
   const [thoughts, setThoughts] = useState<Thought[]>([]);
-  const [filter, setFilter] = useState<ReviewFilter>('ALL');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,29 +19,9 @@ export function useThoughts() {
     fetch();
   }, []);
 
-  const activeThoughts = useMemo(() => {
-    return thoughts.filter(t => 
-      t.currentDisposition !== 'RELEASE' && t.actionStep?.disposition !== 'NOT_PROCESS'
-    ).sort((a, b) => b.createdAt - a.createdAt);
-  }, [thoughts]);
-
-  const releasedThoughts = useMemo(() => {
-    return thoughts.filter(t => 
-      t.currentDisposition === 'RELEASE' || t.actionStep?.disposition === 'NOT_PROCESS'
-    ).sort((a, b) => b.createdAt - a.createdAt);
-  }, [thoughts]);
-
   const displayedThoughts = useMemo(() => {
-    return thoughts.filter(t => {
-      const isReleased = t.currentDisposition === 'RELEASE' || t.actionStep?.disposition === 'NOT_PROCESS';
-      
-      if (filter === 'ACTION') return t.currentDisposition === 'ACTION' && !isReleased;
-      if (filter === 'DEPOSIT') return (t.currentDisposition === 'DEPOSIT' || t.awarenessOnly) && !isReleased;
-      if (filter === 'RELEASED') return isReleased;
-      // ALL: 保留所有念頭，已放下的念頭以鬆手（Unclenched）靜默態呈現
-      return true;
-    }).sort((a, b) => b.createdAt - a.createdAt);
-  }, [thoughts, filter]);
+    return [...thoughts].sort((a, b) => b.createdAt - a.createdAt);
+  }, [thoughts]);
 
   const handleDelete = async (id: string) => {
     setThoughts(prev => prev.filter(t => t.id !== id));
@@ -61,7 +38,7 @@ export function useThoughts() {
     await releaseThought(id);
   };
 
-  const handleAddAddition = async (thoughtId: string, addition: import('../types').ThoughtAddition) => {
+  const handleAddAddition = async (thoughtId: string, addition: ThoughtAddition) => {
     setThoughts(prev => {
       const newThoughts = [...prev];
       const index = newThoughts.findIndex(t => t.id === thoughtId);
@@ -69,7 +46,7 @@ export function useThoughts() {
         const updatedThought = { ...newThoughts[index] };
         updatedThought.additions = [...(updatedThought.additions || []), addition];
         newThoughts[index] = updatedThought;
-        updateThought(updatedThought); // Async fire-and-forget to storage
+        updateThought(updatedThought);
       }
       return newThoughts;
     });
@@ -84,7 +61,7 @@ export function useThoughts() {
         if (updatedThought.additions) {
           updatedThought.additions = updatedThought.additions.filter(a => a.id !== additionId);
           newThoughts[index] = updatedThought;
-          updateThought(updatedThought); // Async fire-and-forget to storage
+          updateThought(updatedThought);
         }
       }
       return newThoughts;
@@ -92,11 +69,7 @@ export function useThoughts() {
   };
 
   return {
-    activeThoughts,
-    releasedThoughts,
     displayedThoughts,
-    filter,
-    setFilter,
     loading,
     handleDelete,
     handleUpdate,

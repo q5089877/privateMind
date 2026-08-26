@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, Thought, AppSettings, RetentionSetting } from '../types';
+import { FlowState, Thought } from '../types';
 
 /**
  * SRP: 此 Hook 僅負責 React 狀態與 FlowEngine 實例的同步
@@ -23,10 +23,8 @@ export function useFlow() {
     state,
     content,
     thought: engine.getThought(),
-    settings: engine.getSettings(),
     
     // Actions
-    setup: (retention: RetentionSetting) => { engine.setInitialSettings(retention); sync(); },
     startInput: () => { engine.startInput(); sync(); },
     submit: (val: string) => { engine.submitInput(val); sync(); },
     handleAwareness: () => { engine.handleAwareness(); sync(); },
@@ -41,7 +39,6 @@ export function useFlow() {
     transition: (s: FlowState) => { engine.transition(s); sync(); },
     getAllThoughts: () => engine.getAllThoughts(),
     deleteThought: (id: string) => { engine.deleteThought(id); sync(); },
-    updateThought: (t: Thought) => { engine.updateThought(t); sync(); },
-    saveSettings: (s: Partial<AppSettings>) => { engine.saveSettings(s); sync(); }
+    updateThought: (t: Thought) => { engine.updateThought(t); sync(); }
   };
 }

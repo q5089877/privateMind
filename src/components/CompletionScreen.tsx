@@ -19,7 +19,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
 }) => {
   const [isAdding, setIsAdding] = useState(false);
 
-  const isDeposit = thought.currentDisposition === 'DEPOSIT' || thought.awarenessOnly;
+  const isDeposit = thought.currentDisposition === 'DEPOSIT' || thought.isAwarenessRecord;
   const ceremonyText = isDeposit ? UI_TEXT.completion.ceremony.deposit : UI_TEXT.completion.ceremony.action;
 
   return (
@@ -31,7 +31,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </p>
       </div>
 
-      {/* 已原地安放落座的念頭卡片（與沉降後位置高度完全一致，0px 跳動） */}
+      {/* 已原地安放落座的念頭卡片 */}
       <div 
         style={{ transform: 'translateY(36px)' }}
         className="w-full p-6 sm:p-7 rounded-2xl bg-surface-subtle border border-border-base shadow-sm text-left space-y-4 will-change-transform"
@@ -41,7 +41,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </div>
 
         <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
-          {thought.awarenessOnly ? UI_TEXT.review.card.awareness : thought.content}
+          {thought.isAwarenessRecord ? '（已記錄停靠時間）' : thought.content}
         </div>
 
         {thought.actionStep?.text && (
@@ -61,11 +61,6 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
               {thought.additions.map(add => (
                 <div key={add.id} className="pl-3 border-l-2 border-border-base text-sm text-ink-secondary space-y-1">
                   <div>{add.content}</div>
-                  {add.actionStep?.text && (
-                    <div className="text-xs text-ink-secondary bg-surface/80 p-1.5 rounded">
-                      下一步：{add.actionStep.text}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -96,7 +91,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         style={{ transform: 'translateY(36px)' }}
         className="w-full flex flex-col items-center gap-3 pt-2"
       >
-        {!isAdding && (
+        {!isAdding && !thought.isAwarenessRecord && (
           <button 
             type="button"
             onClick={() => setIsAdding(true)}

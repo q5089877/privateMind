@@ -4,9 +4,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { ShuntScreen } from './components/ShuntScreen';
 import { ActionScreen } from './components/ActionScreen';
 import { ReviewScreen } from './components/ReviewScreen';
-import { ReleasedScreen } from './components/ReleasedScreen';
 import { CompletionScreen } from './components/CompletionScreen';
-import { SettingsSetup } from './components/SettingsSetup';
 import { useFlow } from './hooks/useFlow';
 import { Thought } from './types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,9 +14,6 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (flow.state) {
-      case 'SETTINGS_SETUP':
-        return <SettingsSetup onConfirm={(s) => flow.setup(s)} />;
-      
       case 'HOME':
       case 'INPUTTING':
         return (
@@ -35,9 +30,6 @@ const App: React.FC = () => {
             onClose={() => flow.finish()}
           />
         );
-
-      case 'RELEASED_VIEW':
-        return <ReleasedScreen />;
 
       case 'SHUNTTING':
         return (
@@ -83,8 +75,6 @@ const App: React.FC = () => {
   const getAnimationKey = (state: string) => {
     if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
     if (state === 'REVIEW') return 'REVIEW';
-    if (state === 'RELEASED_VIEW') return 'RELEASED';
-    if (state === 'SETTINGS_SETUP') return 'SETUP';
     return 'ACTIVE_FLOW';
   };
 
