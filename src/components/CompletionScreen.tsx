@@ -1,19 +1,25 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { UI_TEXT } from '../config/textConfig';
-import { Thought } from '../types';
+import { Thought, ThoughtAddition } from '../types';
+import { AdditionForm } from './AdditionForm';
 
 interface CompletionScreenProps {
   thought: Partial<Thought>;
   onReset: () => void;
+  onAddAddition?: (addition: ThoughtAddition) => void;
 }
 
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({ 
   thought, 
-  onReset
+  onReset,
+  onAddAddition
 }) => {
-  const isDeposit = thought.currentDisposition === 'DEPOSIT' || thought.isAwarenessRecord;
-  const ceremonyText = isDeposit ? UI_TEXT.completion.ceremony.deposit : UI_TEXT.completion.ceremony.action;
+  const [isAdding, setIsAdding] = useState(false);
+
+  const ceremonyText = thought.isAwarenessRecord
+    ? UI_TEXT.completion.ceremony.unspoken
+    : UI_TEXT.completion.ceremony.deposit;
 
   return (
     <div className="w-full max-w-lg space-y-6 sm:space-y-8 flex flex-col items-center text-center">
@@ -24,7 +30,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </p>
       </div>
 
-      {/* 已原地安放落座的念頭卡片（若有無文字事件，只顯示安靜空間） */}
+      {/* 已原地安放落座的念頭卡片（若為無文字事件，只顯示安靜空間） */}
       {!thought.isAwarenessRecord && thought.content && (
         <div 
           style={{ transform: 'translateY(36px)' }}
@@ -60,17 +66,42 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
               </div>
             </div>
           )}
+
+          {/* 停靠時可直接繼續說 */}
+          <AnimatePresence>
+            {isAdding && onAddAddition && (
+              <div className="pt-2">
+                <AdditionForm 
+                  onSave={(addition) => {
+                    onAddAddition(addition);
+                    setIsAdding(false);
+                  }}
+                  onCancel={() => setIsAdding(false)}
+                />
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
-      {/* 底部安靜出口 */}
+      {/* 底部出口（到這裡就好 / 繼續說） */}
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.8 }}
         style={{ transform: thought.isAwarenessRecord ? 'translateY(0px)' : 'translateY(36px)' }}
-        className="w-full flex justify-center pt-2"
+        className="w-full flex flex-col items-center gap-3 pt-2"
       >
+        {!isAdding && !thought.isAwarenessRecord && onAddAddition && (
+          <button 
+            type="button"
+            onClick={() => setIsAdding(true)}
+            className="text-sm sm:text-base text-ink hover:text-ink-primary font-light py-2 px-5 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98"
+          >
+            {UI_TEXT.completion.exits.addAddition}
+          </button>
+        )}
+
         <button 
           type="button"
           onClick={onReset}
@@ -82,5 +113,6 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
     </div>
   );
 };
+
 
 

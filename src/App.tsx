@@ -54,8 +54,18 @@ const App: React.FC = () => {
           <CompletionScreen 
             thought={flow.thought}
             onReset={() => flow.finish()} 
+            onAddAddition={async (addition) => {
+              if (flow.thought.id) {
+                const updated = {
+                  ...flow.thought as Thought,
+                  additions: [...(flow.thought.additions || []), addition]
+                };
+                await flow.updateThought(updated);
+              }
+            }}
           />
         );
+
 
 
 

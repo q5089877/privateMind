@@ -1,7 +1,7 @@
 export const UI_TEXT = {
   home: {
-    title: '此刻，腦中有什麼？',
-    inputPlaceholder: '寫下一點就好……',
+    title: '我想說點什麼？',
+    inputPlaceholder: '寫下一句就好……',
     quickOptions: [
       '腦袋一直轉不停',
       '心裡慌慌的',
@@ -9,18 +9,18 @@ export const UI_TEXT = {
       '單純覺得好累'
     ],
     sayNothing: '我現在說不上來',
-    reviewPast: '重新遇見',
-    submit: '繼續'
+    reviewPast: '回來看看',
+    submit: '留在這裡'
   },
   shunt: {
     title: '你想怎麼對待它？',
     deposit: {
-      label: '先放著',
-      desc: '現在不用處理它。'
+      label: '先留在這裡',
+      desc: '現在不用急著做什麼。'
     },
     action: {
-      label: '帶走一小步',
-      desc: '如果只往前一點，只做現在做得到的一步。'
+      label: '如果想往前一點',
+      desc: '只寫下現在做得到的一小步。'
     }
   },
   action: {
@@ -29,54 +29,54 @@ export const UI_TEXT = {
     title: '如果只往前一點，你想怎麼做？',
     whatNextPlaceholder: '寫下現在做得到的一步……',
     buttons: {
-      backToDeposit: '先放著就好',
+      backToDeposit: '先留在這裡就好',
       confirm: '記下這一步'
     }
   },
   completion: {
     ceremony: {
-      deposit: '好，先放在這裡。',
-      action: '好，先放在這裡。'
+      deposit: '好，先留在這裡。',
+      action: '好，先留在這裡。',
+      unspoken: '沒關係，不用現在想清楚。'
     },
     exits: {
-      backHome: '返回首頁'
+      addAddition: '＋ 繼續說……',
+      backHome: '到這裡就好'
     }
   },
-
   review: {
-    title: '重新遇見',
-    subtitle: '重新遇見曾經停靠過的念頭。',
-    emptyState: '還沒有任何內容',
+    title: '回來看看',
+    subtitle: '以前跟自己說過的話。如果又想到什麼，可以接著說。',
+    emptyState: '還沒有留下任何話',
     card: {
       sourcePrefix: '「',
       sourceSuffix: '」',
-      awarenessTitle: '停靠紀錄',
-      confirmReleaseTitle: '準備好放下這個念頭了嗎？',
+      confirmReleaseTitle: '這段話可以放下了嗎？',
       confirmDeleteTitle: '要從裝置上永久刪除這筆紀錄嗎？',
       keepBtn: '取消',
-      releaseBtn: '不再處理',
+      releaseBtn: '放下了',
       deleteBtn: '確認刪除',
       releasedBadge: '放下了。'
     }
   },
   addition: {
-    addBtn: '＋ 後來又想到……',
-    inputPlaceholder: '寫下後來的念頭……',
-    saveBtn: '記下了',
+    addBtn: '＋ 接著說……',
+    inputPlaceholder: '寫下後來想到的話……',
+    saveBtn: '留在這裡',
     cancelBtn: '取消'
   },
   reprocess: {
-    btn: '重新處理',
+    btn: '重新描述一步',
     title: '如果只往前一點，你想怎麼做？',
     placeholder: '寫下現在做得到的一步……',
-    confirmBtn: '記下了',
+    confirmBtn: '更新這一步',
     cancelBtn: '取消'
   },
   deepening: {
     btn: '再看看……',
     hideBtn: '收起',
     feelingTitle: '看看我現在的感受',
-    feelingPlaceholder: '身體或心情有什麼感覺？（自由填寫）',
+    feelingPlaceholder: '身體或心裡有什麼感覺？（自由填寫）',
     reactionTitle: '看看我對這個感受的反應',
     reactionPlaceholder: '我對這個感覺有什麼反應？（自由填寫）',
     saveBtn: '留存'
@@ -107,3 +107,4 @@ export const UI_TEXT = {
     }
   }
 };
+
