@@ -1,6 +1,6 @@
 export const UI_TEXT = {
   home: {
-    title: '我想說點什麼？',
+    title: '此刻，你想說什麼？',
     inputPlaceholder: '寫下一句就好……',
     quickOptions: [
       '腦袋一直轉不停',
@@ -12,35 +12,13 @@ export const UI_TEXT = {
     reviewPast: '回來看看',
     submit: '留在這裡'
   },
-  shunt: {
-    title: '你想怎麼對待它？',
-    deposit: {
-      label: '先留在這裡',
-      desc: '現在不用急著做什麼。'
-    },
-    action: {
-      label: '如果想往前一點',
-      desc: '只寫下現在做得到的一小步。'
-    }
-  },
-  action: {
-    contextPrefix: '關於「',
-    contextSuffix: '」',
-    title: '如果只往前一點，你想怎麼做？',
-    whatNextPlaceholder: '寫下現在做得到的一步……',
-    buttons: {
-      backToDeposit: '先留在這裡就好',
-      confirm: '記下這一步'
-    }
-  },
   completion: {
     ceremony: {
       deposit: '好，先留在這裡。',
-      action: '好，先留在這裡。',
       unspoken: '沒關係，不用現在想清楚。'
     },
     exits: {
-      addAddition: '＋ 繼續說……',
+      addAddition: '＋ 接著說……',
       backHome: '到這裡就好'
     }
   },
@@ -49,8 +27,6 @@ export const UI_TEXT = {
     subtitle: '以前跟自己說過的話。如果又想到什麼，可以接著說。',
     emptyState: '還沒有留下任何話',
     card: {
-      sourcePrefix: '「',
-      sourceSuffix: '」',
       confirmReleaseTitle: '這段話可以放下了嗎？',
       confirmDeleteTitle: '要從裝置上永久刪除這筆紀錄嗎？',
       keepBtn: '取消',
@@ -65,6 +41,7 @@ export const UI_TEXT = {
     saveBtn: '留在這裡',
     cancelBtn: '取消'
   },
+
   reprocess: {
     btn: '重新描述一步',
     title: '如果只往前一點，你想怎麼做？',
