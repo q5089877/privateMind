@@ -6,12 +6,12 @@ export const UI_TEXT = {
     instruction: '你希望寫下的內容保留多久？',
     options: {
       days7: { label: '保留 7 天', desc: '適合暫時放著的內容' },
-      days30: { label: '保留 30 天', desc: '方便之後回望' },
+      days30: { label: '保留 30 天', desc: '方便之後重新遇見' },
       days90: { label: '保留 90 天', desc: '留給之後的自己' },
       permanent: { label: '永久保留', desc: '想一直留著的內容' },
       awareness: { label: '只留覺察時間', desc: '不保留文字，只記下這次來過' },
     },
-    footerNote: '資料只存在你的裝置上。你可以在「回望」中修改個別期限。'
+    footerNote: '資料只存在你的裝置上。你可以在「重新遇見」中修改個別期限。'
   },
   home: {
     title: '此刻，腦中有什麼？',
@@ -23,7 +23,7 @@ export const UI_TEXT = {
       '單純覺得好累'
     ],
     sayNothing: '我現在說不上來',
-    reviewPast: '回望',
+    reviewPast: '重新遇見',
     submit: '繼續'
   },
   shunt: {
@@ -49,8 +49,8 @@ export const UI_TEXT = {
   },
   completion: {
     ceremony: {
-      awareness: '看見了。',
-      deposit: '看見了。',
+      awareness: '好，先放這裡。',
+      deposit: '好，先放這裡。',
       action: '記下了。'
     },
     retention: {
@@ -66,8 +66,8 @@ export const UI_TEXT = {
     }
   },
   review: {
-    title: '回望',
-    subtitle: '讓暫時不用處理的念頭，離開注意力。',
+    title: '重新遇見',
+    subtitle: '重新遇見曾經停靠過的念頭。',
     emptyState: '還沒有任何內容',
     filters: {
       ALL: '全部',

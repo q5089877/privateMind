@@ -5,7 +5,7 @@ import { useFlow } from './useFlow';
 export type ReviewFilter = 'ALL' | 'ACTION' | 'DEPOSIT' | 'RELEASED';
 
 /**
- * SRP: 此 Hook 專注於回望頁面的資料流與過濾邏輯
+ * SRP: 此 Hook 專注於「重新遇見」頁面的資料流與過濾邏輯
  */
 export function useThoughts() {
   const { getAllThoughts, deleteThought, updateThought, releaseThought } = useFlow();

@@ -36,7 +36,7 @@ export const ShuntScreen: React.FC<ShuntScreenProps> = ({
 
   return (
     <div className="w-full max-w-lg space-y-6 sm:space-y-8 flex flex-col items-center text-center">
-      {/* 標題區（點擊先放著時，柔和變為「看見了。」） */}
+      {/* 標題區（點擊先放著時，柔和變為「好，先放這裡。」） */}
       <div className="min-h-[40px] flex items-center justify-center">
         <motion.p
           key={isDepositing ? 'settled' : 'question'}
