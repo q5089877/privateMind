@@ -30,20 +30,19 @@ export const UI_TEXT = {
     whatNextPlaceholder: '寫下現在做得到的一步……',
     buttons: {
       backToDeposit: '先放著就好',
-      confirm: '記下了'
+      confirm: '記下這一步'
     }
   },
   completion: {
     ceremony: {
       deposit: '好，先放在這裡。',
-      action: '記下了。'
+      action: '好，先放在這裡。'
     },
     exits: {
-      addAddition: '＋ 後來又想到……',
-      reviewPast: '回來看看',
       backHome: '返回首頁'
     }
   },
+
   review: {
     title: '重新遇見',
     subtitle: '重新遇見曾經停靠過的念頭。',
