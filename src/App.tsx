@@ -54,9 +54,9 @@ const App: React.FC = () => {
           <CompletionScreen 
             thought={flow.thought}
             onReset={() => flow.finish()} 
-            onReview={() => flow.transition('REVIEW')}
           />
         );
+
 
 
       default:

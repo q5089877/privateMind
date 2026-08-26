@@ -20,8 +20,7 @@ flowchart TD
     DEPOSIT_END --> COMPLETED
     ACTION_END --> COMPLETED
 
-    %% 停靠後出口
-    COMPLETED -. "回來看看" .-> REVIEW
+    %% 停靠後唯一出口（離開）
     COMPLETED -. "返回首頁 / 離開" .-> HOME
 
     %% 重新遇見 (REVIEW) 與卡片互動模組

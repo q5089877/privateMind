@@ -6,13 +6,11 @@ import { Thought } from '../types';
 interface CompletionScreenProps {
   thought: Partial<Thought>;
   onReset: () => void;
-  onReview: () => void;
 }
 
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({ 
   thought, 
-  onReset, 
-  onReview
+  onReset
 }) => {
   const isDeposit = thought.currentDisposition === 'DEPOSIT' || thought.isAwarenessRecord;
   const ceremonyText = isDeposit ? UI_TEXT.completion.ceremony.deposit : UI_TEXT.completion.ceremony.action;
@@ -71,27 +69,18 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.8 }}
         style={{ transform: thought.isAwarenessRecord ? 'translateY(0px)' : 'translateY(36px)' }}
-        className="w-full flex flex-col items-center gap-3 pt-2"
+        className="w-full flex justify-center pt-2"
       >
-        <div className="flex items-center gap-4 text-xs sm:text-sm text-ink-muted">
-          <button 
-            type="button"
-            onClick={onReview}
-            className="hover:text-ink transition-colors py-1 cursor-pointer"
-          >
-            {UI_TEXT.completion.exits.reviewPast}
-          </button>
-          <div className="w-[1px] h-3 bg-border-base"></div>
-          <button 
-            type="button"
-            onClick={onReset}
-            className="hover:text-ink transition-colors py-1 cursor-pointer"
-          >
-            {UI_TEXT.completion.exits.backHome}
-          </button>
-        </div>
+        <button 
+          type="button"
+          onClick={onReset}
+          className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors py-1 cursor-pointer"
+        >
+          {UI_TEXT.completion.exits.backHome}
+        </button>
       </motion.div>
     </div>
   );
 };
+
 
