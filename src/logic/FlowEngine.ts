@@ -1,16 +1,14 @@
-import { FlowState, Thought, ThoughtDisposition } from '../types';
+import { FlowState, ThoughtThread, DialogueEntry } from '../types';
 import { IStorageProvider } from './interfaces/IStorageProvider';
 import { LocalStorageManager } from './StorageManager';
 
 /**
- * MVP 架構規範：
- * 1. OOP 優先：使用類別管理狀態機。
- * 2. 嚴守產品憲法邊界：非生產力、認知減載。
+ * FlowEngine v3:
+ * 嚴守「不要求結論，只保留對話可以繼續的可能」之憲法。
  */
 export class FlowEngine {
   private _state: FlowState = 'HOME';
-  private currentContent: string = '';
-  private currentThought: Partial<Thought> = {};
+  private currentThread: ThoughtThread | null = null;
   private storage: IStorageProvider;
   private listeners: (() => void)[] = [];
 
@@ -40,109 +38,121 @@ export class FlowEngine {
 
   // --- Getters ---
   getState(): FlowState { return this._state; }
-  getContent(): string { return this.currentContent; }
-  getThought(): Partial<Thought> { return this.currentThought; }
+  getCurrentThread(): ThoughtThread | null { return this.currentThread; }
 
-  // --- State Transitions ---
+  // --- Actions ---
 
-  public startInput() {
-    this.state = 'INPUTTING';
+  public async submitText(content: string) {
+    if (!content.trim()) return;
+    const now = Date.now();
+    const threadId = this.generateId('thread');
+    const entryId = this.generateId('entry');
+
+    const newThread: ThoughtThread = {
+      id: threadId,
+      createdAt: now,
+      updatedAt: now,
+      entries: [
+        {
+          id: entryId,
+          timestamp: now,
+          type: 'text',
+          content: content.trim()
+        }
+      ]
+    };
+
+    await this.storage.saveThread(newThread);
+    this.currentThread = newThread;
+    this.state = 'PRESENT_SETTLED';
   }
 
-  public submitInput(content: string) {
-    this.currentContent = content;
-    this.state = 'SHUNTTING';
+  public async submitUnspoken() {
+    const now = Date.now();
+    const threadId = this.generateId('thread');
+    const entryId = this.generateId('entry');
+
+    const newThread: ThoughtThread = {
+      id: threadId,
+      createdAt: now,
+      updatedAt: now,
+      entries: [
+        {
+          id: entryId,
+          timestamp: now,
+          type: 'unspoken'
+        }
+      ]
+    };
+
+    await this.storage.saveThread(newThread);
+    this.currentThread = newThread;
+    this.state = 'PRESENT_SETTLED';
   }
 
-  public async releaseThought(thoughtId: string) {
-    const thoughts = await this.storage.getThoughts();
-    const thought = thoughts.find(t => t.id === thoughtId);
-    if (thought) {
-      thought.currentDisposition = 'RELEASE';
-      await this.storage.updateThought(thought);
+  public async appendEntry(threadId: string, content: string) {
+    if (!content.trim()) return;
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    const now = Date.now();
+    const newEntry: DialogueEntry = {
+      id: this.generateId('entry'),
+      timestamp: now,
+      type: 'text',
+      content: content.trim()
+    };
+
+    target.entries.push(newEntry);
+    target.updatedAt = now;
+
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = { ...target };
+      this.notify();
     }
   }
 
-  public async handleAwareness() {
-    const now = Date.now();
-    const eventId = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : `unspoken-${now}-${Math.random().toString(36).slice(2, 11)}`;
-
-    await this.storage.saveUnspokenEvent({
-      id: eventId,
-      timestamp: now
-    });
-
-    this.currentThought = {
-      isAwarenessRecord: true,
-      createdAt: now
-    };
-
-    this.state = 'COMPLETED';
+  public async releaseThread(threadId: string) {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (target) {
+      target.isReleased = true;
+      target.updatedAt = Date.now();
+      await this.storage.updateThread(target);
+      if (this.currentThread?.id === threadId) {
+        this.currentThread = { ...target };
+        this.notify();
+      }
+    }
   }
 
-  public startDeposit() {
-    this.saveFinalThought('DEPOSIT');
+  public async deleteThread(threadId: string) {
+    await this.storage.deleteThread(threadId);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = null;
+      this.notify();
+    }
   }
 
-  public startAction() {
-    this.state = 'ACTION_PATH';
-  }
-
-  public submitActionStep(text: string) {
-    const finalText = text.trim() || this.currentContent;
-    this.currentThought.actionStep = { text: finalText, revisions: [] };
-    this.saveFinalThought('ACTION');
-  }
-
-  private async saveFinalThought(disposition: ThoughtDisposition) {
-    await this.createNewThought(disposition);
-    this.state = 'COMPLETED';
-  }
-
-  private async createNewThought(disposition: ThoughtDisposition) {
-    const id = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : `thought-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-
-    const thought: Thought = {
-      id,
-      content: this.currentContent,
-      createdAt: Date.now(),
-      currentDisposition: disposition,
-      actionStep: this.currentThought.actionStep,
-      additions: []
-    };
-
-    this.currentThought = thought;
-    await this.storage.saveThought(thought);
+  public async getAllThreads(): Promise<ThoughtThread[]> {
+    return await this.storage.getThreads();
   }
 
   public reset() {
     this.state = 'HOME';
-    this.currentContent = '';
-    this.currentThought = {};
+    this.currentThread = null;
   }
 
   public transition(newState: FlowState) {
     this.state = newState;
   }
 
-  public async getAllThoughts(): Promise<Thought[]> {
-    const thoughts = await this.storage.getThoughts();
-    return thoughts.filter(t => !t.isAwarenessRecord && t.content?.trim());
-  }
-
-  public async deleteThought(id: string) {
-    await this.storage.deleteThought(id);
-  }
-
-  public async updateThought(thought: Thought) {
-    await this.storage.updateThought(thought);
-    if (this.currentThought.id === thought.id) {
-      this.currentThought = thought;
-      this.notify();
-    }
+  private generateId(prefix: string): string {
+    return typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
 }
+

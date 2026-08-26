@@ -1,53 +1,36 @@
 export type FlowState = 
   | 'HOME' 
-  | 'INPUTTING' 
-  | 'SHUNTTING' 
-  | 'ACTION_PATH' 
-  | 'REVIEW'
-  | 'COMPLETED';
+  | 'PRESENT_SETTLED'
+  | 'REVIEW';
 
-export type ThoughtDisposition = 'DEPOSIT' | 'ACTION' | 'RELEASE';
+export type DialogueEntry =
+  | {
+      id: string;
+      timestamp: number;
+      type: 'text';
+      content: string;
+    }
+  | {
+      id: string;
+      timestamp: number;
+      type: 'unspoken';
+    };
 
-export interface ActionRevision {
-  text: string;
+export interface ThoughtThread {
+  id: string;
+  createdAt: number;
   updatedAt: number;
-}
-
-export interface ActionStep {
-  text: string;
-  revisions?: ActionRevision[];
-}
-
-export interface ThoughtAddition {
-  id: string;
-  content: string;
-  createdAt: number;
-}
-
-export interface Thought {
-  id: string;
-  content: string;
-  createdAt: number;
-  currentDisposition?: ThoughtDisposition;
-  actionStep?: ActionStep;
-  additions?: ThoughtAddition[];
-  reflection?: {
-    feeling?: string;
-    reaction?: string;
-  };
-  isAwarenessRecord?: boolean;
-}
-
-export interface UnspokenEvent {
-  id: string;
-  timestamp: number;
+  isReleased?: boolean;
+  entries: DialogueEntry[];
 }
 
 export interface IFlowActions {
-  submitInput(content: string): void;
-  startDeposit(): void;
-  startAction(): void;
-  submitActionStep(text: string): void;
-  releaseThought(thoughtId: string): Promise<void>; 
+  submitText(content: string): Promise<void>;
+  submitUnspoken(): Promise<void>;
+  appendEntry(threadId: string, content: string): Promise<void>;
+  releaseThread(threadId: string): Promise<void>; 
+  deleteThread(threadId: string): Promise<void>;
   reset(): void;
+  transition(newState: FlowState): void;
 }
+

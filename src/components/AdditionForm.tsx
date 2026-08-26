@@ -1,31 +1,22 @@
 import React, { useState } from 'react';
-import { ThoughtAddition } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 
+
 interface AdditionFormProps {
-  onSave: (addition: ThoughtAddition) => void;
+  onSave: (content: string) => void;
   onCancel: () => void;
 }
 
 export const AdditionForm: React.FC<AdditionFormProps> = ({ onSave, onCancel }) => {
   const [content, setContent] = useState('');
 
-  const generateId = () => {
-    return typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : `add-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-  };
-
   const handleSave = () => {
     if (!content.trim()) return;
     triggerHaptic('settle');
-    onSave({
-      id: generateId(),
-      content: content.trim(),
-      createdAt: Date.now()
-    });
+    onSave(content.trim());
   };
+
 
   return (
     <div className="mt-4 p-4 sm:p-5 rounded-2xl border border-dashed border-border-base bg-surface-subtle overflow-hidden space-y-4">

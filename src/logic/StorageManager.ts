@@ -1,61 +1,42 @@
 
 import { IStorageProvider } from './interfaces/IStorageProvider';
-import { Thought, UnspokenEvent } from '../types';
+import { ThoughtThread } from '../types';
 
 /**
  * OOP: 封裝 - 封裝瀏覽器 LocalStorage 的存取細節
  */
 export class LocalStorageManager implements IStorageProvider {
-  private readonly THOUGHTS_KEY = 'thought_shunt_records';
-  private readonly UNSPOKEN_EVENTS_KEY = 'unspoken_events';
+  private readonly THREADS_KEY = 'mind_harbor_threads_v3';
 
-  async saveThought(thought: Thought): Promise<void> {
-    const thoughts = await this.getThoughts();
-    thoughts.push(thought);
-    this.persistThoughts(thoughts);
+  async saveThread(thread: ThoughtThread): Promise<void> {
+    const threads = await this.getThreads();
+    threads.unshift(thread); // 最新在最前
+    this.persistThreads(threads);
   }
 
-  async getThoughts(): Promise<Thought[]> {
-    const data = localStorage.getItem(this.THOUGHTS_KEY);
+  async getThreads(): Promise<ThoughtThread[]> {
+    const data = localStorage.getItem(this.THREADS_KEY);
     return data ? JSON.parse(data) : [];
   }
 
-  async deleteThought(id: string): Promise<void> {
-    const thoughts = await this.getThoughts();
-    const filtered = thoughts.filter(t => t.id !== id);
-    this.persistThoughts(filtered);
+  async deleteThread(id: string): Promise<void> {
+    const threads = await this.getThreads();
+    const filtered = threads.filter(t => t.id !== id);
+    this.persistThreads(filtered);
   }
 
-  async deleteThoughts(ids: string[]): Promise<void> {
-    if (ids.length === 0) return;
-    const idSet = new Set(ids);
-    const thoughts = await this.getThoughts();
-    const filtered = thoughts.filter(t => !idSet.has(t.id));
-    this.persistThoughts(filtered);
-  }
-
-  async updateThought(thought: Thought): Promise<void> {
-    const thoughts = await this.getThoughts();
-    const index = thoughts.findIndex(t => t.id === thought.id);
+  async updateThread(thread: ThoughtThread): Promise<void> {
+    const threads = await this.getThreads();
+    const index = threads.findIndex(t => t.id === thread.id);
     if (index !== -1) {
-      thoughts[index] = thought;
-      this.persistThoughts(thoughts);
+      threads[index] = thread;
+      this.persistThreads(threads);
     }
   }
 
-  async saveUnspokenEvent(event: UnspokenEvent): Promise<void> {
-    const events = await this.getUnspokenEvents();
-    events.push(event);
-    localStorage.setItem(this.UNSPOKEN_EVENTS_KEY, JSON.stringify(events));
-  }
-
-  async getUnspokenEvents(): Promise<UnspokenEvent[]> {
-    const data = localStorage.getItem(this.UNSPOKEN_EVENTS_KEY);
-    return data ? JSON.parse(data) : [];
-  }
-
-  private persistThoughts(thoughts: Thought[]): void {
-    localStorage.setItem(this.THOUGHTS_KEY, JSON.stringify(thoughts));
+  private persistThreads(threads: ThoughtThread[]): void {
+    localStorage.setItem(this.THREADS_KEY, JSON.stringify(threads));
   }
 }
+
 

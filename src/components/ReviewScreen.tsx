@@ -4,7 +4,6 @@ import { X } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
-import { Thought } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 
 const cardVariants = {
@@ -31,8 +30,8 @@ interface ReviewScreenProps {
 
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const { 
-    displayedThoughts, loading, 
-    handleDelete, handleUpdate, handleRelease, handleAddAddition, handleRemoveAddition
+    displayedThreads, loading, 
+    handleDelete, handleRelease, handleAppend
   } = useThoughts();
 
   const onDeleteClick = (id: string) => {
@@ -43,10 +42,6 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const onReleaseClick = (id: string) => {
     triggerHaptic('release');
     handleRelease(id);
-  };
-
-  const onUpdateClick = (t: Thought) => {
-    handleUpdate(t);
   };
 
   if (loading) return null;
@@ -64,13 +59,13 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       </div>
 
       <div className="space-y-4">
-        {displayedThoughts.length === 0 ? (
+        {displayedThreads.length === 0 ? (
           <EmptyState />
         ) : (
           <AnimatePresence mode="popLayout">
-            {displayedThoughts.map((t) => (
+            {displayedThreads.map((thread) => (
               <motion.div
-                key={t.id}
+                key={thread.id}
                 layout
                 variants={cardVariants}
                 initial="initial"
@@ -79,12 +74,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                 transition={{ layout: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
               >
                 <ThoughtCard 
-                  thought={t} 
-                  onDelete={() => onDeleteClick(t.id)}
-                  onRelease={() => onReleaseClick(t.id)}
-                  onUpdate={onUpdateClick}
-                  onAddAddition={(addition) => handleAddAddition(t.id, addition)}
-                  onRemoveAddition={(additionId) => handleRemoveAddition(t.id, additionId)}
+                  thread={thread} 
+                  onDelete={() => onDeleteClick(thread.id)}
+                  onRelease={() => onReleaseClick(thread.id)}
+                  onAppend={(content) => handleAppend(thread.id, content)}
                 />
               </motion.div>
             ))}
@@ -109,3 +102,4 @@ const EmptyState = () => (
     {UI_TEXT.review.emptyState}
   </div>
 );
+

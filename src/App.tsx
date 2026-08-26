@@ -1,12 +1,9 @@
 import React from 'react';
 import { Layout } from './components/Layout';
 import { HomeScreen } from './components/HomeScreen';
-import { ShuntScreen } from './components/ShuntScreen';
-import { ActionScreen } from './components/ActionScreen';
 import { ReviewScreen } from './components/ReviewScreen';
 import { CompletionScreen } from './components/CompletionScreen';
 import { useFlow } from './hooks/useFlow';
-import { Thought } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
 const App: React.FC = () => {
@@ -15,11 +12,10 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (flow.state) {
       case 'HOME':
-      case 'INPUTTING':
         return (
           <HomeScreen 
-            onStartInput={(text) => flow.submit(text)} 
-            onSayNothing={() => flow.handleAwareness()}
+            onStartInput={(text) => flow.submitText(text)} 
+            onSayNothing={() => flow.submitUnspoken()}
             onReview={() => flow.transition('REVIEW')}
           />
         );
@@ -31,43 +27,18 @@ const App: React.FC = () => {
           />
         );
 
-      case 'SHUNTTING':
-        return (
-          <ShuntScreen 
-            thoughtContent={flow.thought.content}
-            onChooseDeposit={() => flow.startDeposit()} 
-            onChooseAction={() => flow.startAction()} 
-          />
-        );
-
-      case 'ACTION_PATH':
-        return (
-          <ActionScreen 
-            thoughtContent={flow.thought.content}
-            onConfirm={(stepText) => flow.submitActionStep(stepText)}
-            onBackToDeposit={() => flow.startDeposit()}
-          />
-        );
-
-      case 'COMPLETED':
+      case 'PRESENT_SETTLED':
         return (
           <CompletionScreen 
-            thought={flow.thought}
+            thread={flow.currentThread}
             onReset={() => flow.finish()} 
-            onAddAddition={async (addition) => {
-              if (flow.thought.id) {
-                const updated = {
-                  ...flow.thought as Thought,
-                  additions: [...(flow.thought.additions || []), addition]
-                };
-                await flow.updateThought(updated);
+            onAppendEntry={(content) => {
+              if (flow.currentThread?.id) {
+                flow.appendEntry(flow.currentThread.id, content);
               }
             }}
           />
         );
-
-
-
 
       default:
         return <div>{flow.state}</div>;
@@ -75,9 +46,9 @@ const App: React.FC = () => {
   };
 
   const getAnimationKey = (state: string) => {
-    if (state === 'HOME' || state === 'INPUTTING') return 'HOME';
+    if (state === 'HOME') return 'HOME';
     if (state === 'REVIEW') return 'REVIEW';
-    return 'ACTIVE_FLOW';
+    return 'PRESENT_SETTLED';
   };
 
   return (
@@ -99,3 +70,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

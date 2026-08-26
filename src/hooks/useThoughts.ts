@@ -1,80 +1,51 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Thought, ThoughtAddition } from '../types';
+import { ThoughtThread } from '../types';
 import { useFlow } from './useFlow';
 
 /**
- * SRP: 此 Hook 專注於「重新遇見」頁面的資料流
+ * SRP: 此 Hook 專注於「回來看看」頁面的對話線程資料流
  */
 export function useThoughts() {
-  const { getAllThoughts, deleteThought, updateThought, releaseThought } = useFlow();
-  const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const { getAllThreads, deleteThread, releaseThread, appendEntry } = useFlow();
+  const [threads, setThreads] = useState<ThoughtThread[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetch = async () => {
+    const data = await getAllThreads();
+    setThreads(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetch = async () => {
-      const data = await getAllThoughts();
-      setThoughts(data);
-      setLoading(false);
-    };
     fetch();
   }, []);
 
-  const displayedThoughts = useMemo(() => {
-    return [...thoughts].sort((a, b) => b.createdAt - a.createdAt);
-  }, [thoughts]);
+  const displayedThreads = useMemo(() => {
+    return [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, [threads]);
 
   const handleDelete = async (id: string) => {
-    setThoughts(prev => prev.filter(t => t.id !== id));
-    await deleteThought(id);
-  };
-
-  const handleUpdate = async (thought: Thought) => {
-    setThoughts(prev => prev.map(t => t.id === thought.id ? thought : t));
-    await updateThought(thought);
+    setThreads(prev => prev.filter(t => t.id !== id));
+    await deleteThread(id);
   };
 
   const handleRelease = async (id: string) => {
-    setThoughts(prev => prev.map(t => t.id === id ? { ...t, currentDisposition: 'RELEASE' } : t));
-    await releaseThought(id);
+    setThreads(prev => prev.map(t => t.id === id ? { ...t, isReleased: true } : t));
+    await releaseThread(id);
   };
 
-  const handleAddAddition = async (thoughtId: string, addition: ThoughtAddition) => {
-    setThoughts(prev => {
-      const newThoughts = [...prev];
-      const index = newThoughts.findIndex(t => t.id === thoughtId);
-      if (index !== -1) {
-        const updatedThought = { ...newThoughts[index] };
-        updatedThought.additions = [...(updatedThought.additions || []), addition];
-        newThoughts[index] = updatedThought;
-        updateThought(updatedThought);
-      }
-      return newThoughts;
-    });
-  };
-
-  const handleRemoveAddition = async (thoughtId: string, additionId: string) => {
-    setThoughts(prev => {
-      const newThoughts = [...prev];
-      const index = newThoughts.findIndex(t => t.id === thoughtId);
-      if (index !== -1) {
-        const updatedThought = { ...newThoughts[index] };
-        if (updatedThought.additions) {
-          updatedThought.additions = updatedThought.additions.filter(a => a.id !== additionId);
-          newThoughts[index] = updatedThought;
-          updateThought(updatedThought);
-        }
-      }
-      return newThoughts;
-    });
+  const handleAppend = async (threadId: string, content: string) => {
+    await appendEntry(threadId, content);
+    await fetch();
   };
 
   return {
-    displayedThoughts,
+    displayedThreads,
     loading,
     handleDelete,
-    handleUpdate,
     handleRelease,
-    handleAddAddition,
-    handleRemoveAddition
+    handleAppend,
+    refresh: fetch
   };
 }
+

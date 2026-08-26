@@ -1,18 +1,18 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, Thought } from '../types';
+import { FlowState, ThoughtThread } from '../types';
 
 /**
- * SRP: 此 Hook 僅負責 React 狀態與 FlowEngine 實例的同步
+ * SRP: 此 Hook 負責 React 狀態與 FlowEngine 實例的同步
  */
 export function useFlow() {
   const engine = useFlowEngine();
   const [state, setState] = useState<FlowState>(engine.getState());
-  const [content, setContent] = useState<string>(engine.getContent());
+  const [currentThread, setCurrentThread] = useState<ThoughtThread | null>(engine.getCurrentThread());
 
   const sync = useCallback(() => {
     setState(engine.getState());
-    setContent(engine.getContent());
+    setCurrentThread(engine.getCurrentThread());
   }, [engine]);
 
   useEffect(() => {
@@ -21,24 +21,38 @@ export function useFlow() {
 
   return {
     state,
-    content,
-    thought: engine.getThought(),
+    currentThread,
     
     // Actions
-    startInput: () => { engine.startInput(); sync(); },
-    submit: (val: string) => { engine.submitInput(val); sync(); },
-    handleAwareness: () => { engine.handleAwareness(); sync(); },
-    startDeposit: () => { engine.startDeposit(); sync(); },
-    startAction: () => { engine.startAction(); sync(); },
-    submitActionStep: (text: string) => { engine.submitActionStep(text); sync(); },
-    releaseThought: async (id: string) => {
-      await engine.releaseThought(id);
+    submitText: async (val: string) => {
+      await engine.submitText(val);
       sync();
     },
-    finish: () => { engine.reset(); sync(); },
-    transition: (s: FlowState) => { engine.transition(s); sync(); },
-    getAllThoughts: () => engine.getAllThoughts(),
-    deleteThought: (id: string) => { engine.deleteThought(id); sync(); },
-    updateThought: (t: Thought) => { engine.updateThought(t); sync(); }
+    submitUnspoken: async () => {
+      await engine.submitUnspoken();
+      sync();
+    },
+    appendEntry: async (threadId: string, content: string) => {
+      await engine.appendEntry(threadId, content);
+      sync();
+    },
+    releaseThread: async (threadId: string) => {
+      await engine.releaseThread(threadId);
+      sync();
+    },
+    deleteThread: async (threadId: string) => {
+      await engine.deleteThread(threadId);
+      sync();
+    },
+    finish: () => {
+      engine.reset();
+      sync();
+    },
+    transition: (s: FlowState) => {
+      engine.transition(s);
+      sync();
+    },
+    getAllThreads: () => engine.getAllThreads()
   };
 }
+

@@ -1,42 +1,28 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Leaf, Trash2 } from 'lucide-react';
-import { Thought, ThoughtAddition } from '../types';
+import { ThoughtThread } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 import { AdditionForm } from './AdditionForm';
 
 interface ThoughtCardProps {
-  thought: Thought;
+  thread: ThoughtThread;
   onDelete: () => void;
   onRelease: () => void;
-  onUpdate: (t: Thought) => void;
-  onAddAddition: (addition: ThoughtAddition) => void;
-  onRemoveAddition: (additionId: string) => void;
+  onAppend: (content: string) => void;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({ 
-  thought, 
+  thread, 
   onDelete, 
   onRelease, 
-  onUpdate,
-  onAddAddition,
-  onRemoveAddition
+  onAppend
 }) => {
   const [confirmType, setConfirmType] = useState<'DELETE' | 'RELEASE' | null>(null);
-  const [isAdditionsExpanded, setIsAdditionsExpanded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   
-  // 重新處理 (Re-process) 狀態 - 僅限原始行動步驟
-  const [isReprocessing, setIsReprocessing] = useState(false);
-  const [reprocessStepText, setReprocessStepText] = useState(thought.actionStep?.text || '');
-
-  // 再看看 (Deepening Tool) 狀態
-  const [isDeepeningOpen, setIsDeepeningOpen] = useState(false);
-  const [feeling, setFeeling] = useState(thought.reflection?.feeling || '');
-  const [reaction, setReaction] = useState(thought.reflection?.reaction || '');
-  
-  const isReleased = thought.currentDisposition === 'RELEASE';
+  const isReleased = thread.isReleased;
 
   const handleConfirm = () => {
     if (confirmType === 'DELETE') {
@@ -48,37 +34,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     }
   };
 
-  const handleSaveReprocess = () => {
-    if (!reprocessStepText.trim()) return;
-    triggerHaptic('step');
-    const prevText = thought.actionStep?.text || '';
-    const newText = reprocessStepText.trim();
-    const existingRevisions = thought.actionStep?.revisions || [];
-    const updatedRevisions = prevText && prevText !== newText
-      ? [...existingRevisions, { text: prevText, updatedAt: Date.now() }]
-      : existingRevisions;
-
-    onUpdate({
-      ...thought,
-      actionStep: {
-        text: newText,
-        revisions: updatedRevisions
-      }
-    });
-    setIsReprocessing(false);
-  };
-
-  const handleSaveReflection = (newFeeling: string, newReaction: string) => {
-    onUpdate({
-      ...thought,
-      reflection: {
-        feeling: newFeeling.trim() || undefined,
-        reaction: newReaction.trim() || undefined
-      }
-    });
-  };
-
-
   return (
     <motion.div 
       layout
@@ -88,7 +43,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         opacity: isReleased ? 0.92 : 1,
       }}
       transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-      className={`p-6 rounded-2xl border transition-colors duration-1000 relative overflow-hidden ${
+      className={`p-6 sm:p-7 rounded-2xl border transition-colors duration-1000 relative overflow-hidden ${
         isReleased 
           ? 'bg-surface-subtle border-border-subtle shadow-none' 
           : 'bg-surface border-border-base shadow-xs'
@@ -124,215 +79,67 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       </AnimatePresence>
 
       <div className="flex justify-between items-start gap-4">
-        <div className="space-y-2 flex-grow">
-          <div className="text-xs text-ink-muted font-mono flex items-center gap-2">
-            <span>{new Date(thought.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-            {isReleased && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface text-ink-muted border border-border-subtle font-sans">
-                {UI_TEXT.review.card.releasedBadge}
-              </span>
-            )}
-          </div>
-          
-          <div className="text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
-            {thought.content}
-          </div>
-
-
-          {/* 既有行動步驟與「重新處理」 */}
-          {thought.actionStep?.text && (
-            <div className={`p-3.5 rounded-xl border space-y-2 transition-colors duration-700 ${
-              isReleased 
-                ? 'bg-surface/50 border-border-subtle opacity-75' 
-                : 'bg-surface-subtle border-border-base'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-ink-muted font-medium">下一步</span>
-                {!isReleased && !isReprocessing && (
-                  <button 
-                    onClick={() => {
-                      setReprocessStepText(thought.actionStep?.text || '');
-                      setIsReprocessing(true);
-                    }}
-                    className="text-[11px] text-ink-muted hover:text-ink transition-colors cursor-pointer"
-                  >
-                    {UI_TEXT.reprocess.btn}
-                  </button>
-                )}
-              </div>
-
-              {!isReprocessing ? (
-                <div className={`text-base font-normal ${isReleased ? 'text-ink-secondary' : 'text-ink'}`}>
-                  {thought.actionStep.text}
-                </div>
-              ) : (
-                <div className="space-y-2 pt-1">
-                  <div className="text-xs text-ink-muted">{UI_TEXT.reprocess.title}</div>
-                  <textarea
-                    autoFocus
-                    value={reprocessStepText}
-                    onChange={(e) => setReprocessStepText(e.target.value)}
-                    placeholder={UI_TEXT.reprocess.placeholder}
-                    className="w-full bg-surface border border-border-base focus:border-border-focus rounded-xl p-2.5 text-sm text-ink outline-none resize-none min-h-[50px]"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setIsReprocessing(false)}
-                      className="px-3 py-1 text-xs text-ink-muted hover:text-ink transition-colors cursor-pointer"
-                    >
-                      {UI_TEXT.reprocess.cancelBtn}
-                    </button>
-                    <button
-                      onClick={handleSaveReprocess}
-                      className="px-4 py-1 text-xs rounded-full bg-accent text-accent-text hover:bg-accent-hover transition-colors cursor-pointer"
-                    >
-                      {UI_TEXT.reprocess.confirmBtn}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 深化工具「再看看」已儲存內容展示 */}
-          {(thought.reflection?.feeling || thought.reflection?.reaction) && !isDeepeningOpen && (
-            <div className="p-3 bg-surface-subtle/60 rounded-xl border border-border-subtle text-xs space-y-1.5 text-ink-secondary">
-              {thought.reflection.feeling && (
-                <div><span className="text-ink-muted">{UI_TEXT.deepening.feelingTitle}：</span>{thought.reflection.feeling}</div>
-              )}
-              {thought.reflection.reaction && (
-                <div><span className="text-ink-muted">{UI_TEXT.deepening.reactionTitle}：</span>{thought.reflection.reaction}</div>
-              )}
-            </div>
-          )}
-
-          {/* Additions List (純時間痕跡，無子任務) */}
-          {thought.additions && thought.additions.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border-subtle space-y-3">
-              <button 
-                onClick={() => setIsAdditionsExpanded(!isAdditionsExpanded)}
-                className="text-xs text-ink-secondary hover:text-ink transition-colors cursor-pointer flex items-center gap-1"
+        <div className="space-y-4 flex-grow">
+          {/* 時間線內容流 */}
+          <div className="space-y-4">
+            {thread.entries.map((entry, index) => (
+              <div 
+                key={entry.id}
+                className={`space-y-1.5 ${index > 0 ? 'pt-3 pl-3.5 border-l-2 border-border-base' : ''}`}
               >
-                {isAdditionsExpanded ? '隱藏後來的念頭' : `後來又想到 ${thought.additions.length} 筆`}
-                <span className="text-[10px] ml-1">{isAdditionsExpanded ? '▲' : '▼'}</span>
-              </button>
-              
-              <AnimatePresence>
-                {isAdditionsExpanded && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: 'auto' }} 
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3 overflow-hidden"
-                  >
-                    {thought.additions.map(add => (
-                      <div key={add.id} className="pl-3 border-l-2 border-border-base space-y-1 relative group">
-                        <button 
-                          onClick={() => onRemoveAddition(add.id)}
-                          className="absolute -right-2 top-0 p-1 opacity-0 group-hover:opacity-100 text-ink-muted hover:text-red-600 transition-all cursor-pointer"
-                          title="刪除這筆痕跡"
-                        >
-                          ✕
-                        </button>
-                        <div className="text-[10px] text-ink-muted font-mono">
-                          {new Date(add.createdAt).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        <div className="text-sm font-light text-ink whitespace-pre-wrap">{add.content}</div>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-
-          {/* 可選深化工具「再看看」展開介面 */}
-          <AnimatePresence>
-            {isDeepeningOpen && !thought.isAwarenessRecord && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 p-4 bg-surface-subtle/80 rounded-2xl border border-border-base space-y-3 overflow-hidden text-left"
-              >
-                <div className="flex justify-between items-center pb-1 border-b border-border-subtle">
-                  <span className="text-xs font-medium text-ink">{UI_TEXT.deepening.btn}</span>
-                  <button 
-                    onClick={() => setIsDeepeningOpen(false)}
-                    className="text-xs text-ink-muted hover:text-ink cursor-pointer"
-                  >
-                    {UI_TEXT.deepening.hideBtn}
-                  </button>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs text-ink-secondary">{UI_TEXT.deepening.feelingTitle}</label>
-                  <textarea
-                    rows={2}
-                    value={feeling}
-                    onChange={(e) => {
-                      setFeeling(e.target.value);
-                      handleSaveReflection(e.target.value, reaction);
-                    }}
-                    placeholder={UI_TEXT.deepening.feelingPlaceholder}
-                    className="w-full bg-surface border border-border-base focus:border-border-focus rounded-xl p-2.5 text-xs text-ink outline-none resize-none leading-relaxed"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs text-ink-secondary">{UI_TEXT.deepening.reactionTitle}</label>
-                  <textarea
-                    rows={2}
-                    value={reaction}
-                    onChange={(e) => {
-                      setReaction(e.target.value);
-                      handleSaveReflection(feeling, e.target.value);
-                    }}
-                    placeholder={UI_TEXT.deepening.reactionPlaceholder}
-                    className="w-full bg-surface border border-border-base focus:border-border-focus rounded-xl p-2.5 text-xs text-ink outline-none resize-none leading-relaxed"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 底部操作區：後來又想到 & 再看看 */}
-          {!thought.isAwarenessRecord && (
-            <div className="mt-4 pt-2 flex items-center justify-between">
-              {!isAdding ? (
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => setIsAdding(true)}
-                    className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
-                  >
-                    {UI_TEXT.addition.addBtn}
-                  </button>
-                  {!isDeepeningOpen && !isReleased && (
-                    <button
-                      onClick={() => setIsDeepeningOpen(true)}
-                      className="text-xs text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
-                    >
-                      {UI_TEXT.deepening.btn}
-                    </button>
+                <div className="text-xs text-ink-muted font-mono flex items-center gap-2">
+                  <span>
+                    {new Date(entry.timestamp).toLocaleString('zh-TW', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                  {index === 0 && isReleased && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface text-ink-muted border border-border-subtle font-sans">
+                      {UI_TEXT.review.card.releasedBadge}
+                    </span>
                   )}
                 </div>
+
+                {entry.type === 'unspoken' ? (
+                  <div className="text-base text-ink-muted italic font-light">
+                    （這時候說不上來）
+                  </div>
+                ) : (
+                  <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                    {entry.content}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* ＋ 接著說…… / 展開輸入 */}
+          {!isReleased && (
+            <div className="pt-2">
+              {!isAdding ? (
+                <button 
+                  onClick={() => setIsAdding(true)}
+                  className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                >
+                  {UI_TEXT.addition.addBtn}
+                </button>
               ) : (
-                <div className="w-full">
-                  <AdditionForm 
-                    onSave={(addition) => {
-                      onAddAddition(addition);
-                      setIsAdding(false);
-                      setIsAdditionsExpanded(true);
-                    }}
-                    onCancel={() => setIsAdding(false)}
-                  />
-                </div>
+                <AdditionForm 
+                  onSave={(content) => {
+                    onAppend(content);
+                    setIsAdding(false);
+                  }}
+                  onCancel={() => setIsAdding(false)}
+                />
               )}
             </div>
           )}
-
         </div>
 
+        {/* 狀態按鈕（放下 / 刪除） */}
         <div className="flex flex-col gap-1.5 pt-1 items-center">
           {!isReleased ? (
             <button 
@@ -370,4 +177,5 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     </motion.div>
   );
 };
+
 
