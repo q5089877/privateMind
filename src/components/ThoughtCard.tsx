@@ -133,15 +133,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </div>
 
           {/* ＋ 接著說…… / 展開輸入 */}
-          <div className="pt-2">
-            {!isAdding ? (
-              <button 
-                onClick={() => setIsAdding(true)}
-                className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer"
-              >
-                {UI_TEXT.addition.addBtn}
-              </button>
-            ) : (
+          {isAdding && (
+            <div className="pt-2">
               <AdditionForm 
                 onSave={(content, type) => {
                   onAppend(content, type);
@@ -149,35 +142,51 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 }}
                 onCancel={() => setIsAdding(false)}
               />
-            )}
-          </div>
-        </div>
-
-        {/* 物理操作按鈕（先放這裡 / 刪除） */}
-        <div className="flex flex-col gap-2 pt-1 items-center">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              triggerHaptic('settle');
-              onLeave();
-            }} 
-            className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors" 
-            title={UI_TEXT.review.card.releaseBtn}
-          >
-            <Leaf size={18} />
-          </button>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDeleteConfirm(true);
-            }} 
-            className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/50 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
-            title={UI_TEXT.review.card.deleteBtn}
-          >
-            <Trash2 size={16} />
-          </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 底部 3 個平權介面動作 */}
+      {!isAdding && (
+        <div className="pt-4 mt-3 border-t border-border-base/40 flex items-center justify-between gap-2">
+          <button 
+            type="button"
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-1.5 text-xs sm:text-sm text-ink-secondary hover:text-ink transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-surface-subtle active:scale-98"
+          >
+            <span>{UI_TEXT.addition.addBtn}</span>
+          </button>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerHaptic('settle');
+                onLeave();
+              }} 
+              className="flex items-center gap-1 text-xs text-ink-muted hover:text-ink cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-surface-subtle transition-colors active:scale-98"
+              title="離開目前畫面，回到首頁"
+            >
+              <Leaf size={14} />
+              <span>{UI_TEXT.review.card.releaseBtn}</span>
+            </button>
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteConfirm(true);
+              }} 
+              className="flex items-center gap-1 text-xs text-ink-muted/50 hover:text-red-500 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-red-50/50 transition-colors active:scale-98"
+              title="本機永久移除紀錄"
+            >
+              <Trash2 size={13} />
+              <span>{UI_TEXT.review.card.deleteBtn}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };
