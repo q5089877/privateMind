@@ -139,7 +139,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           )}
         </div>
 
-        {/* 狀態按鈕（放下 / 刪除） */}
+        {/* 物理操作按鈕（先放這裡 / 刪除） */}
         <div className="flex flex-col gap-1.5 pt-1 items-center">
           {!isReleased ? (
             <button 

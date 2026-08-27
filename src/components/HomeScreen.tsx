@@ -6,11 +6,11 @@ import { UI_TEXT } from '../config/textConfig';
 
 interface HomeScreenProps {
   onStartInput: (text: string) => void;
-  onSayNothing: () => void;
+  onSayNothing?: () => void;
   onReview: () => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothing, onReview }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }) => {
   const [inputText, setInputText] = useState('');
   const [isSinking, setIsSinking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -28,7 +28,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   const handleQuickSelect = (text: string) => {
     if (isSinking) return;
     setInputText(text);
-    // 不再自動送出，保留修改空間
   };
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,15 +46,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onStartInput(inputText);
-    }, 1400);
-  };
-
-  const handleSayNothing = () => {
-    if (isSinking) return;
-    triggerHaptic('settle');
-    setIsSinking(true);
-    timerRef.current = setTimeout(() => {
-      onSayNothing();
     }, 1400);
   };
 
@@ -81,35 +71,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
         />
 
         {/* 狀態入口區 */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap justify-center gap-2">
             {QUICK_OPTIONS.map((option, idx) => (
               <button
                 key={`quick-opt-${idx}`}
                 onClick={() => handleQuickSelect(option)}
-                className="w-full py-3.5 px-4 bg-surface border border-border-base hover:border-border-focus text-ink-secondary hover:text-ink rounded-xl text-[16px] sm:text-[18px] transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-xs"
+                className="py-2 px-3.5 bg-surface border border-border-base hover:border-border-focus text-ink-secondary hover:text-ink rounded-xl text-[15px] sm:text-[16px] transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-xs"
               >
                 {option}
               </button>
             ))}
           </div>
 
-          <div className="flex justify-center items-center gap-4 mt-2">
-            <button
-              type="button"
-              onClick={handleSayNothing}
-              className="text-ink-muted hover:text-ink text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
-            >
-              {UI_TEXT.home.sayNothing}
-            </button>
-            <div className="w-[1px] h-[14px] bg-border-base"></div>
+          <div className="flex justify-center items-center mt-2">
             <button
               type="button"
               onClick={() => {
                 if (isSinking) return;
                 onReview();
               }}
-              className="text-ink-muted hover:text-ink text-[15px] sm:text-[17px] transition-colors duration-300 py-2 cursor-pointer"
+              className="text-ink-muted hover:text-ink text-[15px] sm:text-[16px] transition-colors duration-300 py-2 cursor-pointer"
             >
               {UI_TEXT.home.reviewPast}
             </button>
