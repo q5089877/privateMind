@@ -3,23 +3,28 @@ export type FlowState =
   | 'PRESENT_SETTLED'
   | 'REVIEW';
 
+export type EntryType = 'thought' | 'action';
+
 export interface DialogueEntry {
   id: string;
   threadId?: string;
   content: string;
   createdAt: number;
+  type?: EntryType;
 }
 
 export interface ThoughtThread {
   id: string;
   createdAt: number;
   updatedAt: number;
+  currentActionId?: string | null;
   entries: DialogueEntry[];
 }
 
 export interface IFlowActions {
-  submitText(content: string): Promise<void>;
-  appendEntry(threadId: string, content: string): Promise<void>;
+  submitText(content: string, type?: EntryType): Promise<void>;
+  appendEntry(threadId: string, content: string, type?: EntryType): Promise<void>;
+  setCurrentAction(threadId: string, entryId: string | null): Promise<void>;
   deleteThread(threadId: string): Promise<void>;
   reset(): void;
   transition(newState: FlowState): void;

@@ -42,7 +42,7 @@ export class FlowEngine {
 
   // --- Actions ---
 
-  public async submitText(content: string) {
+  public async submitText(content: string, type: EntryType = 'thought') {
     if (!content.trim()) return;
     const now = Date.now();
     const threadId = this.generateId('thread');
@@ -52,12 +52,14 @@ export class FlowEngine {
       id: threadId,
       createdAt: now,
       updatedAt: now,
+      currentActionId: type === 'action' ? entryId : null,
       entries: [
         {
           id: entryId,
           threadId,
           createdAt: now,
-          content: content.trim()
+          content: content.trim(),
+          type
         }
       ]
     };
@@ -67,22 +69,42 @@ export class FlowEngine {
     this.state = 'PRESENT_SETTLED';
   }
 
-  public async appendEntry(threadId: string, content: string) {
+  public async appendEntry(threadId: string, content: string, type: EntryType = 'thought') {
     if (!content.trim()) return;
     const threads = await this.storage.getThreads();
     const target = threads.find(t => t.id === threadId);
     if (!target) return;
 
     const now = Date.now();
+    const entryId = this.generateId('entry');
     const newEntry: DialogueEntry = {
-      id: this.generateId('entry'),
+      id: entryId,
       threadId,
       createdAt: now,
-      content: content.trim()
+      content: content.trim(),
+      type
     };
 
     target.entries.push(newEntry);
+    if (type === 'action') {
+      target.currentActionId = entryId;
+    }
     target.updatedAt = now;
+
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = { ...target };
+      this.notify();
+    }
+  }
+
+  public async setCurrentAction(threadId: string, entryId: string | null) {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    target.currentActionId = entryId;
+    target.updatedAt = Date.now();
 
     await this.storage.updateThread(target);
     if (this.currentThread?.id === threadId) {

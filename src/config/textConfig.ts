@@ -26,11 +26,13 @@ export const UI_TEXT = {
   },
   review: {
     title: '時間線',
-    subtitle: '同一個人在不同時間留下的痕跡。',
+    subtitle: '時間保留變化，現在指向行動。',
     emptyState: '還沒有留下任何痕跡',
+    currentActionTitle: '當前行動',
+    historyTimelineTitle: '歷史時間線',
     card: {
       confirmReleaseTitle: '要先放這裡嗎？',
-      confirmDeleteTitle: '要從裝置上永久刪除這筆紀錄嗎？',
+      confirmDeleteTitle: '刪除這段內容？這會移除其中所有紀錄。',
       keepBtn: '取消',
       releaseBtn: '先放這裡',
       deleteBtn: '刪除',
@@ -39,7 +41,9 @@ export const UI_TEXT = {
   },
   addition: {
     addBtn: '＋ 接著說……',
-    inputPlaceholder: '寫下後來想到的話……',
+    inputPlaceholder: '寫下後來想到的……',
+    typeThought: '念頭',
+    typeAction: '當前行動',
     saveBtn: '送出',
     cancelBtn: '取消'
   },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Leaf, Trash2 } from 'lucide-react';
-import { ThoughtThread } from '../types';
+import { ThoughtThread, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 import { AdditionForm } from './AdditionForm';
@@ -10,14 +10,16 @@ interface ThoughtCardProps {
   thread: ThoughtThread;
   onDelete: () => void;
   onLeave: () => void;
-  onAppend: (content: string) => void;
+  onAppend: (content: string, type: EntryType) => void;
+  onSetCurrentAction?: (entryId: string | null) => void;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({ 
   thread, 
   onDelete, 
   onLeave, 
-  onAppend
+  onAppend,
+  onSetCurrentAction
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -26,6 +28,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     onDelete();
     setShowDeleteConfirm(false);
   };
+
+  const currentAction = thread.currentActionId 
+    ? thread.entries.find(e => e.id === thread.currentActionId)
+    : null;
 
   return (
     <motion.div 
@@ -41,7 +47,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4"
           >
-            <p className="text-sm text-ink font-light">
+            <p className="text-sm text-ink font-light text-center px-4">
               {UI_TEXT.review.card.confirmDeleteTitle}
             </p>
             <div className="flex gap-4">
@@ -64,6 +70,34 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
       <div className="flex justify-between items-start gap-4">
         <div className="space-y-4 flex-grow">
+          {/* 當前行動：唯一有效版本置頂 */}
+          {currentAction && (
+            <div className="p-4 rounded-xl bg-surface-subtle border border-border-base/70 space-y-1.5">
+              <div className="flex justify-between items-center text-[11px] font-mono tracking-wider text-ink-muted">
+                <span>【{UI_TEXT.review.currentActionTitle}】</span>
+                {onSetCurrentAction && (
+                  <button 
+                    type="button" 
+                    onClick={() => onSetCurrentAction(null)}
+                    className="text-[11px] text-ink-muted hover:text-ink cursor-pointer"
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+              <div className="text-base sm:text-lg font-normal text-ink leading-relaxed">
+                {currentAction.content}
+              </div>
+            </div>
+          )}
+
+          {/* 歷史時間線分隔線 */}
+          {currentAction && (
+            <div className="text-[11px] text-ink-muted/50 tracking-wider text-center my-2 select-none">
+              ── {UI_TEXT.review.historyTimelineTitle} ──
+            </div>
+          )}
+
           {/* 時間線內容流 */}
           <div className="space-y-4">
             {thread.entries.map((entry, index) => (
@@ -71,13 +105,24 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 key={entry.id}
                 className={`space-y-1.5 ${index > 0 ? 'pt-3 pl-3.5 border-l-2 border-border-base' : ''}`}
               >
-                <div className="text-xs text-ink-muted font-mono">
-                  {new Date(entry.createdAt).toLocaleString('zh-TW', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
+                <div className="text-xs text-ink-muted font-mono flex items-center justify-between">
+                  <span>
+                    {new Date(entry.createdAt).toLocaleString('zh-TW', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                  {entry.type === 'action' && entry.id !== thread.currentActionId && onSetCurrentAction && (
+                    <button
+                      type="button"
+                      onClick={() => onSetCurrentAction(entry.id)}
+                      className="text-[10px] text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                    >
+                      設為當前行動
+                    </button>
+                  )}
                 </div>
 
                 <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
@@ -98,8 +143,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </button>
             ) : (
               <AdditionForm 
-                onSave={(content) => {
-                  onAppend(content);
+                onSave={(content, type) => {
+                  onAppend(content, type);
                   setIsAdding(false);
                 }}
                 onCancel={() => setIsAdding(false)}

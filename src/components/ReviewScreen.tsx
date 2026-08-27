@@ -31,7 +31,7 @@ interface ReviewScreenProps {
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const { 
     displayedThreads, loading, 
-    handleDelete, handleAppend
+    handleDelete, handleAppend, handleSetCurrentAction
   } = useThoughts();
 
   const onDeleteClick = (id: string) => {
@@ -72,7 +72,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                   thread={thread} 
                   onDelete={() => onDeleteClick(thread.id)}
                   onLeave={onClose}
-                  onAppend={(content) => handleAppend(thread.id, content)}
+                  onAppend={(content, type) => handleAppend(thread.id, content, type)}
+                  onSetCurrentAction={(entryId) => handleSetCurrentAction(thread.id, entryId)}
                 />
               </motion.div>
             ))}

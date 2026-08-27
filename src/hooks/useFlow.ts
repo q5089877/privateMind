@@ -24,12 +24,16 @@ export function useFlow() {
     currentThread,
     
     // Actions
-    submitText: async (val: string) => {
-      await engine.submitText(val);
+    submitText: async (val: string, type?: import('../types').EntryType) => {
+      await engine.submitText(val, type);
       sync();
     },
-    appendEntry: async (threadId: string, content: string) => {
-      await engine.appendEntry(threadId, content);
+    appendEntry: async (threadId: string, content: string, type?: import('../types').EntryType) => {
+      await engine.appendEntry(threadId, content, type);
+      sync();
+    },
+    setCurrentAction: async (threadId: string, entryId: string | null) => {
+      await engine.setCurrentAction(threadId, entryId);
       sync();
     },
     deleteThread: async (threadId: string) => {

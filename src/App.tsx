@@ -31,9 +31,9 @@ const App: React.FC = () => {
           <CompletionScreen 
             thread={flow.currentThread}
             onReset={() => flow.finish()} 
-            onAppendEntry={(content) => {
+            onAppendEntry={(content, type) => {
               if (flow.currentThread?.id) {
-                flow.appendEntry(flow.currentThread.id, content);
+                flow.appendEntry(flow.currentThread.id, content, type);
               }
             }}
           />

@@ -7,7 +7,7 @@ import { AdditionForm } from './AdditionForm';
 interface CompletionScreenProps {
   thread: ThoughtThread | null;
   onReset: () => void;
-  onAppendEntry?: (content: string) => void;
+  onAppendEntry?: (content: string, type?: import('../types').EntryType) => void;
 }
 
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({ 
@@ -62,8 +62,8 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           {isAdding && onAppendEntry && (
             <div className="pt-2">
               <AdditionForm 
-                onSave={(content) => {
-                  onAppendEntry(content);
+                onSave={(content, type) => {
+                  onAppendEntry(content, type);
                   setIsAdding(false);
                 }}
                 onCancel={() => setIsAdding(false)}
