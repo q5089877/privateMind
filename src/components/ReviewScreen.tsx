@@ -31,17 +31,12 @@ interface ReviewScreenProps {
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const { 
     displayedThreads, loading, 
-    handleDelete, handleRelease, handleAppend
+    handleDelete, handleAppend
   } = useThoughts();
 
   const onDeleteClick = (id: string) => {
     triggerHaptic('release');
     handleDelete(id);
-  };
-
-  const onReleaseClick = (id: string) => {
-    triggerHaptic('release');
-    handleRelease(id);
   };
 
   if (loading) return null;
@@ -76,7 +71,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                 <ThoughtCard 
                   thread={thread} 
                   onDelete={() => onDeleteClick(thread.id)}
-                  onRelease={() => onReleaseClick(thread.id)}
+                  onLeave={onClose}
                   onAppend={(content) => handleAppend(thread.id, content)}
                 />
               </motion.div>

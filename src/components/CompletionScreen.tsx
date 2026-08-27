@@ -19,11 +19,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
 
   if (!thread) return null;
 
-  const firstEntry = thread.entries[0];
-  const isUnspokenInitial = firstEntry?.type === 'unspoken' && thread.entries.length === 1;
-  const ceremonyText = isUnspokenInitial
-    ? UI_TEXT.completion.ceremony.unspoken
-    : UI_TEXT.completion.ceremony.deposit;
+  const ceremonyText = UI_TEXT.completion.ceremony.deposit;
 
   return (
     <div className="w-full max-w-lg space-y-6 sm:space-y-8 flex flex-col items-center text-center">
@@ -46,7 +42,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
               className={`space-y-1.5 ${index > 0 ? 'pt-3 pl-3 border-l-2 border-border-base' : ''}`}
             >
               <div className="text-xs text-ink-muted font-mono">
-                {new Date(entry.timestamp).toLocaleString('zh-TW', { 
+                {new Date(entry.createdAt).toLocaleString('zh-TW', { 
                   month: 'short', 
                   day: 'numeric', 
                   hour: '2-digit', 
@@ -54,15 +50,9 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
                 })}
               </div>
               
-              {entry.type === 'unspoken' ? (
-                <div className="text-base text-ink-muted italic font-light">
-                  （這時候說不上來）
-                </div>
-              ) : (
-                <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
-                  {entry.content}
-                </div>
-              )}
+              <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
+                {entry.content}
+              </div>
             </div>
           ))}
         </div>

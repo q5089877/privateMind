@@ -28,16 +28,8 @@ export function useFlow() {
       await engine.submitText(val);
       sync();
     },
-    submitUnspoken: async () => {
-      await engine.submitUnspoken();
-      sync();
-    },
     appendEntry: async (threadId: string, content: string) => {
       await engine.appendEntry(threadId, content);
-      sync();
-    },
-    releaseThread: async (threadId: string) => {
-      await engine.releaseThread(threadId);
       sync();
     },
     deleteThread: async (threadId: string) => {

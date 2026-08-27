@@ -9,48 +9,32 @@ import { AdditionForm } from './AdditionForm';
 interface ThoughtCardProps {
   thread: ThoughtThread;
   onDelete: () => void;
-  onRelease: () => void;
+  onLeave: () => void;
   onAppend: (content: string) => void;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({ 
   thread, 
   onDelete, 
-  onRelease, 
+  onLeave, 
   onAppend
 }) => {
-  const [confirmType, setConfirmType] = useState<'DELETE' | 'RELEASE' | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  
-  const isReleased = thread.isReleased;
 
-  const handleConfirm = () => {
-    if (confirmType === 'DELETE') {
-      onDelete();
-      setConfirmType(null);
-    } else if (confirmType === 'RELEASE') {
-      onRelease();
-      setConfirmType(null);
-    }
+  const handleDeleteConfirm = () => {
+    onDelete();
+    setShowDeleteConfirm(false);
   };
 
   return (
     <motion.div 
       layout
-      animate={{
-        y: isReleased ? 4 : 0,
-        scale: isReleased ? 0.99 : 1,
-        opacity: isReleased ? 0.92 : 1,
-      }}
-      transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-      className={`p-6 sm:p-7 rounded-2xl border transition-colors duration-1000 relative overflow-hidden ${
-        isReleased 
-          ? 'bg-surface-subtle border-border-subtle shadow-none' 
-          : 'bg-surface border-border-base shadow-xs'
-      }`}
+      transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+      className="p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden"
     >
       <AnimatePresence>
-        {confirmType && (
+        {showDeleteConfirm && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -58,20 +42,20 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4"
           >
             <p className="text-sm text-ink font-light">
-              {confirmType === 'DELETE' ? UI_TEXT.review.card.confirmDeleteTitle : UI_TEXT.review.card.confirmReleaseTitle}
+              {UI_TEXT.review.card.confirmDeleteTitle}
             </p>
             <div className="flex gap-4">
               <button 
-                onClick={() => setConfirmType(null)}
+                onClick={() => setShowDeleteConfirm(false)}
                 className="px-5 py-1.5 text-xs rounded-full bg-surface-muted text-ink-secondary hover:text-ink transition-colors cursor-pointer"
               >
                 {UI_TEXT.review.card.keepBtn}
               </button>
               <button 
-                onClick={handleConfirm}
+                onClick={handleDeleteConfirm}
                 className="px-5 py-1.5 text-xs rounded-full bg-border-base text-ink hover:bg-surface-hover transition-colors cursor-pointer"
               >
-                {confirmType === 'DELETE' ? UI_TEXT.review.card.deleteBtn : UI_TEXT.review.card.releaseBtn}
+                {UI_TEXT.review.card.deleteBtn}
               </button>
             </div>
           </motion.div>
@@ -87,91 +71,66 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 key={entry.id}
                 className={`space-y-1.5 ${index > 0 ? 'pt-3 pl-3.5 border-l-2 border-border-base' : ''}`}
               >
-                <div className="text-xs text-ink-muted font-mono flex items-center gap-2">
-                  <span>
-                    {new Date(entry.timestamp).toLocaleString('zh-TW', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
-                  {index === 0 && isReleased && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface text-ink-muted border border-border-subtle font-sans">
-                      {UI_TEXT.review.card.releasedBadge}
-                    </span>
-                  )}
+                <div className="text-xs text-ink-muted font-mono">
+                  {new Date(entry.createdAt).toLocaleString('zh-TW', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
                 </div>
 
-                {entry.type === 'unspoken' ? (
-                  <div className="text-base text-ink-muted italic font-light">
-                    （這時候說不上來）
-                  </div>
-                ) : (
-                  <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
-                    {entry.content}
-                  </div>
-                )}
+                <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                  {entry.content}
+                </div>
               </div>
             ))}
           </div>
 
           {/* ＋ 接著說…… / 展開輸入 */}
-          {!isReleased && (
-            <div className="pt-2">
-              {!isAdding ? (
-                <button 
-                  onClick={() => setIsAdding(true)}
-                  className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer"
-                >
-                  {UI_TEXT.addition.addBtn}
-                </button>
-              ) : (
-                <AdditionForm 
-                  onSave={(content) => {
-                    onAppend(content);
-                    setIsAdding(false);
-                  }}
-                  onCancel={() => setIsAdding(false)}
-                />
-              )}
-            </div>
-          )}
+          <div className="pt-2">
+            {!isAdding ? (
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                {UI_TEXT.addition.addBtn}
+              </button>
+            ) : (
+              <AdditionForm 
+                onSave={(content) => {
+                  onAppend(content);
+                  setIsAdding(false);
+                }}
+                onCancel={() => setIsAdding(false)}
+              />
+            )}
+          </div>
         </div>
 
         {/* 物理操作按鈕（先放這裡 / 刪除） */}
-        <div className="flex flex-col gap-1.5 pt-1 items-center">
-          {!isReleased ? (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setConfirmType('RELEASE');
-              }} 
-              className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors" 
-              title={UI_TEXT.review.card.releaseBtn}
-            >
-              <Leaf size={18} />
-            </button>
-          ) : (
-            <>
-              <div 
-                className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/30 rounded-lg" 
-                title={UI_TEXT.review.card.releasedBadge}
-              >
-                <Leaf size={18} />
-              </div>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConfirmType('DELETE');
-                }} 
-                className="p-1.5 w-7 h-7 flex items-center justify-center text-ink-muted/40 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
-                title={UI_TEXT.review.card.deleteBtn}
-              >
-                <Trash2 size={14} />
-              </button>
-            </>
-          )}
+        <div className="flex flex-col gap-2 pt-1 items-center">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerHaptic('settle');
+              onLeave();
+            }} 
+            className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors" 
+            title={UI_TEXT.review.card.releaseBtn}
+          >
+            <Leaf size={18} />
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeleteConfirm(true);
+            }} 
+            className="p-1.5 w-8 h-8 flex items-center justify-center text-ink-muted/50 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
+            title={UI_TEXT.review.card.deleteBtn}
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
       </div>
     </motion.div>

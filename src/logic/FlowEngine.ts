@@ -55,32 +55,9 @@ export class FlowEngine {
       entries: [
         {
           id: entryId,
-          timestamp: now,
-          type: 'text',
+          threadId,
+          createdAt: now,
           content: content.trim()
-        }
-      ]
-    };
-
-    await this.storage.saveThread(newThread);
-    this.currentThread = newThread;
-    this.state = 'PRESENT_SETTLED';
-  }
-
-  public async submitUnspoken() {
-    const now = Date.now();
-    const threadId = this.generateId('thread');
-    const entryId = this.generateId('entry');
-
-    const newThread: ThoughtThread = {
-      id: threadId,
-      createdAt: now,
-      updatedAt: now,
-      entries: [
-        {
-          id: entryId,
-          timestamp: now,
-          type: 'unspoken'
         }
       ]
     };
@@ -99,8 +76,8 @@ export class FlowEngine {
     const now = Date.now();
     const newEntry: DialogueEntry = {
       id: this.generateId('entry'),
-      timestamp: now,
-      type: 'text',
+      threadId,
+      createdAt: now,
       content: content.trim()
     };
 
@@ -111,20 +88,6 @@ export class FlowEngine {
     if (this.currentThread?.id === threadId) {
       this.currentThread = { ...target };
       this.notify();
-    }
-  }
-
-  public async releaseThread(threadId: string) {
-    const threads = await this.storage.getThreads();
-    const target = threads.find(t => t.id === threadId);
-    if (target) {
-      target.isReleased = true;
-      target.updatedAt = Date.now();
-      await this.storage.updateThread(target);
-      if (this.currentThread?.id === threadId) {
-        this.currentThread = { ...target };
-        this.notify();
-      }
     }
   }
 

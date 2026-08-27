@@ -15,7 +15,6 @@ const App: React.FC = () => {
         return (
           <HomeScreen 
             onStartInput={(text) => flow.submitText(text)} 
-            onSayNothing={() => flow.submitUnspoken()}
             onReview={() => flow.transition('REVIEW')}
           />
         );
