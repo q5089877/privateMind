@@ -25,9 +25,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
     }
   }, [inputText]);
 
+  // 進入即取得焦點，喚起鍵盤
+  useEffect(() => {
+    const focusTimer = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(focusTimer);
+  }, []);
+
   const handleQuickSelect = (text: string) => {
     if (isSinking) return;
     setInputText(text);
+    textareaRef.current?.focus();
   };
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,13 +58,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
     }, 1400);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleContinue();
+    }
+  };
+
   return (
     <div
       className={`w-full max-w-[500px] flex flex-col items-center text-center ${
         isSinking ? 'sink-animation pointer-events-none' : ''
       }`}
     >
-      <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-ink mb-6 sm:mb-10 text-center">
+      <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-ink mb-6 sm:mb-8 text-center">
         {UI_TEXT.home.title}
       </h1>
 
@@ -65,42 +81,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
           rows={1}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={UI_TEXT.home.inputPlaceholder}
           className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted placeholder:font-light transition-colors duration-300 py-2.5 sm:py-3.5 text-[20px] sm:text-[23px] outline-none resize-none text-center leading-[1.5]"
           autoFocus
         />
 
-        {/* 狀態入口區 */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap justify-center gap-2">
-            {QUICK_OPTIONS.map((option, idx) => (
-              <button
-                key={`quick-opt-${idx}`}
-                onClick={() => handleQuickSelect(option)}
-                className="py-2 px-3.5 bg-surface border border-border-base hover:border-border-focus text-ink-secondary hover:text-ink rounded-xl text-[15px] sm:text-[16px] transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-xs"
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex justify-center items-center mt-2">
+        {/* 狀態入口區：情緒快選 */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {QUICK_OPTIONS.map((option, idx) => (
             <button
-              type="button"
-              onClick={() => {
-                if (isSinking) return;
-                onReview();
-              }}
-              className="text-ink-muted hover:text-ink text-[15px] sm:text-[16px] transition-colors duration-300 py-2 cursor-pointer"
+              key={`quick-opt-${idx}`}
+              onClick={() => handleQuickSelect(option)}
+              className="py-2 px-3.5 bg-surface border border-border-base hover:border-border-focus text-ink-secondary hover:text-ink rounded-xl text-[15px] sm:text-[16px] transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-xs"
             >
-              {UI_TEXT.home.reviewPast}
+              {option}
             </button>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* 動作按鈕區 */}
-      <div className="mt-2 sm:mt-4 flex justify-center items-center w-full">
+      <div className="mt-4 flex justify-center items-center w-full">
         <button
           type="button"
           onClick={handleContinue}
@@ -115,6 +117,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
         </button>
       </div>
 
+      {/* 次要回顧入口 */}
+      <div className="mt-8">
+        <button
+          type="button"
+          onClick={() => {
+            if (isSinking) return;
+            onReview();
+          }}
+          className="text-ink-muted hover:text-ink text-[14px] sm:text-[15px] transition-colors duration-300 py-2 cursor-pointer"
+        >
+          {UI_TEXT.home.reviewPast}
+        </button>
+      </div>
     </div>
   );
 };
