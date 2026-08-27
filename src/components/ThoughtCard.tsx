@@ -114,11 +114,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                       minute: '2-digit' 
                     })}
                   </span>
-                  {entry.type === 'action' && entry.id !== thread.currentActionId && onSetCurrentAction && (
+                  {entry.id !== thread.currentActionId && onSetCurrentAction && (
                     <button
                       type="button"
                       onClick={() => onSetCurrentAction(entry.id)}
-                      className="text-[10px] text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                      className="text-[11px] text-ink-muted hover:text-ink transition-colors cursor-pointer"
                     >
                       設為當前行動
                     </button>
