@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import { Leaf, Trash2, ArrowUp, MoreHorizontal } from 'lucide-react';
 import { ThoughtThread, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
@@ -32,6 +32,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
+  const dragControls = useDragControls();
 
   const handleDeleteConfirm = () => {
     onDelete();
@@ -68,6 +69,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       <motion.div 
         layout
         drag={!isArchivedView && !isAdding && !showDeleteConfirm ? "y" : false}
+        dragControls={dragControls}
+        dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0.05, bottom: 0.7 }}
         onDrag={(_, info) => {
@@ -76,7 +79,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           }
         }}
         onDragEnd={(_, info) => {
-          if (info.offset.y > 85) {
+          if (info.offset.y > 80) {
             handleSinkArchive();
           } else {
             setDragY(0);
@@ -90,9 +93,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             : { y: 0, opacity: Math.max(1 - dragY / 300, 0.45), scale: Math.max(1 - dragY / 1200, 0.96) }
         }
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className={`p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden ${
-          !isArchivedView ? 'touch-pan-x cursor-grab active:cursor-grabbing' : ''
-        }`}
+        className="p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden touch-pan-y"
       >
       {/* 獨立刪除確認 Modal (非不可逆提示) */}
       <AnimatePresence>
@@ -248,12 +249,16 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               <div className="flex items-center justify-between pt-0.5">
                 <button 
                   type="button"
+                  onPointerDown={(e) => {
+                    dragControls.start(e);
+                  }}
                   onClick={handleSinkArchive} 
-                  className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink cursor-pointer py-1 px-2 rounded-lg hover:bg-surface-subtle transition-colors active:scale-98"
-                  title="暫時移出眼前視線"
+                  className="touch-none flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing py-1 px-2.5 rounded-lg bg-surface-subtle hover:bg-surface-hover border border-border-base/40 transition-colors active:scale-98 select-none"
+                  title="按住往下拉封存，或直接點擊"
                 >
                   <Leaf size={14} className="text-ink-muted" />
                   <span>{UI_TEXT.review.card.archiveBtn}</span>
+                  <span className="text-[10px] text-ink-muted/50 font-light">（按住下拉）</span>
                 </button>
 
                 {/* 更多 (⋯) → 刪除 */}
