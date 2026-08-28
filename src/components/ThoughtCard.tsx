@@ -35,17 +35,16 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onAppend,
   onSetCurrentAction
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // 預設全部合起來 (Default Collapsed)
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isTakingStep, setIsTakingStep] = useState(false);
   const [showEntryPicker, setShowEntryPicker] = useState(false);
-  const [activeEntryActionMenu, setActiveEntryActionMenu] = useState<string | null>(null);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
 
   const cardLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const entryLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleDeleteConfirm = () => {
@@ -101,28 +100,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       cardLongPressTimerRef.current = null;
     }
     touchStartPosRef.current = null;
-  };
-
-  // 單句久按：設為當前行動
-  const handleEntryPointerDown = (e: React.PointerEvent, entryId: string) => {
-    if (isArchivedView || isCollapsed) return;
-    // 取消外層卡片久按
-    if (cardLongPressTimerRef.current) {
-      clearTimeout(cardLongPressTimerRef.current);
-      cardLongPressTimerRef.current = null;
-    }
-
-    entryLongPressTimerRef.current = setTimeout(() => {
-      triggerHaptic('step');
-      setActiveEntryActionMenu(entryId);
-    }, 420);
-  };
-
-  const handleEntryPointerUpOrLeave = () => {
-    if (entryLongPressTimerRef.current) {
-      clearTimeout(entryLongPressTimerRef.current);
-      entryLongPressTimerRef.current = null;
-    }
   };
 
   const currentAction = thread.currentActionId 
@@ -249,58 +226,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
             )}
 
-            {/* 時間線內容流 (支援久按單句快捷操作) */}
+            {/* 時間線內容流 */}
             <div className="space-y-5">
               {(currentAction ? pastEntries : thread.entries).map((entry, index) => (
                 <div 
                   key={entry.id} 
-                  className={`space-y-1 relative group ${index > 0 && !currentAction ? 'pt-3 border-t border-border-base/30' : ''}`}
-                  onPointerDown={(e) => handleEntryPointerDown(e, entry.id)}
-                  onPointerUp={handleEntryPointerUpOrLeave}
-                  onPointerLeave={handleEntryPointerUpOrLeave}
-                  onTouchEnd={handleEntryPointerUpOrLeave}
+                  className={`space-y-1 ${index > 0 && !currentAction ? 'pt-3 border-t border-border-base/30' : ''}`}
                 >
                   <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
                     {entry.content}
                   </div>
-                  <div className="text-xs text-ink-muted/70 font-mono select-none flex justify-between items-center">
-                    <span>{formatTimestamp(entry.createdAt)}</span>
-                    {!isArchivedView && onSetCurrentAction && (
-                      <span className="text-[10px] text-ink-muted/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                        （久按設為行動）
-                      </span>
-                    )}
+                  <div className="text-xs text-ink-muted/70 font-mono select-none">
+                    {formatTimestamp(entry.createdAt)}
                   </div>
-
-                  {/* 久按單句浮現快捷泡泡 */}
-                  <AnimatePresence>
-                    {activeEntryActionMenu === entry.id && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="absolute right-0 top-0 z-20 bg-surface border border-border-focus rounded-xl shadow-md p-1.5 flex items-center gap-2"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onSetCurrentAction?.(entry.id);
-                            setActiveEntryActionMenu(null);
-                          }}
-                          className="px-3 py-1 bg-accent text-accent-text rounded-lg text-xs font-normal cursor-pointer hover:bg-accent-hover active:scale-98"
-                        >
-                          {UI_TEXT.review.card.setActionBtn}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setActiveEntryActionMenu(null)}
-                          className="px-2 py-1 text-ink-muted hover:text-ink text-xs cursor-pointer"
-                        >
-                          關閉
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               ))}
             </div>
@@ -476,7 +414,3 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     </div>
   );
 };
-
-
-
-
