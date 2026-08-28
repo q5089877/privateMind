@@ -1,4 +1,4 @@
-import { FlowState, ThoughtThread, DialogueEntry } from '../types';
+import { FlowState, ThoughtThread, DialogueEntry, EntryType } from '../types';
 import { IStorageProvider } from './interfaces/IStorageProvider';
 import { LocalStorageManager } from './StorageManager';
 
