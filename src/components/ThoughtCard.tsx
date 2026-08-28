@@ -132,11 +132,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
       <div className="flex justify-between items-start gap-4">
         <div className="space-y-4 flex-grow">
-          {/* 當前行動：唯一有效版本置頂 */}
+          {/* 當前行動：唯一有效版本獨立置頂 */}
           {currentAction && (
-            <div className="p-4 rounded-xl bg-surface-subtle border border-border-base/70 space-y-1.5">
-              <div className="flex justify-between items-center text-[11px] font-mono tracking-wider text-ink-muted">
-                <span>【{UI_TEXT.review.currentActionTitle}】</span>
+            <div className="p-4 rounded-xl bg-surface-subtle/80 border border-border-base/70 space-y-1">
+              <div className="flex justify-between items-center text-xs text-ink-muted">
+                <span>目前行動</span>
                 {onSetCurrentAction && !isArchivedView && (
                   <button 
                     type="button" 
@@ -148,50 +148,43 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 )}
               </div>
               <div className="text-base sm:text-lg font-normal text-ink leading-relaxed">
-                {currentAction.content}
+                → {currentAction.content}
               </div>
             </div>
           )}
 
-          {/* 歷史時間線分隔線 */}
-          {currentAction && (
-            <div className="text-[11px] text-ink-muted/50 tracking-wider text-center my-2 select-none">
-              ── {UI_TEXT.review.historyTimelineTitle} ──
-            </div>
-          )}
+          {/* 時間線內容流（文字為主角，時間弱化，無多餘 UI 標籤） */}
+          <div className="space-y-4 pt-1">
+            {thread.entries.map((entry, index) => {
+              const prevEntry = index > 0 ? thread.entries[index - 1] : null;
+              const currentDateStr = new Date(entry.createdAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+              const prevDateStr = prevEntry ? new Date(prevEntry.createdAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }) : null;
+              const showFullDate = index === 0 || currentDateStr !== prevDateStr;
 
-          {/* 時間線內容流 */}
-          <div className="space-y-4">
-            {thread.entries.map((entry, index) => (
-              <div 
-                key={entry.id}
-                className={`space-y-1.5 ${index > 0 ? 'pt-3 pl-3.5 border-l-2 border-border-base' : ''}`}
-              >
-                <div className="text-xs text-ink-muted font-mono flex items-center justify-between">
-                  <span>
-                    {new Date(entry.createdAt).toLocaleString('zh-TW', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
-                  {!isArchivedView && entry.id !== thread.currentActionId && onSetCurrentAction && (
-                    <button
-                      type="button"
-                      onClick={() => onSetCurrentAction(entry.id)}
-                      className="text-[11px] text-ink-muted hover:text-ink transition-colors cursor-pointer"
-                    >
-                      設為當前行動
-                    </button>
-                  )}
-                </div>
+              return (
+                <div key={entry.id} className="space-y-1">
+                  <div className="text-xs text-ink-muted/70 font-mono select-none">
+                    {showFullDate
+                      ? new Date(entry.createdAt).toLocaleString('zh-TW', {
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })
+                      : new Date(entry.createdAt).toLocaleString('zh-TW', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                  </div>
 
-                <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
-                  {entry.content}
+                  <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                    {entry.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* ＋ 接著說…… / 展開輸入 */}
