@@ -226,21 +226,41 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
             )}
 
-            {/* 時間線內容流 */}
-            <div className="space-y-5">
-              {(currentAction ? pastEntries : thread.entries).map((entry, index) => (
-                <div 
-                  key={entry.id} 
-                  className={`space-y-1 ${index > 0 && !currentAction ? 'pt-3 border-t border-border-base/30' : ''}`}
-                >
-                  <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
-                    {entry.content}
+            {/* 時間線內容流 (LINE message 一左一右一問一答氣泡) */}
+            <div className="flex flex-col space-y-3.5 pt-1 w-full">
+              {(currentAction ? pastEntries : thread.entries).map((entry, index) => {
+                const isLeft = index % 2 === 0;
+                return (
+                  <div 
+                    key={entry.id} 
+                    className={`flex w-full items-end gap-2 ${isLeft ? 'justify-start' : 'justify-end'}`}
+                  >
+                    {isLeft ? (
+                      <div className="flex items-end gap-1.5 max-w-[88%] sm:max-w-[82%]">
+                        <div className="bg-surface border border-border-base text-ink rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-2xs">
+                          <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap">
+                            {entry.content}
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-ink-muted/70 font-mono shrink-0 select-none pb-0.5">
+                          {formatTimestamp(entry.createdAt)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-end gap-1.5 max-w-[88%] sm:max-w-[82%]">
+                        <span className="text-[10px] text-ink-muted/70 font-mono shrink-0 select-none pb-0.5">
+                          {formatTimestamp(entry.createdAt)}
+                        </span>
+                        <div className="bg-surface-muted/90 border border-border-focus/30 text-ink rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-2xs">
+                          <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap">
+                            {entry.content}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-xs text-ink-muted/70 font-mono select-none">
-                    {formatTimestamp(entry.createdAt)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* ＋ 接著說…… 輸入區 */}
