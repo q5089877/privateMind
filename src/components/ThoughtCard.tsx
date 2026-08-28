@@ -147,18 +147,20 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </div>
       </div>
 
-      {/* 底部 3 個平權介面動作 */}
+      {/* 底部階層化操作區 */}
       {!isAdding && (
-        <div className="pt-4 mt-3 border-t border-border-base/40 flex items-center justify-between gap-2">
+        <div className="pt-4 mt-4 border-t border-border-base/50 space-y-3">
+          {/* 主操作：內容追加 (最明顯) */}
           <button 
             type="button"
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-1.5 text-xs sm:text-sm text-ink-secondary hover:text-ink transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-surface-subtle active:scale-98"
+            className="w-full py-2 px-4 rounded-xl bg-surface-subtle hover:bg-surface-hover border border-border-base/60 text-ink hover:text-ink text-sm font-normal tracking-wide transition-all cursor-pointer active:scale-[0.99] text-center"
           >
-            <span>{UI_TEXT.addition.addBtn}</span>
+            {UI_TEXT.addition.addBtn}
           </button>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* 次要導航操作 vs 邊緣破壞性操作 */}
+          <div className="flex items-center justify-between pt-0.5">
             <button 
               type="button"
               onClick={(e) => {
@@ -166,22 +168,23 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 triggerHaptic('settle');
                 onLeave();
               }} 
-              className="flex items-center gap-1 text-xs text-ink-muted hover:text-ink cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-surface-subtle transition-colors active:scale-98"
+              className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink cursor-pointer py-1 px-2 rounded-lg hover:bg-surface-subtle transition-colors active:scale-98"
               title="離開目前畫面，回到首頁"
             >
-              <Leaf size={14} />
+              <Leaf size={14} className="text-ink-muted" />
               <span>{UI_TEXT.review.card.releaseBtn}</span>
             </button>
+
             <button 
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowDeleteConfirm(true);
               }} 
-              className="flex items-center gap-1 text-xs text-ink-muted/50 hover:text-red-500 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-red-50/50 transition-colors active:scale-98"
+              className="flex items-center gap-1 text-[11px] text-ink-muted/40 hover:text-red-500 cursor-pointer py-1 px-2 rounded-lg hover:bg-red-50/40 transition-colors active:scale-98"
               title="本機永久移除紀錄"
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
               <span>{UI_TEXT.review.card.deleteBtn}</span>
             </button>
           </div>
