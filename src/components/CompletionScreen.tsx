@@ -10,6 +10,15 @@ interface CompletionScreenProps {
   onAppendEntry?: (content: string, type?: import('../types').EntryType) => void;
 }
 
+const formatTimestamp = (timestamp: number) => {
+  const d = new Date(timestamp);
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${month}/${date} ${hours}:${minutes}`;
+};
+
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({ 
   thread, 
   onReset,
@@ -32,26 +41,20 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
 
       {/* 時間線卡片 */}
       <div 
-        style={{ transform: 'translateY(24px)' }}
-        className="w-full p-6 sm:p-7 rounded-2xl bg-surface-subtle border border-border-base shadow-sm text-left space-y-5 will-change-transform"
+        style={{ transform: 'translateY(16px)' }}
+        className="w-full p-6 sm:p-7 rounded-2xl bg-surface-subtle border border-border-base shadow-xs text-left space-y-5 will-change-transform"
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
           {thread.entries.map((entry, index) => (
             <div 
               key={entry.id}
-              className={`space-y-1.5 ${index > 0 ? 'pt-3 pl-3 border-l-2 border-border-base' : ''}`}
+              className={`space-y-1 ${index > 0 ? 'pt-3 border-t border-border-base/40' : ''}`}
             >
-              <div className="text-xs text-ink-muted font-mono">
-                {new Date(entry.createdAt).toLocaleString('zh-TW', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </div>
-              
-              <div className="text-lg sm:text-xl font-light leading-relaxed text-ink whitespace-pre-wrap">
+              <div className="text-base sm:text-lg font-light leading-relaxed text-ink whitespace-pre-wrap">
                 {entry.content}
+              </div>
+              <div className="text-xs text-ink-muted/80 font-mono">
+                {formatTimestamp(entry.createdAt)}
               </div>
             </div>
           ))}
@@ -77,15 +80,15 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.8 }}
-        style={{ transform: 'translateY(24px)' }}
+        transition={{ delay: 0.1, duration: 0.6 }}
+        style={{ transform: 'translateY(16px)' }}
         className="w-full flex flex-col items-center gap-3 pt-2"
       >
         {!isAdding && onAppendEntry && (
           <button 
             type="button"
             onClick={() => setIsAdding(true)}
-            className="text-sm sm:text-base text-ink hover:text-ink-primary font-light py-2 px-6 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98"
+            className="text-sm sm:text-base text-ink hover:text-ink-primary font-normal py-2 px-6 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98"
           >
             {UI_TEXT.completion.exits.addAddition}
           </button>

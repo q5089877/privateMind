@@ -1,7 +1,7 @@
 export const UI_TEXT = {
   home: {
     title: '現在腦中有什麼？',
-    inputPlaceholder: '寫下一句就好……',
+    inputPlaceholder: '寫下來就好……',
     quickOptions: [
       '生氣',
       '委屈',
@@ -26,30 +26,35 @@ export const UI_TEXT = {
   },
   review: {
     title: '時間線',
-    subtitle: '時間保留變化，現在指向行動。',
+    archivedTitle: '已封存的思緒',
     emptyState: '還沒有留下任何痕跡',
-    tabActive: '正在這裡的',
-    tabArchived: '已封存的',
-    currentActionTitle: '當前行動',
-    historyTimelineTitle: '歷史時間線',
+    emptyArchivedState: '目前沒有已封存的思緒',
+    tabActive: '時間線',
+    tabArchived: '封存',
+    toastArchived: '已封存',
+    toastUndo: '復原',
     card: {
+      currentActionHeader: '現在',
+      pastTimelineHeader: '過去',
+      addAdditionBtn: '＋ 接著說……',
+      takeStepBtn: '帶走一小步',
+      setActionBtn: '設為當前行動',
+      writeStepBtn: '寫下一小步',
+      actionPrompt: '如果往前一點，你想做什麼？',
+      becomeActionBtn: '成為當前行動',
+      clearActionBtn: '清除',
       archiveBtn: '封存',
-      archiveDragHint: '🍃 封存',
-      archivedToast: '已封存。',
-      restoreBtn: '↥ 帶回來',
-      restoredToast: '已回來。',
+      archiveDragHint: '向下拖曳封存',
+      restoreBtn: '還原',
       moreBtn: '更多',
       confirmDeleteTitle: '確定要刪除這段紀錄嗎？',
-      confirmDeleteSubtext: '刪除後將無法還原。',
+      confirmDeleteSubtext: '刪除後，這段內容將從此裝置移除，無法復原。',
       keepBtn: '取消',
-      deleteBtn: '永久刪除'
+      deleteBtn: '刪除'
     }
   },
   addition: {
-    addBtn: '＋ 接著說……',
-    inputPlaceholder: '寫下後來想到的……',
-    typeThought: '念頭',
-    typeAction: '當前行動',
+    inputPlaceholder: '接著說……',
     saveBtn: '送出',
     cancelBtn: '取消'
   },
