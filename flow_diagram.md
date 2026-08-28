@@ -1,9 +1,9 @@
-# 思緒停靠 V7 完整流程圖
+# 思緒停靠 V7.1 完整流程圖
 
 ### 一、文字流程架構
 
 ```text
-【思緒停靠 V7】
+【思緒停靠 V7.1】
                                │
                                ▼
                  ┌───────────────────────────┐
@@ -22,7 +22,7 @@
                              [送出]
                                │
                                ▼
-                     Create Thread + Entry
+                     文字離開輸入框 → 輕輕落下
                                │
                                ▼
                          【已停靠。】
@@ -32,7 +32,7 @@
              到這裡就好                  ＋ 接著說……
                  │                           │
                  ▼                           ▼
-             安靜離開                    追加一筆 (念頭/行動)
+             安靜離開                    再落下一筆
                                              │
                                              ▼
                                          【已停靠。】
@@ -40,7 +40,7 @@
 
 ---
 
-回來以後（瀏覽流）
+回來以後（瀏覽與儀式流）
 
 首頁
  │
@@ -48,33 +48,22 @@
           │
           ▼
        時間線
-          │
-          ▼
-      選擇 Thread
-          │
-          ▼
- ┌──────────────────────────────────────┐
- │                                      │
- │   【當前行動】                        │
- │   唯一有效版本（若有行動意圖）        │
- │                                      │
- └──────────────────────────────────────┘
-          │
-          ▼
- ──────── 歷史時間線 ────────
-          │
-          ├── 8/27 念頭：爸媽年紀越來越大了。
-          ├── 8/28 行動：明天問朋友有沒有推薦搬家公司。
-          └── 8/29 行動：算了，先等等。
-          │
-          ▼
- ┌────────────┬──────────────┬───────────┐
- │            │              │           │
- ▼            ▼              ▼           ▼
-＋接著說    設為當前行動   🍃先放這裡  🗑刪除
- │            │              │           │
- ▼            ▼              ▼           ▼
-追加        更新置頂       離開畫面    移除紀錄
+    ┌─────┴───────────────────┐
+    │                         │
+    ▼                         ▼
+【正在這裡的】             【已封存的】
+    │                         │
+    ├── ＋ 接著說             ├── ↥ 帶回來（慢慢浮回）
+    │                         │
+    ├── 🍃 封存（慢慢沉下去）  └── 更多 (⋯) → 刪除
+    │
+    └── 更多 (⋯) → 刪除
+              │
+              ▼
+         確認刪除頁
+         ┌────┴────┐
+         │         │
+        取消     永久刪除
 ```
 
 ---
@@ -92,24 +81,29 @@ flowchart TD
     HOME["首頁<br/>『現在腦中有什麼？』<br/>(自動 Focus + 鍵盤開啟)"]:::input
 
     %% 首頁操作
-    HOME -->|"自由輸入 / 情緒快選"| SUBMIT["送出"]:::action
-    HOME -->|"回來看看"| TIMELINE["時間線<br/>(歷史 Threads)"]:::input
+    HOME -->|"自由輸入 / 情緒快選"| SUBMIT["送出 (落下)"]:::action
+    HOME -->|"回來看看"| TIMELINE["時間線<br/>(正在這裡的 / 已封存的)"]:::input
 
     %% 寫入路徑
     SUBMIT -->|"Create Thread + Entry"| SETTLED["定格<br/>【已停靠。】"]:::settle
     SETTLED -->|"到這裡就好"| HOME
-    SETTLED -->|"＋ 接著說……"| APPEND_NOW["輸入補充內容 (念頭/行動)"]:::action
+    SETTLED -->|"＋ 接著說……"| APPEND_NOW["再落下一筆"]:::action
     APPEND_NOW -->|"Append Entry"| SETTLED
 
-    %% 時間線操作
-    TIMELINE --> THREAD["檢視 Thread"]:::input
-    
-    THREAD -->|"置頂顯示"| CURR_ACTION["【當前行動】<br/>(唯一有效版本)"]:::input
-    THREAD -->|"時間流顯示"| HIST_ENTRIES["【歷史時間線】<br/>(不可變歷史)"]:::input
-    
-    THREAD -->|"＋ 接著說……"| APPEND_LATER["追加節點 (念頭 / 當前行動)"]:::action
-    APPEND_LATER -->|"寫入 Thread"| TIMELINE
-    
-    THREAD -->|"🍃 先放這裡"| HOME
-    THREAD -->|"🗑 刪除"| DELETE["本機永久移除紀錄"]:::terminal
+    %% 正在這裡的 Thread
+    TIMELINE --> ACTIVE_THREAD["正在這裡的 Thread"]:::input
+    ACTIVE_THREAD -->|"＋ 接著說……"| APPEND_LATER["追加時間節點"]:::action
+    ACTIVE_THREAD -->|"向下拖曳 / 點擊封存"| ARCHIVE_ACTION["慢慢沉下去<br/>【已封存。】"]:::action
+    ARCHIVE_ACTION -->|"移出主要視線"| HOME
+
+    %% 已封存的 Thread
+    TIMELINE --> ARCHIVED_THREAD["已封存的 Thread"]:::input
+    ARCHIVED_THREAD -->|"↥ 帶回來"| RESTORE_ACTION["慢慢浮回<br/>【已回來。】"]:::settle
+    RESTORE_ACTION -->|"回到主要時間線"| ACTIVE_THREAD
+
+    %% 獨立刪除流
+    ACTIVE_THREAD -->|"更多 (⋯) → 刪除"| DEL_MODAL["確認刪除頁"]:::terminal
+    ARCHIVED_THREAD -->|"更多 (⋯) → 刪除"| DEL_MODAL
+    DEL_MODAL -->|"永久刪除"| HARD_DEL["本機永久抹除"]:::terminal
+    DEL_MODAL -->|"取消"| TIMELINE
 ```

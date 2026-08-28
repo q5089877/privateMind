@@ -17,6 +17,7 @@ export interface ThoughtThread {
   id: string;
   createdAt: number;
   updatedAt: number;
+  isArchived?: boolean;
   currentActionId?: string | null;
   entries: DialogueEntry[];
 }
@@ -25,6 +26,8 @@ export interface IFlowActions {
   submitText(content: string, type?: EntryType): Promise<void>;
   appendEntry(threadId: string, content: string, type?: EntryType): Promise<void>;
   setCurrentAction(threadId: string, entryId: string | null): Promise<void>;
+  archiveThread(threadId: string): Promise<void>;
+  restoreThread(threadId: string): Promise<void>;
   deleteThread(threadId: string): Promise<void>;
   reset(): void;
   transition(newState: FlowState): void;

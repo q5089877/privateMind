@@ -29,9 +29,10 @@ interface ReviewScreenProps {
 }
 
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const { 
-    displayedThreads, loading, 
-    handleDelete, handleAppend, handleSetCurrentAction
+    activeThreads, archivedThreads, loading, 
+    handleDelete, handleArchive, handleRestore, handleAppend, handleSetCurrentAction
   } = useThoughts();
 
   const onDeleteClick = (id: string) => {
@@ -41,6 +42,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
 
   if (loading) return null;
 
+  const currentList = activeTab === 'active' ? activeThreads : archivedThreads;
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -48,17 +51,43 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     >
       <ReviewHeader onClose={onClose} />
 
-      <div className="space-y-1.5 sm:space-y-2 mb-8 sm:mb-12 text-center">
+      <div className="space-y-3 mb-6 text-center">
         <h2 className="text-2xl sm:text-3xl font-light text-ink">{UI_TEXT.review.title}</h2>
         <p className="text-ink-secondary font-light text-sm sm:text-base">{UI_TEXT.review.subtitle}</p>
+
+        {/* 正在這裡的 vs 已封存的 分流頁籤 */}
+        <div className="inline-flex p-1 rounded-xl bg-surface-muted/60 border border-border-base/50 gap-1 mt-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('active')}
+            className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
+              activeTab === 'active'
+                ? 'bg-surface text-ink font-medium shadow-xs'
+                : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {UI_TEXT.review.tabActive} ({activeThreads.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('archived')}
+            className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
+              activeTab === 'archived'
+                ? 'bg-surface text-ink font-medium shadow-xs'
+                : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {UI_TEXT.review.tabArchived} ({archivedThreads.length})
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {displayedThreads.length === 0 ? (
-          <EmptyState />
+        {currentList.length === 0 ? (
+          <EmptyState message={activeTab === 'active' ? UI_TEXT.review.emptyState : '目前沒有已封存的思緒'} />
         ) : (
           <AnimatePresence mode="popLayout">
-            {displayedThreads.map((thread) => (
+            {currentList.map((thread) => (
               <motion.div
                 key={thread.id}
                 layout
@@ -70,7 +99,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
               >
                 <ThoughtCard 
                   thread={thread} 
+                  isArchivedView={activeTab === 'archived'}
                   onDelete={() => onDeleteClick(thread.id)}
+                  onArchive={() => handleArchive(thread.id)}
+                  onRestore={() => handleRestore(thread.id)}
                   onLeave={onClose}
                   onAppend={(content, type) => handleAppend(thread.id, content, type)}
                   onSetCurrentAction={(entryId) => handleSetCurrentAction(thread.id, entryId)}
@@ -93,9 +125,9 @@ const ReviewHeader: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   </div>
 );
 
-const EmptyState = () => (
+const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
   <div className="py-20 text-center text-ink-muted font-light">
-    {UI_TEXT.review.emptyState}
+    {message || UI_TEXT.review.emptyState}
   </div>
 );
 

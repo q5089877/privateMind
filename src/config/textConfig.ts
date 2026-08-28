@@ -28,15 +28,21 @@ export const UI_TEXT = {
     title: '時間線',
     subtitle: '時間保留變化，現在指向行動。',
     emptyState: '還沒有留下任何痕跡',
+    tabActive: '正在這裡的',
+    tabArchived: '已封存的',
     currentActionTitle: '當前行動',
     historyTimelineTitle: '歷史時間線',
     card: {
-      confirmReleaseTitle: '要先放這裡嗎？',
-      confirmDeleteTitle: '刪除這段內容？這會移除其中所有紀錄。',
+      archiveBtn: '封存',
+      archiveDragHint: '🍃 封存',
+      archivedToast: '已封存。',
+      restoreBtn: '↥ 帶回來',
+      restoredToast: '已回來。',
+      moreBtn: '更多',
+      confirmDeleteTitle: '確定要刪除這段紀錄嗎？',
+      confirmDeleteSubtext: '刪除後將無法還原。',
       keepBtn: '取消',
-      releaseBtn: '先放這裡',
-      deleteBtn: '刪除',
-      releasedBadge: '先放這裡'
+      deleteBtn: '永久刪除'
     }
   },
   addition: {

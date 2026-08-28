@@ -36,6 +36,14 @@ export function useFlow() {
       await engine.setCurrentAction(threadId, entryId);
       sync();
     },
+    archiveThread: async (threadId: string) => {
+      await engine.archiveThread(threadId);
+      sync();
+    },
+    restoreThread: async (threadId: string) => {
+      await engine.restoreThread(threadId);
+      sync();
+    },
     deleteThread: async (threadId: string) => {
       await engine.deleteThread(threadId);
       sync();

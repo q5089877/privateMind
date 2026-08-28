@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Leaf, Trash2 } from 'lucide-react';
+import { Leaf, Trash2, ArrowUp, MoreHorizontal } from 'lucide-react';
 import { ThoughtThread, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
@@ -8,7 +8,10 @@ import { AdditionForm } from './AdditionForm';
 
 interface ThoughtCardProps {
   thread: ThoughtThread;
+  isArchivedView?: boolean;
   onDelete: () => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
   onLeave: () => void;
   onAppend: (content: string, type: EntryType) => void;
   onSetCurrentAction?: (entryId: string | null) => void;
@@ -16,26 +19,43 @@ interface ThoughtCardProps {
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({ 
   thread, 
+  isArchivedView = false,
   onDelete, 
+  onArchive,
+  onRestore,
   onLeave, 
   onAppend,
   onSetCurrentAction
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [dragY, setDragY] = useState(0);
-  const [isLeaving, setIsLeaving] = useState(false);
+  const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
 
   const handleDeleteConfirm = () => {
     onDelete();
     setShowDeleteConfirm(false);
+    setShowMoreMenu(false);
   };
 
-  const handleSettleLeave = () => {
-    setIsLeaving(true);
+  // 封存儀式：慢慢沉下去 (Sink)
+  const handleSinkArchive = () => {
+    setExitDirection('sink');
     triggerHaptic('settle');
     setTimeout(() => {
-      onLeave();
+      onArchive?.();
+      setExitDirection(null);
+    }, 450);
+  };
+
+  // 還原儀式：慢慢浮回來 (Float)
+  const handleFloatRestore = () => {
+    setExitDirection('float');
+    triggerHaptic('step');
+    setTimeout(() => {
+      onRestore?.();
+      setExitDirection(null);
     }, 450);
   };
 
@@ -47,7 +67,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     <div className="relative">
       <motion.div 
         layout
-        drag={!isAdding && !showDeleteConfirm ? "y" : false}
+        drag={!isArchivedView && !isAdding && !showDeleteConfirm ? "y" : false}
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0.05, bottom: 0.7 }}
         onDrag={(_, info) => {
@@ -57,40 +77,50 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         }}
         onDragEnd={(_, info) => {
           if (info.offset.y > 85) {
-            handleSettleLeave();
+            handleSinkArchive();
           } else {
             setDragY(0);
           }
         }}
         animate={
-          isLeaving 
-            ? { y: 70, opacity: 0, scale: 0.95, filter: 'blur(3px)' } 
+          exitDirection === 'sink'
+            ? { y: 70, opacity: 0, scale: 0.95, filter: 'blur(3px)' }
+            : exitDirection === 'float'
+            ? { y: -70, opacity: 0, scale: 0.95, filter: 'blur(3px)' }
             : { y: 0, opacity: Math.max(1 - dragY / 300, 0.45), scale: Math.max(1 - dragY / 1200, 0.96) }
         }
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden touch-pan-x cursor-grab active:cursor-grabbing"
+        className={`p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden ${
+          !isArchivedView ? 'touch-pan-x cursor-grab active:cursor-grabbing' : ''
+        }`}
       >
+      {/* 獨立刪除確認 Modal (非不可逆提示) */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4"
+            className="absolute inset-0 z-30 bg-surface/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-3 px-6 text-center"
           >
-            <p className="text-sm text-ink font-light text-center px-4">
+            <p className="text-base text-ink font-light">
               {UI_TEXT.review.card.confirmDeleteTitle}
             </p>
-            <div className="flex gap-4">
+            <p className="text-xs text-ink-muted">
+              {UI_TEXT.review.card.confirmDeleteSubtext}
+            </p>
+            <div className="flex gap-4 pt-2">
               <button 
+                type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-5 py-1.5 text-xs rounded-full bg-surface-muted text-ink-secondary hover:text-ink transition-colors cursor-pointer"
               >
                 {UI_TEXT.review.card.keepBtn}
               </button>
               <button 
+                type="button"
                 onClick={handleDeleteConfirm}
-                className="px-5 py-1.5 text-xs rounded-full bg-border-base text-ink hover:bg-surface-hover transition-colors cursor-pointer"
+                className="px-5 py-1.5 text-xs rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors cursor-pointer font-medium"
               >
                 {UI_TEXT.review.card.deleteBtn}
               </button>
@@ -106,7 +136,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <div className="p-4 rounded-xl bg-surface-subtle border border-border-base/70 space-y-1.5">
               <div className="flex justify-between items-center text-[11px] font-mono tracking-wider text-ink-muted">
                 <span>【{UI_TEXT.review.currentActionTitle}】</span>
-                {onSetCurrentAction && (
+                {onSetCurrentAction && !isArchivedView && (
                   <button 
                     type="button" 
                     onClick={() => onSetCurrentAction(null)}
@@ -145,7 +175,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                       minute: '2-digit' 
                     })}
                   </span>
-                  {entry.id !== thread.currentActionId && onSetCurrentAction && (
+                  {!isArchivedView && entry.id !== thread.currentActionId && onSetCurrentAction && (
                     <button
                       type="button"
                       onClick={() => onSetCurrentAction(entry.id)}
@@ -181,61 +211,100 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
       {/* 底部階層化操作區 */}
       {!isAdding && (
         <div className="pt-4 mt-4 border-t border-border-base/50 space-y-3">
-          {/* 主操作：內容追加 (最明顯) */}
-          <button 
-            type="button"
-            onClick={() => setIsAdding(true)}
-            className="w-full py-2 px-4 rounded-xl bg-surface-subtle hover:bg-surface-hover border border-border-base/60 text-ink hover:text-ink text-sm font-normal tracking-wide transition-all cursor-pointer active:scale-[0.99] text-center"
-          >
-            {UI_TEXT.addition.addBtn}
-          </button>
+          {isArchivedView ? (
+            /* 已封存視圖操作：帶回來 (主操作) + 更多 (刪除) */
+            <div className="flex items-center justify-between gap-2">
+              <button 
+                type="button"
+                onClick={handleFloatRestore}
+                className="flex items-center gap-1.5 text-xs sm:text-sm text-ink-secondary hover:text-ink transition-colors cursor-pointer py-1.5 px-3.5 rounded-xl bg-surface-subtle hover:bg-surface-hover border border-border-base/60 active:scale-98"
+              >
+                <ArrowUp size={14} />
+                <span>{UI_TEXT.review.card.restoreBtn}</span>
+              </button>
 
-          {/* 次要導航操作 vs 邊緣破壞性操作 */}
-          <div className="flex items-center justify-between pt-0.5">
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                triggerHaptic('settle');
-                onLeave();
-              }} 
-              className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink cursor-pointer py-1 px-2 rounded-lg hover:bg-surface-subtle transition-colors active:scale-98"
-              title="離開目前畫面，回到首頁"
-            >
-              <Leaf size={14} className="text-ink-muted" />
-              <span>{UI_TEXT.review.card.releaseBtn}</span>
-            </button>
+              <div className="relative">
+                <button 
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-1 text-[11px] text-ink-muted/40 hover:text-red-500 cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-red-50/40 transition-colors"
+                  title="刪除"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* 正在這裡的視圖操作：＋ 接著說…… (主操作) + 封存 (次操作) + 更多選單 (刪除) */
+            <>
+              <button 
+                type="button"
+                onClick={() => setIsAdding(true)}
+                className="w-full py-2 px-4 rounded-xl bg-surface-subtle hover:bg-surface-hover border border-border-base/60 text-ink hover:text-ink text-sm font-normal tracking-wide transition-all cursor-pointer active:scale-[0.99] text-center"
+              >
+                {UI_TEXT.addition.addBtn}
+              </button>
 
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDeleteConfirm(true);
-              }} 
-              className="flex items-center gap-1 text-[11px] text-ink-muted/40 hover:text-red-500 cursor-pointer py-1 px-2 rounded-lg hover:bg-red-50/40 transition-colors active:scale-98"
-              title="本機永久移除紀錄"
-            >
-              <Trash2 size={12} />
-              <span>{UI_TEXT.review.card.deleteBtn}</span>
-            </button>
-          </div>
+              <div className="flex items-center justify-between pt-0.5">
+                <button 
+                  type="button"
+                  onClick={handleSinkArchive} 
+                  className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink cursor-pointer py-1 px-2 rounded-lg hover:bg-surface-subtle transition-colors active:scale-98"
+                  title="暫時移出眼前視線"
+                >
+                  <Leaf size={14} className="text-ink-muted" />
+                  <span>{UI_TEXT.review.card.archiveBtn}</span>
+                </button>
+
+                {/* 更多 (⋯) → 刪除 */}
+                <div className="relative">
+                  <button 
+                    type="button"
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="p-1 text-ink-muted/40 hover:text-ink cursor-pointer rounded-lg hover:bg-surface-subtle transition-colors"
+                    title="更多"
+                  >
+                    <MoreHorizontal size={15} />
+                  </button>
+
+                  {showMoreMenu && (
+                    <div className="absolute right-0 bottom-full mb-1 py-1 px-1 bg-surface border border-border-base rounded-lg shadow-md z-20 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="flex items-center gap-1.5 text-xs text-red-500 hover:bg-red-50/50 px-2.5 py-1 rounded-md cursor-pointer transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        <span>刪除紀錄</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </motion.div>
 
     {/* 拖拉底層引導區：安靜浮現 */}
-    <div 
-      className={`absolute inset-x-0 -bottom-3 flex items-center justify-center pointer-events-none transition-opacity duration-200 ${
-        dragY > 15 ? 'opacity-100' : 'opacity-0'
-      }`}
-    >
-      <div className="flex items-center gap-1.5 text-xs text-ink-muted bg-surface/90 backdrop-blur-xs px-3 py-1 rounded-full border border-border-base/60 shadow-xs">
-        <Leaf size={13} className={dragY > 85 ? 'text-accent' : 'text-ink-muted'} />
-        <span className={dragY > 85 ? 'text-ink font-medium' : 'text-ink-muted'}>
-          {dragY > 85 ? '鬆手放回首頁' : '輕輕往下拉……'}
-        </span>
+    {!isArchivedView && (
+      <div 
+        className={`absolute inset-x-0 -bottom-3 flex items-center justify-center pointer-events-none transition-opacity duration-200 ${
+          dragY > 15 ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="flex items-center gap-1.5 text-xs text-ink-muted bg-surface/90 backdrop-blur-xs px-3 py-1 rounded-full border border-border-base/60 shadow-xs">
+          <Leaf size={13} className={dragY > 85 ? 'text-accent' : 'text-ink-muted'} />
+          <span className={dragY > 85 ? 'text-ink font-medium' : 'text-ink-muted'}>
+            {dragY > 85 ? '鬆手封存' : '輕輕往下拉……'}
+          </span>
+        </div>
       </div>
-    </div>
+    )}
   </div>
   );
 };

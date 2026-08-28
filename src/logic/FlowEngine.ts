@@ -113,6 +113,36 @@ export class FlowEngine {
     }
   }
 
+  public async archiveThread(threadId: string) {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    target.isArchived = true;
+    target.updatedAt = Date.now();
+
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = { ...target };
+      this.notify();
+    }
+  }
+
+  public async restoreThread(threadId: string) {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    target.isArchived = false;
+    target.updatedAt = Date.now();
+
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = { ...target };
+      this.notify();
+    }
+  }
+
   public async deleteThread(threadId: string) {
     await this.storage.deleteThread(threadId);
     if (this.currentThread?.id === threadId) {
