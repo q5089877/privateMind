@@ -6,21 +6,17 @@ import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
 import { UI_TEXT } from '../config/textConfig';
 
-const cardVariants = {
-  initial: { opacity: 0, y: -6 },
+const itemVariants = {
+  initial: { opacity: 0, y: -4 },
   animate: { 
     opacity: 1, 
     y: 0, 
-    scale: 1, 
-    filter: 'blur(0px)', 
-    transition: { duration: 0.3, ease: 'easeOut' } 
+    transition: { duration: 0.25, ease: 'easeOut' } 
   },
   exit: {
-    y: 8,
-    scale: 0.98,
     opacity: 0,
-    filter: 'blur(4px)',
-    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+    y: 6,
+    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -75,27 +71,21 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   if (loading) return null;
 
   const currentList = activeTab === 'active' ? activeThreads : archivedThreads;
-  const currentTitle = activeTab === 'active' ? UI_TEXT.review.title : UI_TEXT.review.archivedTitle;
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="w-full max-w-2xl space-y-6 pb-20 relative"
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+      className="w-full max-w-xl pb-24 relative"
     >
-      <ReviewHeader title={currentTitle} onClose={onClose} />
-
-      <div className="space-y-2 mb-6 text-center">
-        <h2 className="text-2xl sm:text-3xl font-light text-ink">{currentTitle}</h2>
-        <p className="text-xs sm:text-sm text-ink-muted font-light tracking-wide">
-          {activeTab === 'active' ? UI_TEXT.review.subtitle : '暫時移出眼前，隨時可以帶回來。'}
-        </p>
-
-        {/* 頁籤切換：時間線（N） vs 封存（N） */}
-        <div className="inline-flex p-1 rounded-xl bg-surface-muted/60 border border-border-base/50 gap-1 mt-2">
+      {/* 頂部列：整合 Tab 切換與關閉按鈕，去重複大標題 */}
+      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3.5 z-20 flex items-center justify-between border-b border-border-base/50 mb-6">
+        <div className="inline-flex p-1 rounded-xl bg-surface-muted/60 border border-border-base/40 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('active')}
-            className={`px-4 py-1.5 text-xs rounded-lg transition-colors cursor-pointer ${
+            className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
               activeTab === 'active'
                 ? 'bg-surface text-ink font-medium shadow-xs'
                 : 'text-ink-muted hover:text-ink'
@@ -106,7 +96,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
           <button
             type="button"
             onClick={() => setActiveTab('archived')}
-            className={`px-4 py-1.5 text-xs rounded-lg transition-colors cursor-pointer ${
+            className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
               activeTab === 'archived'
                 ? 'bg-surface text-ink font-medium shadow-xs'
                 : 'text-ink-muted hover:text-ink'
@@ -115,22 +105,35 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             {UI_TEXT.review.tabArchived}（{archivedThreads.length}）
           </button>
         </div>
-      </div>
 
-      <div className="space-y-4">
+        <button 
+          type="button"
+          onClick={onClose} 
+          className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-full transition-colors cursor-pointer"
+          title="關閉"
+        >
+          <X size={18} />
+        </button>
+      </header>
+
+      {/* 純文字流動排版（去卡片化） */}
+      <div className="space-y-0 divide-y divide-border-base/35">
         {currentList.length === 0 ? (
-          <EmptyState message={activeTab === 'active' ? UI_TEXT.review.emptyState : UI_TEXT.review.emptyArchivedState} />
+          <div className="py-24 text-center text-ink-muted/70 font-light text-sm">
+            {activeTab === 'active' ? UI_TEXT.review.emptyState : UI_TEXT.review.emptyArchivedState}
+          </div>
         ) : (
           <AnimatePresence mode="popLayout">
             {currentList.map((thread) => (
               <motion.div
                 key={thread.id}
                 layout
-                variants={cardVariants}
+                variants={itemVariants}
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                transition={{ layout: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
+                transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
+                className="py-7 first:pt-2"
               >
                 <ThoughtCard 
                   thread={thread} 
@@ -152,9 +155,9 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       <AnimatePresence>
         {lastArchivedId && activeTab === 'active' && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 15 }}
+            exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.25 }}
             className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-ink text-surface px-4 py-2 rounded-full text-xs shadow-lg flex items-center gap-3 select-none"
           >
@@ -173,20 +176,3 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     </motion.div>
   );
 };
-
-const ReviewHeader: React.FC<{ title: string; onClose: () => void }> = ({ title, onClose }) => (
-  <div className="flex items-center justify-between sticky top-0 bg-canvas/95 backdrop-blur-md py-4 z-10 border-b border-border-base">
-    <h2 className="text-xl sm:text-2xl font-light text-ink">{title}</h2>
-    <button onClick={onClose} className="p-2 text-ink-secondary hover:bg-surface-hover rounded-full transition-colors cursor-pointer">
-      <X size={20} />
-    </button>
-  </div>
-);
-
-const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
-  <div className="py-20 text-center text-ink-muted font-light">
-    {message || UI_TEXT.review.emptyState}
-  </div>
-);
-
-
