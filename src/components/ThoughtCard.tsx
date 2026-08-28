@@ -369,20 +369,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                         <Archive size={13} />
                         <span>{UI_TEXT.review.card.archiveBtn}</span>
                       </button>
-
-                      <div className="border-t border-border-base/40 my-1" />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowMoreMenu(false);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="w-full flex items-center gap-2 text-xs text-red-500 hover:bg-red-50/50 px-3 py-2 rounded-lg cursor-pointer transition-colors text-left"
-                      >
-                        <Trash2 size={13} />
-                        <span>{UI_TEXT.review.card.deleteBtn}</span>
-                      </button>
                     </div>
                   )}
                 </div>
