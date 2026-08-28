@@ -23,10 +23,20 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const handleDeleteConfirm = () => {
     onDelete();
     setShowDeleteConfirm(false);
+  };
+
+  const handleSettleLeave = () => {
+    setIsLeaving(true);
+    triggerHaptic('settle');
+    setTimeout(() => {
+      onLeave();
+    }, 450);
   };
 
   const currentAction = thread.currentActionId 
@@ -34,11 +44,32 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     : null;
 
   return (
-    <motion.div 
-      layout
-      transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
-      className="p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden"
-    >
+    <div className="relative">
+      <motion.div 
+        layout
+        drag={!isAdding && !showDeleteConfirm ? "y" : false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0.7 }}
+        onDrag={(_, info) => {
+          if (info.offset.y > 0) {
+            setDragY(info.offset.y);
+          }
+        }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 85) {
+            handleSettleLeave();
+          } else {
+            setDragY(0);
+          }
+        }}
+        animate={
+          isLeaving 
+            ? { y: 70, opacity: 0, scale: 0.95, filter: 'blur(3px)' } 
+            : { y: 0, opacity: Math.max(1 - dragY / 300, 0.45), scale: Math.max(1 - dragY / 1200, 0.96) }
+        }
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="p-6 sm:p-7 rounded-2xl border bg-surface border-border-base shadow-xs relative overflow-hidden touch-pan-x cursor-grab active:cursor-grabbing"
+      >
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div 
@@ -191,6 +222,21 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </div>
       )}
     </motion.div>
+
+    {/* 拖拉底層引導區：安靜浮現 */}
+    <div 
+      className={`absolute inset-x-0 -bottom-3 flex items-center justify-center pointer-events-none transition-opacity duration-200 ${
+        dragY > 15 ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      <div className="flex items-center gap-1.5 text-xs text-ink-muted bg-surface/90 backdrop-blur-xs px-3 py-1 rounded-full border border-border-base/60 shadow-xs">
+        <Leaf size={13} className={dragY > 85 ? 'text-accent' : 'text-ink-muted'} />
+        <span className={dragY > 85 ? 'text-ink font-medium' : 'text-ink-muted'}>
+          {dragY > 85 ? '鬆手放回首頁' : '輕輕往下拉……'}
+        </span>
+      </div>
+    </div>
+  </div>
   );
 };
 
