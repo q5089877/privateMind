@@ -44,40 +44,18 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         style={{ transform: 'translateY(16px)' }}
         className="w-full p-6 sm:p-7 rounded-2xl bg-surface-subtle border border-border-base shadow-xs text-left space-y-5 will-change-transform"
       >
-        <div className="flex flex-col space-y-3.5 w-full">
-          {thread.entries.map((entry, index) => {
-            const isLeft = index % 2 === 0;
-            return (
-              <div 
-                key={entry.id} 
-                className={`flex w-full items-end gap-2 ${isLeft ? 'justify-start' : 'justify-end'}`}
-              >
-                {isLeft ? (
-                  <div className="flex items-end gap-1.5 max-w-[88%] sm:max-w-[82%]">
-                    <div className="bg-surface border border-border-base text-ink rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-2xs">
-                      <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap">
-                        {entry.content}
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-ink-muted/70 font-mono shrink-0 select-none pb-0.5">
-                      {formatTimestamp(entry.createdAt)}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-end gap-1.5 max-w-[88%] sm:max-w-[82%]">
-                    <span className="text-[10px] text-ink-muted/70 font-mono shrink-0 select-none pb-0.5">
-                      {formatTimestamp(entry.createdAt)}
-                    </span>
-                    <div className="bg-surface-muted/90 border border-border-focus/30 text-ink rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-2xs">
-                      <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap">
-                        {entry.content}
-                      </div>
-                    </div>
-                  </div>
-                )}
+        {/* 時間線思緒節點流（安靜垂直流動，無聊天氣泡） */}
+        <div className="space-y-6 w-full text-left">
+          {thread.entries.map((entry) => (
+            <div key={entry.id} className="space-y-1.5">
+              <div className="text-xs text-ink-muted/50 font-mono select-none tracking-wider">
+                {formatTimestamp(entry.createdAt)}
               </div>
-            );
-          })}
+              <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                {entry.content}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* 停靠時可直接接著說 */}

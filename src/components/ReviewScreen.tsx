@@ -84,32 +84,35 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     >
       <ReviewHeader title={currentTitle} onClose={onClose} />
 
-      <div className="space-y-3 mb-6 text-center">
+      <div className="space-y-2 mb-6 text-center">
         <h2 className="text-2xl sm:text-3xl font-light text-ink">{currentTitle}</h2>
+        <p className="text-xs sm:text-sm text-ink-muted font-light tracking-wide">
+          {activeTab === 'active' ? UI_TEXT.review.subtitle : '暫時移出眼前，隨時可以帶回來。'}
+        </p>
 
-        {/* 頁籤切換：時間線 vs 封存 */}
+        {/* 頁籤切換：時間線（N） vs 封存（N） */}
         <div className="inline-flex p-1 rounded-xl bg-surface-muted/60 border border-border-base/50 gap-1 mt-2">
           <button
             type="button"
             onClick={() => setActiveTab('active')}
-            className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-1.5 text-xs rounded-lg transition-colors cursor-pointer ${
               activeTab === 'active'
                 ? 'bg-surface text-ink font-medium shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
-            {UI_TEXT.review.tabActive} ({activeThreads.length})
+            {UI_TEXT.review.tabActive}（{activeThreads.length}）
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('archived')}
-            className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-1.5 text-xs rounded-lg transition-colors cursor-pointer ${
               activeTab === 'archived'
                 ? 'bg-surface text-ink font-medium shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
-            {UI_TEXT.review.tabArchived} ({archivedThreads.length})
+            {UI_TEXT.review.tabArchived}（{archivedThreads.length}）
           </button>
         </div>
       </div>

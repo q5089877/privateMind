@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, MoreHorizontal, Footprints, CornerDownLeft, ChevronDown } from 'lucide-react';
+import { Trash2, MoreHorizontal, CornerDownLeft, ChevronDown, Archive, Target, X } from 'lucide-react';
 import { ThoughtThread, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
@@ -35,13 +35,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onAppend,
   onSetCurrentAction
 }) => {
-  // 預設全部合起來 (Default Collapsed)
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [isTakingStep, setIsTakingStep] = useState(false);
-  const [showEntryPicker, setShowEntryPicker] = useState(false);
+  const [isSettingAction, setIsSettingAction] = useState(false);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
 
   const cardLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,6 +53,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
   // 封存儀式：向下沉 (Sink)
   const handleSinkArchive = () => {
+    setShowMoreMenu(false);
     setExitDirection('sink');
     triggerHaptic('settle');
     setTimeout(() => {
@@ -86,7 +85,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     if (!touchStartPosRef.current || !cardLongPressTimerRef.current) return;
     const dist = Math.hypot(e.clientX - touchStartPosRef.current.x, e.clientY - touchStartPosRef.current.y);
     if (dist > 10) {
-      // 使用者在滾動頁面，取消久按
       if (cardLongPressTimerRef.current) {
         clearTimeout(cardLongPressTimerRef.current);
         cardLongPressTimerRef.current = null;
@@ -174,7 +172,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <div className="flex-grow min-w-0">
               {currentAction ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xs text-ink-secondary font-medium tracking-wide shrink-0">
+                  <span className="text-xs text-ink-muted font-medium tracking-wide shrink-0">
                     {UI_TEXT.review.card.currentActionHeader}
                   </span>
                   <p className="text-base font-normal text-ink truncate">
@@ -197,12 +195,12 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </div>
         ) : (
           /* 展開狀態（Expanded View） */
-          <div className="space-y-5">
-            {/* 當前行動顯示：與時間線分開 */}
+          <div className="space-y-6">
+            {/* 當前行動：整條 Thread 的唯一現在方向 */}
             {currentAction && (
-              <div className="space-y-2">
+              <div className="space-y-2 pb-4 border-b border-border-base/40">
                 <div className="flex justify-between items-center text-xs text-ink-muted">
-                  <span className="font-medium text-ink tracking-wide">{UI_TEXT.review.card.currentActionHeader}</span>
+                  <span className="font-normal text-ink-muted tracking-wide">{UI_TEXT.review.card.currentActionHeader}</span>
                   {onSetCurrentAction && !isArchivedView && (
                     <button 
                       type="button" 
@@ -213,54 +211,24 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     </button>
                   )}
                 </div>
-                <div className="text-lg font-normal text-ink leading-relaxed">
+                <div className="text-base sm:text-lg font-normal text-ink leading-relaxed">
                   {currentAction.content}
                 </div>
               </div>
             )}
 
-            {/* 若有當前行動，在過去與現在之間加上分隔線與「過去」標題 */}
-            {currentAction && pastEntries.length > 0 && (
-              <div className="pt-2 border-t border-border-base/40 space-y-1">
-                <span className="text-xs text-ink-muted/80 tracking-wide">{UI_TEXT.review.card.pastTimelineHeader}</span>
-              </div>
-            )}
-
-            {/* 時間線內容流 (LINE message 一左一右一問一答氣泡) */}
-            <div className="flex flex-col space-y-3.5 pt-1 w-full">
-              {(currentAction ? pastEntries : thread.entries).map((entry, index) => {
-                const isLeft = index % 2 === 0;
-                return (
-                  <div 
-                    key={entry.id} 
-                    className={`flex w-full items-end gap-2 ${isLeft ? 'justify-start' : 'justify-end'}`}
-                  >
-                    {isLeft ? (
-                      <div className="flex items-end gap-1.5 max-w-[88%] sm:max-w-[82%]">
-                        <div className="bg-surface border border-border-base text-ink rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-2xs">
-                          <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap">
-                            {entry.content}
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-ink-muted/70 font-mono shrink-0 select-none pb-0.5">
-                          {formatTimestamp(entry.createdAt)}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-end gap-1.5 max-w-[88%] sm:max-w-[82%]">
-                        <span className="text-[10px] text-ink-muted/70 font-mono shrink-0 select-none pb-0.5">
-                          {formatTimestamp(entry.createdAt)}
-                        </span>
-                        <div className="bg-surface-muted/90 border border-border-focus/30 text-ink rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-2xs">
-                          <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap">
-                            {entry.content}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+            {/* 時間線思緒節點流（思緒為主，時間弱化置頂，無聊天氣泡） */}
+            <div className="space-y-6 pt-1">
+              {(currentAction ? pastEntries : thread.entries).map((entry) => (
+                <div key={entry.id} className="space-y-1.5">
+                  <div className="text-xs text-ink-muted/50 font-mono select-none tracking-wider">
+                    {formatTimestamp(entry.createdAt)}
                   </div>
-                );
-              })}
+                  <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                    {entry.content}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* ＋ 接著說…… 輸入區 */}
@@ -275,61 +243,68 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               />
             )}
 
-            {/* 寫下一小步 輸入區 */}
-            {isTakingStep && (
-              <AdditionForm 
-                mode="action_step"
-                onSave={(content, type) => {
-                  onAppend(content, type);
-                  setIsTakingStep(false);
-                }}
-                onCancel={() => setIsTakingStep(false)}
-              />
-            )}
-
-            {/* 設為當前行動：選擇現有文字 */}
-            {showEntryPicker && (
-              <div className="mt-3 p-4 rounded-2xl border border-border-base bg-surface-subtle space-y-3">
+            {/* 設為當前行動 輸入 / 選擇區 */}
+            {isSettingAction && (
+              <div className="mt-4 p-4 rounded-2xl border border-border-base bg-surface-subtle space-y-4">
                 <div className="flex justify-between items-center text-xs text-ink-muted">
-                  <span>選擇哪一句成為當前行動：</span>
+                  <span>{UI_TEXT.review.card.setActionBtn}</span>
                   <button 
                     type="button" 
-                    onClick={() => setShowEntryPicker(false)}
-                    className="text-ink-muted hover:text-ink"
+                    onClick={() => setIsSettingAction(false)}
+                    className="text-ink-muted hover:text-ink cursor-pointer p-1"
                   >
-                    取消
+                    <X size={14} />
                   </button>
                 </div>
-                <div className="space-y-2">
-                  {thread.entries.map((e) => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => {
-                        onSetCurrentAction?.(e.id);
-                        setShowEntryPicker(false);
-                      }}
-                      className={`w-full text-left p-2.5 rounded-xl border text-sm transition-all cursor-pointer ${
-                        thread.currentActionId === e.id
-                          ? 'bg-surface border-border-focus text-ink font-medium'
-                          : 'bg-surface/50 border-border-base/50 text-ink-secondary hover:text-ink hover:bg-surface'
-                      }`}
-                    >
-                      {e.content}
-                    </button>
-                  ))}
-                </div>
+
+                {/* 輸入新的一小步 */}
+                <AdditionForm 
+                  mode="action_step"
+                  placeholder={UI_TEXT.review.card.actionPrompt}
+                  submitText={UI_TEXT.review.card.becomeActionBtn}
+                  onSave={(content, type) => {
+                    onAppend(content, type);
+                    setIsSettingAction(false);
+                  }}
+                  onCancel={() => setIsSettingAction(false)}
+                />
+
+                {/* 或從現有思緒中選取 */}
+                {thread.entries.length > 0 && (
+                  <div className="pt-2 border-t border-border-base/30 space-y-2">
+                    <span className="text-[11px] text-ink-muted">或直接選取現有的一筆：</span>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {thread.entries.map((e) => (
+                        <button
+                          key={e.id}
+                          type="button"
+                          onClick={() => {
+                            onSetCurrentAction?.(e.id);
+                            setIsSettingAction(false);
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl border text-xs sm:text-sm transition-all cursor-pointer ${
+                            thread.currentActionId === e.id
+                              ? 'bg-surface border-border-focus text-ink font-medium'
+                              : 'bg-surface/50 border-border-base/50 text-ink-secondary hover:text-ink hover:bg-surface'
+                          }`}
+                        >
+                          {e.content}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* 底部操作區（僅展開時顯示） */}
-        {!isCollapsed && !isAdding && !isTakingStep && !showEntryPicker && (
-          <div className="pt-4 mt-4 border-t border-border-base/50 space-y-3">
+        {/* 底部階層化操作區（僅展開時顯示） */}
+        {!isCollapsed && !isAdding && !isSettingAction && (
+          <div className="pt-5 mt-6 border-t border-border-base/40 flex flex-col items-center gap-3">
             {isArchivedView ? (
               /* 已封存視圖操作：還原 + 更多 (刪除) */
-              <div className="flex items-center justify-between gap-2">
+              <div className="w-full flex items-center justify-between">
                 <button 
                   type="button"
                   onClick={handleFloatRestore}
@@ -343,88 +318,73 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                   <button 
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-1 text-[11px] text-ink-muted/40 hover:text-red-500 cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-red-50/40 transition-colors"
+                    className="p-2 text-ink-muted/40 hover:text-red-500 cursor-pointer rounded-lg hover:bg-red-50/40 transition-colors"
                     title="刪除"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
             ) : (
-              /* 正在時間線視圖操作：＋ 接著說…… (最主要) + 帶走一小步 / 封存 / 更多選單 */
+              /* 正在時間線視圖：＋ 接著說…… (唯一主要操作) + ⋯ (次要操作) */
               <>
                 <button 
                   type="button"
                   onClick={() => setIsAdding(true)}
-                  className="w-full py-2 px-4 rounded-xl bg-surface-subtle hover:bg-surface-hover border border-border-base/60 text-ink text-sm font-normal tracking-wide transition-all cursor-pointer active:scale-[0.99] text-center"
+                  className="w-full py-2.5 px-5 rounded-full bg-surface-subtle hover:bg-surface-hover border border-border-base/70 text-ink text-sm sm:text-base font-normal tracking-wide transition-all cursor-pointer active:scale-[0.99] text-center"
                 >
                   {UI_TEXT.review.card.addAdditionBtn}
                 </button>
 
-                <div className="flex items-center justify-between pt-0.5">
-                  <div className="flex items-center gap-2">
-                    {/* 帶走一小步 */}
-                    <div className="relative">
+                {/* ⋯ 更多次要選單 */}
+                <div className="relative self-end pt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="flex items-center gap-1 text-xs text-ink-muted/50 hover:text-ink cursor-pointer px-2 py-1 rounded-lg hover:bg-surface-subtle transition-colors"
+                    title="更多選項"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+
+                  {showMoreMenu && (
+                    <div className="absolute right-0 bottom-full mb-2 py-1.5 px-1 bg-surface border border-border-base rounded-xl shadow-lg z-20 whitespace-nowrap min-w-[130px] space-y-0.5">
                       <button
                         type="button"
-                        onClick={() => setIsTakingStep(true)}
-                        className="flex items-center gap-1 text-xs text-ink-secondary hover:text-ink cursor-pointer py-1 px-2.5 rounded-lg bg-surface-subtle hover:bg-surface-hover border border-border-base/40 transition-colors active:scale-98"
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setIsSettingAction(true);
+                        }}
+                        className="w-full flex items-center gap-2 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover px-3 py-2 rounded-lg cursor-pointer transition-colors text-left"
                       >
-                        <Footprints size={13} />
-                        <span>{UI_TEXT.review.card.takeStepBtn}</span>
+                        <Target size={13} />
+                        <span>{UI_TEXT.review.card.setActionBtn}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSinkArchive}
+                        className="w-full flex items-center gap-2 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover px-3 py-2 rounded-lg cursor-pointer transition-colors text-left"
+                      >
+                        <Archive size={13} />
+                        <span>{UI_TEXT.review.card.archiveBtn}</span>
+                      </button>
+
+                      <div className="border-t border-border-base/40 my-1" />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-2 text-xs text-red-500 hover:bg-red-50/50 px-3 py-2 rounded-lg cursor-pointer transition-colors text-left"
+                      >
+                        <Trash2 size={13} />
+                        <span>{UI_TEXT.review.card.deleteBtn}</span>
                       </button>
                     </div>
-
-                    {/* 封存按鈕 */}
-                    <button 
-                      type="button"
-                      onClick={handleSinkArchive} 
-                      className="flex items-center gap-1 text-xs text-ink-muted hover:text-ink cursor-pointer py-1 px-2.5 rounded-lg bg-surface-subtle hover:bg-surface-hover border border-border-base/40 transition-colors active:scale-98"
-                      title="封存此紀錄"
-                    >
-                      <span>{UI_TEXT.review.card.archiveBtn}</span>
-                    </button>
-                  </div>
-
-                  {/* 更多 (⋯) → 設為當前行動 / 刪除 */}
-                  <div className="relative">
-                    <button 
-                      type="button"
-                      onClick={() => setShowMoreMenu(!showMoreMenu)}
-                      className="p-1 text-ink-muted/40 hover:text-ink cursor-pointer rounded-lg hover:bg-surface-subtle transition-colors"
-                      title="更多"
-                    >
-                      <MoreHorizontal size={15} />
-                    </button>
-
-                    {showMoreMenu && (
-                      <div className="absolute right-0 bottom-full mb-1 py-1 px-1 bg-surface border border-border-base rounded-lg shadow-md z-20 whitespace-nowrap min-w-[120px]">
-                        {thread.entries.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowMoreMenu(false);
-                              setShowEntryPicker(true);
-                            }}
-                            className="w-full flex items-center gap-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover px-2.5 py-1.5 rounded-md cursor-pointer transition-colors text-left"
-                          >
-                            <span>{UI_TEXT.review.card.setActionBtn}</span>
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowMoreMenu(false);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="w-full flex items-center gap-1.5 text-xs text-red-500 hover:bg-red-50/50 px-2.5 py-1.5 rounded-md cursor-pointer transition-colors text-left"
-                        >
-                          <Trash2 size={12} />
-                          <span>{UI_TEXT.review.card.deleteBtn}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </>
             )}
