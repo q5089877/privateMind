@@ -40,8 +40,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [isTakingStep, setIsTakingStep] = useState(false);
   const [showEntryPicker, setShowEntryPicker] = useState(false);
+  const [activeEntryActionMenu, setActiveEntryActionMenu] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
+  const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragControls = useDragControls();
 
   const handleDeleteConfirm = () => {
@@ -70,6 +72,22 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     }, 450);
   };
 
+  // 久按單句偵測
+  const handleEntryPointerDown = (entryId: string) => {
+    if (isArchivedView) return;
+    longPressTimerRef.current = setTimeout(() => {
+      triggerHaptic('step');
+      setActiveEntryActionMenu(entryId);
+    }, 420);
+  };
+
+  const handleEntryPointerUpOrLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   const currentAction = thread.currentActionId 
     ? thread.entries.find(e => e.id === thread.currentActionId)
     : null;
@@ -80,11 +98,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     <div className="relative">
       <motion.div 
         layout
-        drag={!isArchivedView && !isAdding && !isTakingStep && !showDeleteConfirm ? "y" : false}
-        dragControls={dragControls}
-        dragListener={false}
+        drag={!isArchivedView && !isAdding && !isTakingStep && !showDeleteConfirm && !showEntryPicker ? "y" : false}
+        dragDirectionLock
         dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0.04, bottom: 0.65 }}
+        dragElastic={{ top: 0.02, bottom: 0.65 }}
         onDrag={(_, info) => {
           if (info.offset.y > 0) {
             setDragY(info.offset.y);
@@ -133,7 +150,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 <button 
                   type="button"
                   onClick={handleDeleteConfirm}
-                  className="px-5 py-1.5 text-xs rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors cursor-pointer font-medium"
+                  className="px-5 py-1.5 text-xs rounded-full bg-red-500/10 text-red-600 hover:bg-red-50/20 transition-colors cursor-pointer font-medium"
                 >
                   {UI_TEXT.review.card.deleteBtn}
                 </button>
@@ -171,16 +188,58 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             </div>
           )}
 
-          {/* 時間線內容流 */}
+          {/* 時間線內容流 (支援久按單句快捷操作) */}
           <div className="space-y-5">
             {(currentAction ? pastEntries : thread.entries).map((entry, index) => (
-              <div key={entry.id} className={`space-y-1 ${index > 0 && !currentAction ? 'pt-3 border-t border-border-base/30' : ''}`}>
+              <div 
+                key={entry.id} 
+                className={`space-y-1 relative group select-text ${index > 0 && !currentAction ? 'pt-3 border-t border-border-base/30' : ''}`}
+                onPointerDown={() => handleEntryPointerDown(entry.id)}
+                onPointerUp={handleEntryPointerUpOrLeave}
+                onPointerLeave={handleEntryPointerUpOrLeave}
+                onTouchEnd={handleEntryPointerUpOrLeave}
+              >
                 <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
                   {entry.content}
                 </div>
-                <div className="text-xs text-ink-muted/70 font-mono select-none">
-                  {formatTimestamp(entry.createdAt)}
+                <div className="text-xs text-ink-muted/70 font-mono select-none flex justify-between items-center">
+                  <span>{formatTimestamp(entry.createdAt)}</span>
+                  {!isArchivedView && onSetCurrentAction && (
+                    <span className="text-[10px] text-ink-muted/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      （久按設為行動）
+                    </span>
+                  )}
                 </div>
+
+                {/* 久按單句浮現快捷泡泡 */}
+                <AnimatePresence>
+                  {activeEntryActionMenu === entry.id && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="absolute right-0 top-0 z-20 bg-surface border border-border-focus rounded-xl shadow-md p-1.5 flex items-center gap-2"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSetCurrentAction?.(entry.id);
+                          setActiveEntryActionMenu(null);
+                        }}
+                        className="px-3 py-1 bg-accent text-accent-text rounded-lg text-xs font-normal cursor-pointer hover:bg-accent-hover active:scale-98"
+                      >
+                        {UI_TEXT.review.card.setActionBtn}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveEntryActionMenu(null)}
+                        className="px-2 py-1 text-ink-muted hover:text-ink text-xs cursor-pointer"
+                      >
+                        關閉
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
