@@ -111,7 +111,19 @@ export class GeminiProxyClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 7000);
 
-      if (apiKey) {
+      if (proxyUrl) {
+        // 優先走 Cloudflare Worker 安全反向代理（完全避免瀏覽器 CORS 阻擋）
+        res = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gemini-3.5-flash-lite',
+            ...payload
+          }),
+          signal: controller.signal
+        });
+      } else if (apiKey) {
+        // 次選直連（注意：瀏覽器環境下可能被 Google CORS 阻擋）
         const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
         res = await fetch(targetUrl, {
           method: 'POST',
@@ -120,16 +132,6 @@ export class GeminiProxyClient {
             'X-goog-api-key': apiKey
           },
           body: JSON.stringify(payload),
-          signal: controller.signal
-        });
-      } else if (proxyUrl) {
-        res = await fetch(proxyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'gemini-3.5-flash-lite',
-            ...payload
-          }),
           signal: controller.signal
         });
       } else {
