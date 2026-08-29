@@ -183,23 +183,23 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           )}
         </AnimatePresence>
 
-        {/* 時間線思緒內容（同一 Thread 緊湊聚合） */}
-        <div className="space-y-2.5">
+        {/* 時間線思緒內容（Inline Flex 橫向緊湊排列，高度壓縮至 32px～36px） */}
+        <div className="space-y-1">
           {isSandwich ? (
             /* 三明治折疊模式：顯示第 1 則 + ··· + 最後 1 則 */
             <>
               {/* 第 1 則：起點 */}
-              <div key={entries[0].id} className="space-y-0.5">
-                <div className="text-[11px] text-ink-muted/60 font-mono select-none tracking-wide">
+              <div key={entries[0].id} className="flex items-baseline gap-3 py-1">
+                <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
                   {formatEntryTime(entries[0].createdAt)}
                 </div>
-                <div className="text-base sm:text-[17px] font-normal leading-[1.7] whitespace-pre-wrap text-ink tracking-wide">
+                <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[0].content}
                 </div>
               </div>
 
-              {/* 中間沉積：精緻微型展開按鈕 */}
-              <div className="py-0.5 flex items-center">
+              {/* 中間沉積：微型展開標籤 */}
+              <div className="flex items-center gap-3 py-0.5 pl-14">
                 <button
                   type="button"
                   onClick={() => setIsExpanded(true)}
@@ -211,24 +211,24 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
 
               {/* 最後 1 則：終點 */}
-              <div key={entries[totalEntries - 1].id} className="space-y-0.5">
-                <div className="text-[11px] text-ink-muted/60 font-mono select-none tracking-wide">
+              <div key={entries[totalEntries - 1].id} className="flex items-baseline gap-3 py-1">
+                <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
                   {formatEntryTime(entries[totalEntries - 1].createdAt)}
                 </div>
-                <div className="text-base sm:text-[17px] font-normal leading-[1.7] whitespace-pre-wrap text-ink tracking-wide">
+                <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[totalEntries - 1].content}
                 </div>
               </div>
             </>
           ) : (
-            /* 完整展示所有 Entries（同一 Thread 內由舊到新緊密相連） */
+            /* 完整展示所有 Entries（Inline Flex 橫向排版） */
             <>
               {entries.map((entry) => (
-                <div key={entry.id} className="space-y-0.5">
-                  <div className="text-[11px] text-ink-muted/60 font-mono select-none tracking-wide">
+                <div key={entry.id} className="flex items-baseline gap-3 py-1">
+                  <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
                     {formatEntryTime(entry.createdAt)}
                   </div>
-                  <div className="text-base sm:text-[17px] font-normal leading-[1.7] whitespace-pre-wrap text-ink tracking-wide">
+                  <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
                     {entry.content}
                   </div>
                 </div>
@@ -239,7 +239,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
         {/* ＋ 接著說…… 輸入區 */}
         {isAdding && (
-          <div className="pt-3">
+          <div className="pt-2 pl-14">
             <AdditionForm
               mode="append"
               contextText={entries[entries.length - 1]?.content || ''}
@@ -256,25 +256,25 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         {!isAdding && (
           isArchivedView ? (
             /* 18｜已收起空間：Ghost Buttons (1px 淡框、透明底、圓角 6px、大觸控熱區) */
-            <div className="pt-3 flex items-center justify-end gap-2.5 select-none">
+            <div className="pt-2 pl-14 flex items-center justify-end gap-2.5 select-none">
               <button
                 type="button"
                 onClick={handleBringBack}
-                className="px-3.5 py-1.5 min-h-[32px] text-[13px] font-normal leading-tight text-ink-secondary hover:text-ink border border-border-base/60 hover:border-border-focus/80 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                className="px-3.5 py-1 min-h-[30px] text-xs font-normal leading-tight text-ink-secondary hover:text-ink border border-border-base/60 hover:border-border-focus/80 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
               >
                 {UI_TEXT.review.card.bringBackBtn}
               </button>
               <button
                 type="button"
                 onClick={() => setShowVanishConfirm(true)}
-                className="px-3.5 py-1.5 min-h-[32px] text-[13px] font-normal leading-tight text-ink-secondary hover:text-red-500 border border-border-base/60 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                className="px-3.5 py-1 min-h-[30px] text-xs font-normal leading-tight text-ink-secondary hover:text-red-500 border border-border-base/60 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
               >
                 {UI_TEXT.review.card.makeItVanishBtn}
               </button>
             </div>
           ) : (
             /* 正常時間線：左側「＋ 接著說……」，右側可收合按鈕（若已展開） */
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-0.5 pl-14 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setIsAdding(true)}

@@ -173,24 +173,24 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       </header>
 
       {/* 07｜自然日期流動排版（帶極淡時間軸微結構與緊湊節奏） */}
-      <div className="space-y-10 sm:space-y-12">
+      <div className="space-y-7 sm:space-y-8">
         {groupedData.length === 0 ? (
           <div className="py-24 text-center text-ink-muted/60 font-light text-sm">
             {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : UI_TEXT.review.emptyState}
           </div>
         ) : (
           groupedData.map((group) => (
-            <div key={group.dateKey} className="space-y-3.5">
+            <div key={group.dateKey} className="space-y-2.5">
               {/* 日期標題：強化層級（圓點 + 加粗標題） */}
-              <div className="flex items-center gap-2 select-none">
+              <div className="flex items-center gap-2 select-none pb-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-ink/75" />
-                <h2 className="text-sm sm:text-[15px] font-semibold text-ink tracking-wide">
+                <h2 className="text-[13px] sm:text-sm font-semibold text-ink tracking-wide">
                   {group.header}
                 </h2>
               </div>
 
-              {/* 極淡垂直時間軸線（串聯零碎思緒，化解死白） */}
-              <div className="border-l border-border-base/50 pl-4 sm:pl-5 ml-0.5 space-y-6 sm:space-y-7">
+              {/* 極淡垂直時間軸線（串聯零碎思緒，緊湊排版） */}
+              <div className="border-l border-border-base/40 pl-3.5 sm:pl-4 ml-0.5 space-y-3 sm:space-y-3.5">
                 <AnimatePresence mode="popLayout">
                   {group.threads.map((thread, idx) => (
                     <motion.div
@@ -201,7 +201,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                       animate="animate"
                       exit="exit"
                       transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
-                      className={idx < group.threads.length - 1 ? 'pb-5 border-b border-border-base/15' : ''}
+                      className={idx < group.threads.length - 1 ? 'pb-2.5 border-b border-border-base/15' : ''}
                     >
                       <ThoughtCard
                         thread={thread}
