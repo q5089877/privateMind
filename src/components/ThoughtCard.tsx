@@ -184,22 +184,22 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
         </AnimatePresence>
 
         {/* 時間線思緒內容（同一 Thread 緊湊聚合） */}
-        <div className="space-y-3.5">
+        <div className="space-y-2.5">
           {isSandwich ? (
             /* 三明治折疊模式：顯示第 1 則 + ··· + 最後 1 則 */
             <>
               {/* 第 1 則：起點 */}
-              <div key={entries[0].id} className="space-y-1">
-                <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+              <div key={entries[0].id} className="space-y-0.5">
+                <div className="text-[11px] text-ink-muted/60 font-mono select-none tracking-wide">
                   {formatEntryTime(entries[0].createdAt)}
                 </div>
-                <div className="text-base sm:text-[17px] font-normal leading-[1.75] whitespace-pre-wrap text-ink tracking-wide">
+                <div className="text-base sm:text-[17px] font-normal leading-[1.7] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[0].content}
                 </div>
               </div>
 
               {/* 中間沉積：精緻微型展開按鈕 */}
-              <div className="py-1 flex items-center">
+              <div className="py-0.5 flex items-center">
                 <button
                   type="button"
                   onClick={() => setIsExpanded(true)}
@@ -211,11 +211,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
 
               {/* 最後 1 則：終點 */}
-              <div key={entries[totalEntries - 1].id} className="space-y-1">
-                <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+              <div key={entries[totalEntries - 1].id} className="space-y-0.5">
+                <div className="text-[11px] text-ink-muted/60 font-mono select-none tracking-wide">
                   {formatEntryTime(entries[totalEntries - 1].createdAt)}
                 </div>
-                <div className="text-base sm:text-[17px] font-normal leading-[1.75] whitespace-pre-wrap text-ink tracking-wide">
+                <div className="text-base sm:text-[17px] font-normal leading-[1.7] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[totalEntries - 1].content}
                 </div>
               </div>
@@ -224,11 +224,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             /* 完整展示所有 Entries（同一 Thread 內由舊到新緊密相連） */
             <>
               {entries.map((entry) => (
-                <div key={entry.id} className="space-y-1">
-                  <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+                <div key={entry.id} className="space-y-0.5">
+                  <div className="text-[11px] text-ink-muted/60 font-mono select-none tracking-wide">
                     {formatEntryTime(entry.createdAt)}
                   </div>
-                  <div className="text-base sm:text-[17px] font-normal leading-[1.75] whitespace-pre-wrap text-ink tracking-wide">
+                  <div className="text-base sm:text-[17px] font-normal leading-[1.7] whitespace-pre-wrap text-ink tracking-wide">
                     {entry.content}
                   </div>
                 </div>

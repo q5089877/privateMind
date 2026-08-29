@@ -104,10 +104,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="w-full max-w-xl pb-28 relative select-text"
+      className="w-full max-w-[560px] mx-auto pb-28 relative select-text"
     >
       {/* 07｜去管理化時間線頂部導航 */}
-      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3.5 z-20 flex items-center justify-between border-b border-border-base/30 mb-8 select-none">
+      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3 z-20 flex items-center justify-between border-b border-border-base/30 mb-6 select-none">
         {isViewingArchived ? (
           /* 【已收起空間】頂部：< 回去 / 標題 */
           <div className="flex items-center gap-3">
@@ -172,22 +172,25 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
         )}
       </header>
 
-      {/* 07｜自然日期流動排版（去框線、去列表感） */}
-      <div className="space-y-16">
+      {/* 07｜自然日期流動排版（帶極淡時間軸微結構與緊湊節奏） */}
+      <div className="space-y-10 sm:space-y-12">
         {groupedData.length === 0 ? (
           <div className="py-24 text-center text-ink-muted/60 font-light text-sm">
             {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : UI_TEXT.review.emptyState}
           </div>
         ) : (
           groupedData.map((group) => (
-            <div key={group.dateKey} className="space-y-8">
-              {/* 自然日期標題：今天 / 8 月 28 日 */}
-              <div className="text-[13px] font-medium text-ink/70 tracking-widest uppercase select-none">
-                {group.header}
+            <div key={group.dateKey} className="space-y-3.5">
+              {/* 日期標題：強化層級（圓點 + 加粗標題） */}
+              <div className="flex items-center gap-2 select-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-ink/75" />
+                <h2 className="text-sm sm:text-[15px] font-semibold text-ink tracking-wide">
+                  {group.header}
+                </h2>
               </div>
 
-              {/* 獨立 Thread 之間拉開 40px~48px 呼吸留白與微弱邊界 */}
-              <div className="space-y-11 pl-0.5">
+              {/* 極淡垂直時間軸線（串聯零碎思緒，化解死白） */}
+              <div className="border-l border-border-base/50 pl-4 sm:pl-5 ml-0.5 space-y-6 sm:space-y-7">
                 <AnimatePresence mode="popLayout">
                   {group.threads.map((thread, idx) => (
                     <motion.div
@@ -198,7 +201,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                       animate="animate"
                       exit="exit"
                       transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
-                      className={idx < group.threads.length - 1 ? 'pb-10 border-b border-border-base/15' : ''}
+                      className={idx < group.threads.length - 1 ? 'pb-5 border-b border-border-base/15' : ''}
                     >
                       <ThoughtCard
                         thread={thread}
