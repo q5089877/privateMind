@@ -222,19 +222,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 </div>
 
                 {isArchivedView ? (
-                  /* 18｜已收起空間：同行 Ghost Buttons (放回眼前 / 讓它消失) */
-                  <div className="flex items-center gap-2 select-none shrink-0 py-0.5">
+                  /* 18｜已收起空間：同行純文字幽靈按鈕（無框、分級權重） */
+                  <div className="flex items-center gap-2.5 select-none shrink-0 py-0.5">
                     <button
                       type="button"
                       onClick={handleBringBack}
-                      className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base/50 hover:border-border-focus/70 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                      className="text-[11px] sm:text-xs font-light text-ink-secondary/80 hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-1"
                     >
                       {UI_TEXT.review.card.bringBackBtn}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowVanishConfirm(true)}
-                      className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-red-500 border border-border-base/50 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                      className="text-[11px] sm:text-xs font-light text-ink-muted/50 hover:text-red-500 transition-colors cursor-pointer select-none py-0.5 px-1"
                     >
                       {UI_TEXT.review.card.makeItVanishBtn}
                     </button>
@@ -257,8 +257,12 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <>
               {entries.map((entry, idx) => {
                 const isLast = idx === entries.length - 1;
+                const isFollowUp = idx > 0;
                 return (
-                  <div key={entry.id} className="group/entry flex items-baseline justify-between gap-3 py-1">
+                  <div 
+                    key={entry.id} 
+                    className={`group/entry flex items-baseline justify-between gap-3 py-1 ${isFollowUp ? 'pl-2 border-l border-border-base/20 ml-1.5' : ''}`}
+                  >
                     <div className="flex items-baseline gap-3 flex-1 min-w-0">
                       <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
                         {formatEntryTime(entry.createdAt)}
@@ -270,19 +274,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
                     {isLast && (
                       isArchivedView ? (
-                        /* 18｜已收起空間：同行 Ghost Buttons */
-                        <div className="flex items-center gap-2 select-none shrink-0 py-0.5">
+                        /* 18｜已收起空間：同行純文字幽靈按鈕 */
+                        <div className="flex items-center gap-2.5 select-none shrink-0 py-0.5">
                           <button
                             type="button"
                             onClick={handleBringBack}
-                            className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base/50 hover:border-border-focus/70 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                            className="text-[11px] sm:text-xs font-light text-ink-secondary/80 hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-1"
                           >
                             {UI_TEXT.review.card.bringBackBtn}
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowVanishConfirm(true)}
-                            className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-red-500 border border-border-base/50 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                            className="text-[11px] sm:text-xs font-light text-ink-muted/50 hover:text-red-500 transition-colors cursor-pointer select-none py-0.5 px-1"
                           >
                             {UI_TEXT.review.card.makeItVanishBtn}
                           </button>
