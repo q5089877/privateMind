@@ -183,32 +183,19 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           )}
         </AnimatePresence>
 
-        {/* 時間線思緒內容（Inline Flex 橫向緊湊排列 + 同行 Hover/淡入收起） */}
+        {/* 時間線思緒內容（Inline Flex 橫向緊湊排列 + Thread 末端單一收起） */}
         <div className="space-y-0.5">
           {isSandwich ? (
             /* 三明治折疊模式：顯示第 1 則 + ··· + 最後 1 則 */
             <>
-              {/* 第 1 則：起點 */}
-              <div key={entries[0].id} className="group/entry flex items-baseline justify-between gap-3 py-1">
-                <div className="flex items-baseline gap-3 flex-1 min-w-0">
-                  <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
-                    {formatEntryTime(entries[0].createdAt)}
-                  </div>
-                  <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                    {entries[0].content}
-                  </div>
+              {/* 第 1 則：起點（不重複出現收起） */}
+              <div key={entries[0].id} className="flex items-baseline gap-3 py-1">
+                <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                  {formatEntryTime(entries[0].createdAt)}
                 </div>
-
-                {!isArchivedView && (
-                  <button
-                    type="button"
-                    onClick={handleTuckAway}
-                    className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
-                    title="收起來"
-                  >
-                    收起
-                  </button>
-                )}
+                <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                  {entries[0].content}
+                </div>
               </div>
 
               {/* 中間沉積：微型展開標籤 */}
@@ -223,7 +210,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 </button>
               </div>
 
-              {/* 最後 1 則：終點 */}
+              {/* 最後 1 則：終點（掛上整組 Thread 唯一的收起按鈕） */}
               <div key={entries[totalEntries - 1].id} className="group/entry flex items-baseline justify-between gap-3 py-1">
                 <div className="flex items-baseline gap-3 flex-1 min-w-0">
                   <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
@@ -247,31 +234,34 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
             </>
           ) : (
-            /* 完整展示所有 Entries（Inline Flex 橫向排版） */
+            /* 完整展示所有 Entries（只有最後一筆才帶整組的收起） */
             <>
-              {entries.map((entry) => (
-                <div key={entry.id} className="group/entry flex items-baseline justify-between gap-3 py-1">
-                  <div className="flex items-baseline gap-3 flex-1 min-w-0">
-                    <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
-                      {formatEntryTime(entry.createdAt)}
+              {entries.map((entry, idx) => {
+                const isLast = idx === entries.length - 1;
+                return (
+                  <div key={entry.id} className="group/entry flex items-baseline justify-between gap-3 py-1">
+                    <div className="flex items-baseline gap-3 flex-1 min-w-0">
+                      <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                        {formatEntryTime(entry.createdAt)}
+                      </div>
+                      <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                        {entry.content}
+                      </div>
                     </div>
-                    <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                      {entry.content}
-                    </div>
-                  </div>
 
-                  {!isArchivedView && (
-                    <button
-                      type="button"
-                      onClick={handleTuckAway}
-                      className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
-                      title="收起來"
-                    >
-                      收起
-                    </button>
-                  )}
-                </div>
-              ))}
+                    {!isArchivedView && isLast && (
+                      <button
+                        type="button"
+                        onClick={handleTuckAway}
+                        className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
+                        title="收起來"
+                      >
+                        收起
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </>
           )}
         </div>
