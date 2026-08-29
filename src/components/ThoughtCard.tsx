@@ -222,16 +222,18 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             </>
           ) : (
             /* 完整展示所有 Entries（同一 Thread 內由舊到新緊密相連） */
-            entries.map((entry) => (
-              <div key={entry.id} className="space-y-1">
-                <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
-                  {formatEntryTime(entry.createdAt)}
+            <>
+              {entries.map((entry) => (
+                <div key={entry.id} className="space-y-1">
+                  <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+                    {formatEntryTime(entry.createdAt)}
+                  </div>
+                  <div className="text-base sm:text-[17px] font-normal leading-[1.75] whitespace-pre-wrap text-ink tracking-wide">
+                    {entry.content}
+                  </div>
                 </div>
-                <div className="text-base sm:text-[17px] font-normal leading-[1.75] whitespace-pre-wrap text-ink tracking-wide">
-                  {entry.content}
-                </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
         </div>
 
@@ -271,7 +273,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </button>
             </div>
           ) : (
-            /* 正常時間線：僅保留極淡的「＋ 接著說……」 */
+            /* 正常時間線：左側「＋ 接著說……」，右側可收合按鈕（若已展開） */
             <div className="pt-2 flex items-center justify-between">
               <button
                 type="button"
@@ -280,6 +282,17 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               >
                 {UI_TEXT.review.card.addAdditionBtn}
               </button>
+
+              {/* 三明治展開狀態下的收合入口 */}
+              {totalEntries > 2 && isExpanded && (
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
+                >
+                  收合思緒
+                </button>
+              )}
             </div>
           )
         )}
