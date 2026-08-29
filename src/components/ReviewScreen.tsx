@@ -136,39 +136,15 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
           </button>
         )}
 
-        {/* 右側 17｜隱形抽屜 (···)：收納「已收起」空間 */}
+        {/* 右側：淡淡的「已收起」按鈕 */}
         {!isViewingArchived && (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowDrawerMenu(prev => !prev)}
-              className="text-ink-muted/60 hover:text-ink cursor-pointer px-2 py-1 text-sm tracking-widest transition-colors select-none"
-              title="選單"
-            >
-              {UI_TEXT.menu.trigger}
-            </button>
-
-            {showDrawerMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-20"
-                  onClick={() => setShowDrawerMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-1.5 py-1 px-1 bg-surface border border-border-base/80 rounded-2xl shadow-lg z-30 whitespace-nowrap min-w-[110px] space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowDrawerMenu(false);
-                      setIsViewingArchived(true);
-                    }}
-                    className="w-full text-left text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover px-3 py-2 rounded-xl cursor-pointer transition-colors"
-                  >
-                    {UI_TEXT.menu.hiddenSpaceItem}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsViewingArchived(true)}
+            className="px-2.5 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base/60 hover:border-border-focus/80 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+          >
+            {UI_TEXT.hiddenSpace.title}
+          </button>
         )}
       </header>
 

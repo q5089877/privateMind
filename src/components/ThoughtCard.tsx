@@ -273,8 +273,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </button>
             </div>
           ) : (
-            /* 正常時間線：左側「＋ 接著說……」，右側可收合按鈕（若已展開） */
-            <div className="pt-0.5 pl-14 flex items-center justify-between">
+            /* 正常時間線：左側「＋ 接著說……」，右側「收起來」Ghost Button（若展開則帶收合） */
+            <div className="pt-1 pl-14 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setIsAdding(true)}
@@ -283,16 +283,27 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 {UI_TEXT.review.card.addAdditionBtn}
               </button>
 
-              {/* 三明治展開狀態下的收合入口 */}
-              {totalEntries > 2 && isExpanded && (
+              <div className="flex items-center gap-2">
+                {/* 三明治展開狀態下的收合入口 */}
+                {totalEntries > 2 && isExpanded && (
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded(false)}
+                    className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
+                  >
+                    收合思緒
+                  </button>
+                )}
+
+                {/* 淡淡的「收起來」Ghost Button */}
                 <button
                   type="button"
-                  onClick={() => setIsExpanded(false)}
-                  className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
+                  onClick={handleTuckAway}
+                  className="px-2.5 py-0.5 min-h-[26px] text-xs font-normal leading-tight text-ink-secondary hover:text-ink border border-border-base/50 hover:border-border-focus/70 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
                 >
-                  收合思緒
+                  {UI_TEXT.review.card.tuckAwayBtn}
                 </button>
-              )}
+              </div>
             </div>
           )
         )}
