@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ThoughtThread, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
+import { formatEntryTime } from '../utils/dateUtils';
 import { AdditionForm } from './AdditionForm';
 
 interface ThoughtCardProps {
@@ -13,15 +14,6 @@ interface ThoughtCardProps {
   onRestore?: () => void;
   onAppend: (content: string, type: EntryType) => void;
 }
-
-const formatTimestamp = (timestamp: number) => {
-  const d = new Date(timestamp);
-  const month = d.getMonth() + 1;
-  const date = d.getDate();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${month}/${date} ${hours}:${minutes}`;
-};
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   thread,
@@ -35,14 +27,45 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showVanishConfirm, setShowVanishConfirm] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [showFloatingMenu, setShowFloatingMenu] = useState(false);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
+
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const entries = thread.entries || [];
   const totalEntries = entries.length;
   const isSandwich = totalEntries > 2 && !isExpanded;
 
+  // 長按監聽（450ms 觸發浮動選單）
+  const handlePointerDown = (e: React.PointerEvent) => {
+    touchStartPosRef.current = { x: e.clientX, y: e.clientY };
+    longPressTimerRef.current = setTimeout(() => {
+      triggerHaptic('step');
+      setShowFloatingMenu(true);
+    }, 450);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!touchStartPosRef.current || !longPressTimerRef.current) return;
+    const dist = Math.hypot(e.clientX - touchStartPosRef.current.x, e.clientY - touchStartPosRef.current.y);
+    if (dist > 10) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handlePointerUpOrCancel = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartPosRef.current = null;
+  };
+
   // 收起來儀式（下沉淡出）
   const handleTuckAway = () => {
+    setShowFloatingMenu(false);
     setExitDirection('sink');
     triggerHaptic('settle');
     setTimeout(() => {
@@ -53,6 +76,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
   // 放回眼前儀式（浮起淡出）
   const handleBringBack = () => {
+    setShowFloatingMenu(false);
     setExitDirection('float');
     triggerHaptic('step');
     setTimeout(() => {
@@ -68,9 +92,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <motion.div
         layout
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUpOrCancel}
+        onPointerLeave={handlePointerUpOrCancel}
         animate={
           exitDirection === 'sink'
             ? { y: 30, opacity: 0, scale: 0.98, filter: 'blur(2px)' }
@@ -79,7 +107,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             : { y: 0, opacity: 1, scale: 1 }
         }
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-        className="relative select-text"
+        className="relative select-text transition-colors rounded-xl py-1 px-1"
       >
         {/* 讓它消失 二度確認 Modal */}
         <AnimatePresence>
@@ -125,27 +153,79 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           )}
         </AnimatePresence>
 
+        {/* 長按浮現的極簡操作膠囊 */}
+        <AnimatePresence>
+          {showFloatingMenu && (
+            <>
+              {/* 點擊遮罩關閉 */}
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setShowFloatingMenu(false)}
+              />
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                transition={{ duration: 0.18 }}
+                className="absolute right-2 top-0 z-40 bg-surface/95 backdrop-blur-md border border-border-base/70 shadow-lg rounded-2xl py-1 px-1.5 flex items-center gap-1.5 select-none"
+              >
+                {isArchivedView ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleBringBack}
+                      className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-xl cursor-pointer transition-colors"
+                    >
+                      {UI_TEXT.review.card.bringBackBtn}
+                    </button>
+                    <span className="text-border-base text-xs">·</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowFloatingMenu(false);
+                        setShowVanishConfirm(true);
+                      }}
+                      className="px-3 py-1.5 text-xs text-red-500/80 hover:text-red-600 hover:bg-red-500/10 rounded-xl cursor-pointer transition-colors"
+                    >
+                      {UI_TEXT.review.card.makeItVanishBtn}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleTuckAway}
+                    className="px-3.5 py-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-xl cursor-pointer transition-colors"
+                  >
+                    {UI_TEXT.review.card.tuckAwayBtn}
+                  </button>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* 時間線思緒內容 */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {isSandwich ? (
             /* 三明治折疊模式：顯示第 1 則 + ··· + 最後 1 則 */
             <>
               {/* 第 1 則：起點 */}
-              <div key={entries[0].id} className="space-y-1.5">
-                <div className="text-xs text-[#71717A] font-mono select-none tracking-wider">
-                  {formatTimestamp(entries[0].createdAt)}
+              <div key={entries[0].id} className="space-y-1">
+                <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+                  {formatEntryTime(entries[0].createdAt)}
                 </div>
-                <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                <div className="text-base sm:text-[17px] font-normal leading-[1.8] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[0].content}
                 </div>
               </div>
 
               {/* 中間沉積：··· 點擊展開 */}
-              <div className="py-1 flex justify-start">
+              <div className="py-0.5 flex justify-start">
                 <button
                   type="button"
                   onClick={() => setIsExpanded(true)}
-                  className="text-xs text-ink-muted/60 hover:text-ink tracking-widest px-2 py-1 rounded transition-colors cursor-pointer"
+                  className="text-xs text-ink-muted/50 hover:text-ink tracking-widest px-2 py-0.5 rounded transition-colors cursor-pointer"
                   title="展開全部"
                 >
                   ···
@@ -153,11 +233,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
 
               {/* 最後 1 則：終點 */}
-              <div key={entries[totalEntries - 1].id} className="space-y-1.5">
-                <div className="text-xs text-[#71717A] font-mono select-none tracking-wider">
-                  {formatTimestamp(entries[totalEntries - 1].createdAt)}
+              <div key={entries[totalEntries - 1].id} className="space-y-1">
+                <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+                  {formatEntryTime(entries[totalEntries - 1].createdAt)}
                 </div>
-                <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                <div className="text-base sm:text-[17px] font-normal leading-[1.8] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[totalEntries - 1].content}
                 </div>
               </div>
@@ -165,11 +245,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           ) : (
             /* 完整展示所有 Entries */
             entries.map((entry) => (
-              <div key={entry.id} className="space-y-1.5">
-                <div className="text-xs text-[#71717A] font-mono select-none tracking-wider">
-                  {formatTimestamp(entry.createdAt)}
+              <div key={entry.id} className="space-y-1">
+                <div className="text-[11px] text-[#A1A1AA] font-mono select-none">
+                  {formatEntryTime(entry.createdAt)}
                 </div>
-                <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
+                <div className="text-base sm:text-[17px] font-normal leading-[1.8] whitespace-pre-wrap text-ink tracking-wide">
                   {entry.content}
                 </div>
               </div>
@@ -179,7 +259,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
         {/* ＋ 接著說…… 輸入區 */}
         {isAdding && (
-          <div className="pt-4">
+          <div className="pt-3">
             <AdditionForm
               mode="append"
               contextText={entries[entries.length - 1]?.content || ''}
@@ -192,48 +272,16 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </div>
         )}
 
-        {/* 底部微弱操作列 */}
-        {!isAdding && (
-          <div className="pt-4 flex items-center justify-between">
-            {isArchivedView ? (
-              /* 【已收起空間】雙出口：[ 放回眼前 ] 與 [ 讓它消失 ] */
-              <div className="flex items-center gap-4 text-xs">
-                <button
-                  type="button"
-                  onClick={handleBringBack}
-                  className="text-ink-secondary hover:text-ink transition-colors cursor-pointer py-1"
-                >
-                  {UI_TEXT.review.card.bringBackBtn}
-                </button>
-                <span className="text-border-base">·</span>
-                <button
-                  type="button"
-                  onClick={() => setShowVanishConfirm(true)}
-                  className="text-red-500/70 hover:text-red-600 transition-colors cursor-pointer py-1"
-                >
-                  {UI_TEXT.review.card.makeItVanishBtn}
-                </button>
-              </div>
-            ) : (
-              /* 【正常時間線】：左側 [ ＋ 接著說…… ]，右側 [ 收起來 ] */
-              <>
-                <button
-                  type="button"
-                  onClick={() => setIsAdding(true)}
-                  className="text-xs sm:text-sm text-ink-muted hover:text-ink font-light tracking-wide transition-colors py-1 cursor-pointer"
-                >
-                  {UI_TEXT.review.card.addAdditionBtn}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleTuckAway}
-                  className="text-xs text-ink-muted/50 hover:text-ink transition-colors py-1 px-1 cursor-pointer"
-                >
-                  {UI_TEXT.review.card.tuckAwayBtn}
-                </button>
-              </>
-            )}
+        {/* 底部僅保留極淡的「＋ 接著說……」 */}
+        {!isAdding && !isArchivedView && (
+          <div className="pt-2 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setIsAdding(true)}
+              className="text-xs text-ink-muted/60 hover:text-ink font-light tracking-wide transition-colors py-1 cursor-pointer"
+            >
+              {UI_TEXT.review.card.addAdditionBtn}
+            </button>
           </div>
         )}
       </motion.div>

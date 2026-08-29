@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
 import { UI_TEXT } from '../config/textConfig';
+import { groupThreadsByDate } from '../utils/dateUtils';
 
 const itemVariants = {
   initial: { opacity: 0, y: -4 },
@@ -89,19 +90,24 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     };
   }, []);
 
-  if (loading) return null;
-
   const currentList = isViewingArchived ? archivedThreads : activeThreads;
+
+  // 07｜自然日期分組與嚴格最新到最舊排序
+  const groupedData = useMemo(() => {
+    return groupThreadsByDate(currentList);
+  }, [currentList]);
+
+  if (loading) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="w-full max-w-xl pb-24 relative"
+      className="w-full max-w-xl pb-28 relative select-text"
     >
       {/* 07｜去管理化時間線頂部導航 */}
-      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3.5 z-20 flex items-center justify-between border-b border-border-base/40 mb-6">
+      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3.5 z-20 flex items-center justify-between border-b border-border-base/30 mb-8 select-none">
         {isViewingArchived ? (
           /* 【已收起空間】頂部：< 回去 / 標題 */
           <div className="flex items-center gap-3">
@@ -135,60 +141,77 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             <button
               type="button"
               onClick={() => setShowDrawerMenu(prev => !prev)}
-              className="text-ink-muted/70 hover:text-ink cursor-pointer px-2 py-1 text-sm tracking-widest transition-colors select-none"
+              className="text-ink-muted/60 hover:text-ink cursor-pointer px-2 py-1 text-sm tracking-widest transition-colors select-none"
               title="選單"
             >
               {UI_TEXT.menu.trigger}
             </button>
 
             {showDrawerMenu && (
-              <div className="absolute right-0 top-full mt-1.5 py-1 px-1 bg-surface border border-border-base rounded-xl shadow-md z-30 whitespace-nowrap min-w-[110px] space-y-0.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDrawerMenu(false);
-                    setIsViewingArchived(true);
-                  }}
-                  className="w-full text-left text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover px-3 py-2 rounded-lg cursor-pointer transition-colors"
-                >
-                  {UI_TEXT.menu.hiddenSpaceItem}
-                </button>
-              </div>
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setShowDrawerMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-1.5 py-1 px-1 bg-surface border border-border-base/80 rounded-2xl shadow-lg z-30 whitespace-nowrap min-w-[110px] space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDrawerMenu(false);
+                      setIsViewingArchived(true);
+                    }}
+                    className="w-full text-left text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover px-3 py-2 rounded-xl cursor-pointer transition-colors"
+                  >
+                    {UI_TEXT.menu.hiddenSpaceItem}
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}
       </header>
 
-      {/* 純文字流動排版（去卡片框線） */}
-      <div className="space-y-0 divide-y divide-border-base/35">
-        {currentList.length === 0 ? (
-          <div className="py-24 text-center text-ink-muted/70 font-light text-sm">
+      {/* 07｜自然日期流動排版（去框線、去列表感） */}
+      <div className="space-y-12">
+        {groupedData.length === 0 ? (
+          <div className="py-24 text-center text-ink-muted/60 font-light text-sm">
             {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : UI_TEXT.review.emptyState}
           </div>
         ) : (
-          <AnimatePresence mode="popLayout">
-            {currentList.map((thread) => (
-              <motion.div
-                key={thread.id}
-                layout
-                variants={itemVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
-                className="py-7 first:pt-2"
-              >
-                <ThoughtCard
-                  thread={thread}
-                  isArchivedView={isViewingArchived}
-                  onDelete={() => onDeleteClick(thread.id)}
-                  onArchive={() => onArchiveClick(thread.id)}
-                  onRestore={() => onRestoreClick(thread.id)}
-                  onAppend={(content, type) => handleAppend(thread.id, content, type)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          groupedData.map((group) => (
+            <div key={group.dateKey} className="space-y-6">
+              {/* 自然日期標題：今天 / 8 月 28 日 */}
+              <div className="text-xs sm:text-sm font-medium text-ink/75 tracking-wider select-none">
+                {group.header}
+              </div>
+
+              {/* 同一天的思緒節點聚攏，純留白排版 */}
+              <div className="space-y-8 pl-0.5">
+                <AnimatePresence mode="popLayout">
+                  {group.threads.map((thread) => (
+                    <motion.div
+                      key={thread.id}
+                      layout
+                      variants={itemVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
+                    >
+                      <ThoughtCard
+                        thread={thread}
+                        isArchivedView={isViewingArchived}
+                        onDelete={() => onDeleteClick(thread.id)}
+                        onArchive={() => onArchiveClick(thread.id)}
+                        onRestore={() => onRestoreClick(thread.id)}
+                        onAppend={(content, type) => handleAppend(thread.id, content, type)}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -232,4 +255,5 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     </motion.div>
   );
 };
+
 
