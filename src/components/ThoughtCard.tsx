@@ -257,7 +257,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             {isSettingAction && (
               <div className="mt-4 p-4 rounded-xl border border-border-base/50 bg-surface-subtle/50 space-y-4">
                 <div className="flex justify-between items-center text-xs text-ink-muted">
-                  <span>{UI_TEXT.review.card.takeStepBtn}</span>
+                  <span className="font-normal text-ink">{UI_TEXT.review.card.takeStepBtn}</span>
                   <button 
                     type="button" 
                     onClick={() => setIsSettingAction(false)}
@@ -267,20 +267,25 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                   </button>
                 </div>
 
-                <AdditionForm 
-                  mode="action_step"
-                  placeholder={UI_TEXT.review.card.actionPrompt}
-                  submitText={UI_TEXT.review.card.becomeActionBtn}
-                  onSave={(content, type) => {
-                    onAppend(content, type);
-                    setIsSettingAction(false);
-                  }}
-                  onCancel={() => setIsSettingAction(false)}
-                />
+                {/* 原內容不夠具體：寫下一個更小步驟 */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] text-ink-muted/80">{UI_TEXT.review.card.writeSmallerStep}：</span>
+                  <AdditionForm 
+                    mode="action_step"
+                    placeholder={UI_TEXT.review.card.actionPrompt}
+                    submitText={UI_TEXT.review.card.currentActionHeader}
+                    onSave={(content, type) => {
+                      onAppend(content, type);
+                      setIsSettingAction(false);
+                    }}
+                    onCancel={() => setIsSettingAction(false)}
+                  />
+                </div>
 
+                {/* 原內容夠具體：直接設為當前行動 */}
                 {thread.entries.length > 0 && (
                   <div className="pt-2 border-t border-border-base/30 space-y-2">
-                    <span className="text-[11px] text-ink-muted/70">或直接選取現有的一筆：</span>
+                    <span className="text-[11px] text-ink-muted/80">{UI_TEXT.review.card.directSetAction}：</span>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {thread.entries.map((e) => (
                         <button

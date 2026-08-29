@@ -51,7 +51,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
     : UI_TEXT.addition.inputPlaceholder;
 
   const defaultSubmitText = mode === 'action_step'
-    ? UI_TEXT.review.card.becomeActionBtn 
+    ? UI_TEXT.review.card.currentActionHeader 
     : UI_TEXT.addition.saveBtn;
 
   return (

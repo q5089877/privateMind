@@ -27,7 +27,9 @@ interface ReviewScreenProps {
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [lastArchivedId, setLastArchivedId] = useState<string | null>(null);
+  const [showRestoreToast, setShowRestoreToast] = useState(false);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restoreToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { 
     activeThreads, archivedThreads, loading, 
@@ -50,6 +52,17 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     }, 4500);
   };
 
+  const onRestoreClick = (id: string) => {
+    handleRestore(id);
+    setShowRestoreToast(true);
+    if (restoreToastTimeoutRef.current) {
+      clearTimeout(restoreToastTimeoutRef.current);
+    }
+    restoreToastTimeoutRef.current = setTimeout(() => {
+      setShowRestoreToast(false);
+    }, 2500);
+  };
+
   const onUndoArchive = () => {
     if (lastArchivedId) {
       handleRestore(lastArchivedId);
@@ -57,14 +70,20 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       if (toastTimeoutRef.current) {
         clearTimeout(toastTimeoutRef.current);
       }
+      setShowRestoreToast(true);
+      if (restoreToastTimeoutRef.current) {
+        clearTimeout(restoreToastTimeoutRef.current);
+      }
+      restoreToastTimeoutRef.current = setTimeout(() => {
+        setShowRestoreToast(false);
+      }, 2500);
     }
   };
 
   useEffect(() => {
     return () => {
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (restoreToastTimeoutRef.current) clearTimeout(restoreToastTimeoutRef.current);
     };
   }, []);
 
@@ -140,7 +159,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                   isArchivedView={activeTab === 'archived'}
                   onDelete={() => onDeleteClick(thread.id)}
                   onArchive={() => onArchiveClick(thread.id)}
-                  onRestore={() => handleRestore(thread.id)}
+                  onRestore={() => onRestoreClick(thread.id)}
                   onLeave={onClose}
                   onAppend={(content, type) => handleAppend(thread.id, content, type)}
                   onSetCurrentAction={(entryId) => handleSetCurrentAction(thread.id, entryId)}
@@ -170,6 +189,21 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             >
               {UI_TEXT.review.toastUndo}
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 還原完成提示：已回來。 */}
+      <AnimatePresence>
+        {showRestoreToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-ink text-surface px-4 py-2 rounded-full text-xs shadow-lg flex items-center select-none"
+          >
+            <span>{UI_TEXT.review.toastRestored}</span>
           </motion.div>
         )}
       </AnimatePresence>
