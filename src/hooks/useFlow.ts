@@ -28,6 +28,10 @@ export function useFlow() {
       await engine.submitText(val, type);
       sync();
     },
+    submitSayNothing: async () => {
+      await engine.submitSayNothing();
+      sync();
+    },
     appendEntry: async (threadId: string, content: string, type?: import('../types').EntryType) => {
       await engine.appendEntry(threadId, content, type);
       sync();

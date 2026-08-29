@@ -107,7 +107,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       className="w-full max-w-[560px] mx-auto pb-28 relative select-text"
     >
       {/* 07｜去管理化時間線頂部導航 */}
-      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3 z-20 flex items-center justify-between border-b border-border-base/30 mb-6 select-none">
+      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3 z-20 flex items-center justify-between border-b border-border-base mb-6 select-none">
         {isViewingArchived ? (
           /* 【已收起空間】頂部：< 回去 / 標題 */
           <div className="flex items-center gap-3">
@@ -129,10 +129,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             type="button"
             onClick={onClose}
             className="p-1.5 text-ink-muted hover:text-ink transition-colors rounded-full cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm font-light select-none"
-            title="回到首頁"
+            title={UI_TEXT.review.backHome}
           >
             <ArrowLeft size={15} />
-            <span className="text-ink-secondary hover:text-ink">回首頁</span>
+            <span className="text-ink-secondary hover:text-ink">{UI_TEXT.review.backHome}</span>
           </button>
         )}
 
@@ -141,7 +141,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
           <button
             type="button"
             onClick={() => setIsViewingArchived(true)}
-            className="px-2.5 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base/60 hover:border-border-focus/80 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+            className="px-3 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base hover:border-border-focus rounded-full bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
           >
             {UI_TEXT.hiddenSpace.title}
           </button>
@@ -151,7 +151,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       {/* 07｜自然日期流動排版（帶極淡時間軸微結構與緊湊節奏） */}
       <div className="space-y-7 sm:space-y-8">
         {groupedData.length === 0 ? (
-          <div className="py-24 text-center text-ink-muted/60 font-light text-sm">
+          <div className="py-24 text-center text-ink-muted font-light text-sm">
             {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : UI_TEXT.review.emptyState}
           </div>
         ) : (
@@ -159,14 +159,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             <div key={group.dateKey} className="space-y-2.5">
               {/* 日期標題：強化層級（圓點 + 加粗標題） */}
               <div className="flex items-center gap-2 select-none pb-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-ink/75" />
-                <h2 className="text-[13px] sm:text-sm font-semibold text-ink tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-ink" />
+                <h2 className="text-xs sm:text-sm font-semibold text-ink tracking-wide">
                   {group.header}
                 </h2>
               </div>
 
               {/* 極淡垂直時間軸線（串聯零碎思緒，緊湊排版） */}
-              <div className="border-l border-border-base/40 pl-3.5 sm:pl-4 ml-0.5 space-y-3 sm:space-y-3.5">
+              <div className="border-l border-border-base pl-3.5 sm:pl-4 ml-0.5 space-y-3 sm:space-y-3.5">
                 <AnimatePresence mode="popLayout">
                   {group.threads.map((thread, idx) => (
                     <motion.div
@@ -177,7 +177,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                       animate="animate"
                       exit="exit"
                       transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
-                      className={idx < group.threads.length - 1 ? 'pb-2.5 border-b border-border-base/15' : ''}
+                      className={idx < group.threads.length - 1 ? 'pb-2.5 border-b border-border-subtle' : ''}
                     >
                       <ThoughtCard
                         thread={thread}

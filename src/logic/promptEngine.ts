@@ -27,10 +27,10 @@ interface FocalSlotDefinition {
  * V7.2 定案規格三焦距起手式靜態資料庫
  */
 const FOCAL_STEM_DATABASE: Record<FocalLength, FocalSlotDefinition> = {
-  // 【近｜特寫鏡頭】聚焦具體瞬間、動作、一句話、身體感受或摩擦點。
+  // 【近｜焦點伸展】聚焦具體瞬間、動作、一句話、身體感受或摩擦點。
   near: {
     focal: 'near',
-    focalLabel: '近｜特寫鏡頭',
+    focalLabel: '近｜焦點伸展',
     stems: [
       '最讓我不舒服的，其實是……',
       '如果只看剛才發生的那一瞬間……',
@@ -45,10 +45,10 @@ const FOCAL_STEM_DATABASE: Record<FocalLength, FocalSlotDefinition> = {
     ]
   },
 
-  // 【中｜撥開旁人】拿掉別人的期待、外界規則與他人反應，回到使用者自己的位置。
+  // 【中｜抽離期待】拿掉別人的期待、外界規則與他人反應，回到使用者自己的位置。
   mid: {
     focal: 'mid',
-    focalLabel: '中｜撥開旁人',
+    focalLabel: '中｜抽離期待',
     stems: [
       '如果不去管別人怎麼想，我其實……',
       '拿掉這件事的規則，我最想要的是……',
@@ -63,10 +63,10 @@ const FOCAL_STEM_DATABASE: Record<FocalLength, FocalSlotDefinition> = {
     ]
   },
 
-  // 【遠｜縮小放大】拉開時間跨度、縮小範圍、只看眼前一小段、允許暫時無解或不處理。
+  // 【遠｜尺度放寬】拉開時間跨度、縮小範圍、只看眼前一小段、允許暫時無解或不處理。
   far: {
     focal: 'far',
-    focalLabel: '遠｜縮小放大',
+    focalLabel: '遠｜尺度放寬',
     stems: [
       '如果只看眼前這一小段，我想……',
       '如果不急著想答案，我現在真正擔心的是……',

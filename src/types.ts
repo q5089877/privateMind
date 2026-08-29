@@ -24,6 +24,7 @@ export interface ThoughtThread {
 
 export interface IFlowActions {
   submitText(content: string, type?: EntryType): Promise<void>;
+  submitSayNothing(): Promise<void>;
   appendEntry(threadId: string, content: string, type?: EntryType): Promise<void>;
   setCurrentAction(threadId: string, entryId: string | null): Promise<void>;
   archiveThread(threadId: string): Promise<void>;

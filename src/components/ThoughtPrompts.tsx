@@ -86,7 +86,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       className="py-2 px-1 space-y-2 select-none"
     >
       {loading && (
-        <div className="py-2 text-left text-xs text-ink-muted/60 animate-pulse font-light tracking-wide">
+        <div className="py-2 text-left text-xs text-ink-muted animate-pulse font-light tracking-wide">
           {UI_TEXT.promptEngine.loading}
         </div>
       )}
@@ -96,7 +96,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="py-2 text-left text-xs text-ink-muted/50 font-light tracking-wide"
+          className="py-2 text-left text-xs text-ink-muted font-light tracking-wide"
         >
           {offlineNotice}
         </motion.div>
@@ -115,9 +115,9 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
             {prompts.map((text, idx) => (
               <div
                 key={`stem-${idx}`}
-                className="flex items-baseline gap-2.5 text-xs sm:text-sm text-[#52525B] font-normal leading-[1.85] tracking-wide"
+                className="flex items-baseline gap-2.5 text-xs sm:text-sm text-ink-stem font-normal leading-[1.85] tracking-wide"
               >
-                <span className="text-[#71717A] text-xs select-none shrink-0">·</span>
+                <span className="text-ink-muted text-xs select-none shrink-0">·</span>
                 <span className="flex-1 select-text">
                   {text}
                 </span>

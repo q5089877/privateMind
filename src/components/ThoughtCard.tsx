@@ -190,51 +190,51 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <>
               {/* 第 1 則：起點（不重複出現收起） */}
               <div key={entries[0].id} className="flex items-baseline gap-3 py-1">
-                <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
                   {formatEntryTime(entries[0].createdAt)}
                 </div>
-                <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
                   {entries[0].content}
                 </div>
               </div>
 
               {/* 中間沉積：微型展開標籤 */}
-              <div className="flex items-center gap-3 py-0.5 pl-14">
+              <div className="flex items-center gap-3 py-0.5 pl-15">
                 <button
                   type="button"
                   onClick={() => setIsExpanded(true)}
-                  className="text-[11px] text-ink-muted/50 hover:text-ink font-mono tracking-widest px-2 py-0.5 rounded-md hover:bg-surface-hover transition-colors cursor-pointer select-none"
-                  title="展開全部"
+                  className="text-xs text-ink-muted hover:text-ink font-mono tracking-wider px-2 py-0.5 rounded-md hover:bg-surface-hover transition-colors cursor-pointer select-none"
+                  title={UI_TEXT.review.card.expandSandwich}
                 >
-                  ··· 展開中間思緒
+                  {UI_TEXT.review.card.expandSandwich}
                 </button>
               </div>
 
               {/* 最後 1 則：終點（掛上整組 Thread 唯一的收起 / 已收起操作） */}
               <div key={entries[totalEntries - 1].id} className="group/entry flex items-baseline justify-between gap-3 py-1">
                 <div className="flex items-baseline gap-3 flex-1 min-w-0">
-                  <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                  <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
                     {formatEntryTime(entries[totalEntries - 1].createdAt)}
                   </div>
-                  <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                  <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
                     {entries[totalEntries - 1].content}
                   </div>
                 </div>
 
                 {isArchivedView ? (
                   /* 18｜已收起空間：同行純文字幽靈按鈕（無框、分級權重） */
-                  <div className="flex items-center gap-2.5 select-none shrink-0 py-0.5">
+                  <div className="flex items-center gap-2 select-none shrink-0 py-0.5">
                     <button
                       type="button"
                       onClick={handleBringBack}
-                      className="text-[11px] sm:text-xs font-light text-ink-secondary/80 hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-1"
+                      className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-1.5 rounded hover:bg-surface-hover"
                     >
                       {UI_TEXT.review.card.bringBackBtn}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowVanishConfirm(true)}
-                      className="text-[11px] sm:text-xs font-light text-ink-muted/50 hover:text-red-500 transition-colors cursor-pointer select-none py-0.5 px-1"
+                      className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-1.5 rounded hover:bg-red-500/10"
                     >
                       {UI_TEXT.review.card.makeItVanishBtn}
                     </button>
@@ -244,10 +244,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                   <button
                     type="button"
                     onClick={handleTuckAway}
-                    className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
-                    title="收起來"
+                    className="opacity-0 group-hover:opacity-100 max-sm:opacity-60 hover:!opacity-100 text-xs text-ink-muted hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1.5 rounded font-light hover:bg-surface-hover"
+                    title={UI_TEXT.review.card.tuckAwayBtn}
                   >
-                    收起
+                    {UI_TEXT.review.card.tuckAwayBtn}
                   </button>
                 )}
               </div>
@@ -261,13 +261,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 return (
                   <div 
                     key={entry.id} 
-                    className={`group/entry flex items-baseline justify-between gap-3 py-1 ${isFollowUp ? 'pl-2 border-l border-border-base/20 ml-1.5' : ''}`}
+                    className={`group/entry flex items-baseline justify-between gap-3 py-1 ${isFollowUp ? 'pl-2 border-l border-border-base ml-1.5' : ''}`}
                   >
                     <div className="flex items-baseline gap-3 flex-1 min-w-0">
-                      <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                      <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
                         {formatEntryTime(entry.createdAt)}
                       </div>
-                      <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                      <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
                         {entry.content}
                       </div>
                     </div>
@@ -275,18 +275,18 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     {isLast && (
                       isArchivedView ? (
                         /* 18｜已收起空間：同行純文字幽靈按鈕 */
-                        <div className="flex items-center gap-2.5 select-none shrink-0 py-0.5">
+                        <div className="flex items-center gap-2 select-none shrink-0 py-0.5">
                           <button
                             type="button"
                             onClick={handleBringBack}
-                            className="text-[11px] sm:text-xs font-light text-ink-secondary/80 hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-1"
+                            className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-1.5 rounded hover:bg-surface-hover"
                           >
                             {UI_TEXT.review.card.bringBackBtn}
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowVanishConfirm(true)}
-                            className="text-[11px] sm:text-xs font-light text-ink-muted/50 hover:text-red-500 transition-colors cursor-pointer select-none py-0.5 px-1"
+                            className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-1.5 rounded hover:bg-red-500/10"
                           >
                             {UI_TEXT.review.card.makeItVanishBtn}
                           </button>
@@ -296,10 +296,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                         <button
                           type="button"
                           onClick={handleTuckAway}
-                          className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
-                          title="收起來"
+                          className="opacity-0 group-hover:opacity-100 max-sm:opacity-60 hover:!opacity-100 text-xs text-ink-muted hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1.5 rounded font-light hover:bg-surface-hover"
+                          title={UI_TEXT.review.card.tuckAwayBtn}
                         >
-                          收起
+                          {UI_TEXT.review.card.tuckAwayBtn}
                         </button>
                       )
                     )}
@@ -312,7 +312,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
         {/* ＋ 接著說…… 輸入區 */}
         {isAdding && (
-          <div className="pt-2 pl-14">
+          <div className="pt-2 pl-15">
             <AdditionForm
               mode="append"
               contextText={entries[entries.length - 1]?.content || ''}
@@ -327,22 +327,22 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
         {/* 正常時間線底部輔助列（已收起空間無此列） */}
         {!isAdding && !isArchivedView && (
-          <div className="pt-0.5 pl-14 flex items-center justify-between">
+          <div className="pt-1 pl-15 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setIsAdding(true)}
-              className="text-xs text-ink-muted/50 hover:text-ink font-light tracking-wide transition-colors py-0.5 cursor-pointer"
+              className="text-xs text-ink-muted hover:text-ink font-light tracking-wide transition-colors py-0.5 px-2 -ml-2 rounded hover:bg-surface-hover cursor-pointer select-none"
             >
-              {UI_TEXT.review.card.addAdditionBtn}
+              {UI_TEXT.review.addAdditionBtn}
             </button>
 
             {totalEntries > 2 && isExpanded && (
               <button
                 type="button"
                 onClick={() => setIsExpanded(false)}
-                className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
+                className="text-xs text-ink-muted hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1.5 rounded hover:bg-surface-hover cursor-pointer select-none"
               >
-                收合思緒
+                {UI_TEXT.review.card.collapseSandwich}
               </button>
             )}
           </div>

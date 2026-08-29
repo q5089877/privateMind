@@ -1,6 +1,7 @@
 import { FlowState, ThoughtThread, DialogueEntry, EntryType } from '../types';
 import { IStorageProvider } from './interfaces/IStorageProvider';
 import { LocalStorageManager } from './StorageManager';
+import { UI_TEXT } from '../config/textConfig';
 
 /**
  * FlowEngine v3:
@@ -69,6 +70,36 @@ export class FlowEngine {
     this.state = 'PRESENT_SETTLED';
   }
 
+  /**
+   * 08｜我現在說不上來
+   * 完整合法的停靠狀態：安放「說不上來……」
+   */
+  public async submitSayNothing() {
+    const now = Date.now();
+    const threadId = this.generateId('thread');
+    const entryId = this.generateId('entry');
+
+    const newThread: ThoughtThread = {
+      id: threadId,
+      createdAt: now,
+      updatedAt: now,
+      currentActionId: null,
+      entries: [
+        {
+          id: entryId,
+          threadId,
+          createdAt: now,
+          content: UI_TEXT.review.ineffableText,
+          type: 'thought'
+        }
+      ]
+    };
+
+    await this.storage.saveThread(newThread);
+    this.currentThread = newThread;
+    this.state = 'PRESENT_SETTLED';
+  }
+
   public async appendEntry(threadId: string, content: string, type: EntryType = 'thought') {
     if (!content.trim()) return;
     const threads = await this.storage.getThreads();
@@ -89,6 +120,8 @@ export class FlowEngine {
     if (type === 'action') {
       target.currentActionId = entryId;
     }
+    // 18｜在已收起內容續寫，該 Thread 自動放回眼前（回到正常時間線）
+    target.isArchived = false;
     target.updatedAt = now;
 
     await this.storage.updateThread(target);

@@ -10,7 +10,7 @@ interface HomeScreenProps {
   onReview: () => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothing, onReview }) => {
   const [inputText, setInputText] = useState('');
   const [isSinking, setIsSinking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +59,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
     }, 1400);
   };
 
+  const handleSayNothing = () => {
+    if (isSinking) return;
+    triggerHaptic('settle');
+    setIsSinking(true);
+    timerRef.current = setTimeout(() => {
+      onSayNothing?.();
+    }, 1400);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -85,7 +94,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
       {/* 主工作區：垂直居中偏上，大氣留白 */}
       <div className="w-full flex flex-col items-center text-center space-y-6 sm:space-y-8 pt-2 sm:pt-4">
         {/* 標題：沉穩墨黑 */}
-        <h1 className="text-[22px] sm:text-[25px] font-medium tracking-[0.03em] text-ink select-none">
+        <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-ink select-none">
           {UI_TEXT.home.title}
         </h1>
 
@@ -98,7 +107,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={UI_TEXT.home.inputPlaceholder}
-            className="w-full bg-transparent text-ink placeholder:text-ink-muted/50 placeholder:font-light font-light text-[18px] sm:text-[20px] leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-none"
+            className="w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-none"
             autoFocus
           />
         </div>
@@ -110,27 +119,41 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
               key={`quick-opt-${idx}`}
               type="button"
               onClick={() => handleQuickSelect(option)}
-              className="py-1.5 px-3.5 rounded-full border border-border-base/40 bg-surface-subtle/40 hover:bg-surface hover:border-border-focus/50 text-ink-secondary hover:text-ink text-xs sm:text-[13px] font-light transition-all duration-200 cursor-pointer active:scale-[0.98]"
+              className="py-1.5 px-3.5 rounded-full border border-border-base bg-surface-subtle hover:bg-surface hover:border-border-focus text-ink-secondary hover:text-ink text-xs sm:text-sm font-light transition-all duration-200 cursor-pointer active:scale-[0.98]"
             >
               {option}
             </button>
           ))}
         </div>
 
-        {/* 動作按鈕：有字時高亮，無字時平靜退場 */}
+        {/* 動作按鈕：有字時高亮「停靠」，無字時提供「我現在說不上來」 */}
         <div className="pt-3 h-12 flex justify-center items-center w-full">
-          <AnimatePresence>
-            {inputText.trim() && (
+          <AnimatePresence mode="wait">
+            {inputText.trim() ? (
               <motion.button
+                key="submit-btn"
                 type="button"
                 initial={{ opacity: 0, y: 6, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 4, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 onClick={handleContinue}
-                className="px-7 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-[15px] font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs"
+                className="px-8 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-base font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs"
               >
                 {UI_TEXT.home.submit}
+              </motion.button>
+            ) : (
+              <motion.button
+                key="say-nothing-btn"
+                type="button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22 }}
+                onClick={handleSayNothing}
+                className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors py-1.5 px-4 rounded-full hover:bg-surface-hover cursor-pointer font-light select-none"
+              >
+                {UI_TEXT.home.sayNothing}
               </motion.button>
             )}
           </AnimatePresence>

@@ -9,8 +9,8 @@ export const UI_TEXT = {
     title: '現在腦中有什麼？',
     inputPlaceholder: '寫下此刻想留下的任何一句話……',
     submit: '停靠',
-    reviewPast: '回來看看',
-    reviewBtn: '回來看看',
+    reviewPast: '再次相遇',
+    reviewBtn: '再次相遇',
     quickOptions: [
       '今天有點累',
       '有件事讓我在意',
@@ -35,9 +35,10 @@ export const UI_TEXT = {
     }
   },
 
-  // 【07｜回來看看 & 06, 12, 13｜Thread】
+  // 【07｜再次相遇 & 06, 12, 13｜Thread】
   review: {
     backBtn: '←',
+    backHome: '回首頁',
     emptyState: '還沒有留下任何痕跡',
     today: '今天',
     ineffableText: '說不上來……',
@@ -49,13 +50,16 @@ export const UI_TEXT = {
     
     // 【17, 18｜「收起來」語言與操作】
     card: {
+      addAdditionBtn: '＋ 接著說……',
       tuckAwayBtn: '收起來',
       tuckedAway: '已收起',
       bringBackBtn: '放回眼前',
       makeItVanishBtn: '讓它消失',
       confirmVanishTitle: '確認不再讓這筆內容留在這裡？',
       confirmVanishSubtext: '此動作將永久移除。',
-      cancelBtn: '取消'
+      cancelBtn: '取消',
+      expandSandwich: '··· 展開中間思緒',
+      collapseSandwich: '收合思緒'
     }
   },
 

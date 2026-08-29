@@ -6,23 +6,23 @@
   --surface: #FFFFFF;
   --surface-subtle: #F4F5F5;
   --surface-muted: #E4E7E5;
-  --surface-hover: #DDE2DF;
+  --surface-hover: #E8ECE9;
 
-  --border-base: #E4E4E7;      /* 裝飾用邊框 (Zinc-200) */
-  --border-card: #E4E4E7;
-  --border-subtle: #EEEEF0;
-  --border-focus: #27272A;
+  --border-base: #E2E4E8;      /* 裝飾用邊框 (Slate-200) */
+  --border-card: #E2E4E8;
+  --border-subtle: #ECEEF1;
+  --border-focus: #1F2937;
 
-  --ink-primary: #1F2937;      /* 主要標題與正文 (13.5:1, 深炭灰) */
-  --ink-heading: #27272A;      /* 引導與結構標題 (Zinc-800) */
-  --ink-body: #3F3F46;         /* 內文選項 (Zinc-700) */
-  --ink-stem: #52525B;         /* 引導提示句 (5.3:1, Zinc-600 通過 WCAG AA) */
-  --ink-secondary: #52525B;    /* 未選中標籤與次標 (Zinc-600) */
-  --ink-muted: #71717A;        /* 輔助時間戳與輔助按鈕 (4.6:1, Zinc-500 通過 WCAG AA) */
-  --ink-placeholder: #71717A;  /* 輸入框預設字 (4.6:1) */
+  --ink-primary: #181D27;      /* 主要標題與正文 (14.2:1, 深炭墨黑) */
+  --ink-heading: #1F2937;      /* 結構標題 (13.5:1) */
+  --ink-body: #374151;         /* 內文選項 (9.5:1, Gray-700) */
+  --ink-stem: #4B5563;         /* 引導提示句 (7.0:1, Gray-600 通過 WCAG AAA) */
+  --ink-secondary: #4B5563;    /* 次標與輔助說明 (7.0:1) */
+  --ink-muted: #59636E;        /* 時間戳與輔助按鈕 (5.5:1, 嚴格符合 WCAG AA) */
+  --ink-placeholder: #6B7280;  /* 輸入框預設字 (4.8:1) */
 
-  --accent: #55685F;           /* 「停靠」按鈕底色 (4.8:1 配白字, 深墨綠灰) */
-  --accent-hover: #43534C;     /* Hover 深色 */
+  --accent: #4B5F55;           /* 「停靠」按鈕底色 (5.5:1 配白字, 深墨綠) */
+  --accent-hover: #3C4D45;     /* Hover 深色 */
   --accent-text: #FFFFFF;      /* 白字 */
 }
 
@@ -52,9 +52,11 @@
 }
 
 html {
-  font-size: 20.8px; /* 16px * 1.3 = 20.8px (加大 130%) */
+  font-size: 16px; /* 標準根基底 1rem = 16px */
   background-color: var(--canvas);
   color: var(--ink-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 全域輸入框 Placeholder 加深至 WCAG AA 高辨識度 */

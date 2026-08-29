@@ -21,9 +21,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="pt-2 pb-4 sm:pb-6 flex justify-center">
         <button 
           onClick={() => setShowSupportModal(true)}
-          className="flex items-center gap-1.5 text-[15px] sm:text-[17px] text-ink-muted hover:text-ink transition-colors duration-500 cursor-pointer"
+          className="flex items-center gap-1.5 text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors duration-300 cursor-pointer"
         >
-          <Bird size={16} strokeWidth={1.5} />
+          <Bird size={15} strokeWidth={1.5} />
           <span>{UI_TEXT.layout.supportBtn}</span>
         </button>
       </footer>
