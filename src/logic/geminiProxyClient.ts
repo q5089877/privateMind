@@ -1,7 +1,7 @@
 /**
  * Gemini Client (支援 Cloudflare Proxy 與直連 Google API 雙模)
+ * Mind Harbor Perspective Engine v2
  */
-
 export interface RoutedThought {
   category: '待辦事項' | '靈感創意' | '心情隨筆' | '知識備忘' | '碎屑雜訊';
   sub_tags: string[];
@@ -28,55 +28,60 @@ export class GeminiProxyClient {
     );
   }
 
-  /**
-   * 檢查是否有可用的 Proxy 或 API Key
-   */
   public static isConfigured(): boolean {
     return !!(this.getProxyUrl().trim() || this.getApiKey().trim());
   }
 
   /**
-   * 【思緒停靠 Mind Harbor V7.2】生成 0～3 句近/中/遠焦距句子起手式
+   * 【思緒停靠 Mind Harbor V7.2 → Perspective Engine v2】
+   * 生成 0～3 句自然句子起手式
+   *
+   * 設計原則：
+   * 1. 候選池優先，不強制三焦距各一
+   * 2. 允許 Graceful Silence（沒有自然入口就回傳 []）
+   * 3. 最小必要理解，禁止把理解結果說出來
+   * 4. 生成 ≠ 顯示，必須經過規則驗證
    */
   public static async getPerspectiveStemsAsync(rawInput: string): Promise<string[]> {
     const cleanText = rawInput.trim();
-    if (!cleanText) return [];
+    if (!cleanText || cleanText.length < 2) return [];
 
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
-
     if (!proxyUrl && !apiKey) {
       console.warn('[GeminiProxyClient] 未設定 Worker URL 或 API Key，略過 AI 生成。');
       return [];
     }
 
+    // ---------- Stage 1 + 2：最小必要理解 + 候選生成 ----------
     const systemInstruction = {
       parts: [
         {
-          text: `你是「思緒停靠 (Mind Harbor)」的句子起手式生成引擎。
-你的唯一任務：深入融入使用者當下寫下的思緒情境（例如：「工作有夠難找的」、「好想睡覺」、「學生開始怕了」、「今天有點累」），精準提供 3 句「深度呼應當前語境、口語自然、無說教、以『……』結尾」的句子起手式，幫助使用者接著把話寫完。
+          text: `你是「思緒停靠 (Mind Harbor)」的句子起手式引擎。
 
-【三個固定焦距定義（依序輸出 3 句，起手式必須與使用者的具體情境緊密相連，嚴禁輸出機械空泛的公版套話）】
-1. 近｜特寫鏡頭（聚焦當下身體感受、具體瞬間、當前動作）：
-   - 工作有夠難找的 $\rightarrow$ 剛才滑到第無數個職缺卻又默默關掉分頁的那一瞬間……
-   - 好想睡覺 $\rightarrow$ 此刻身體和眼皮最沉重的地方是…… / 如果現在直接閉上眼睛……
-   - 學生開始怕了 $\rightarrow$ 剛才看見學生眼神變化的那一刻…… / 空氣突然安靜下來的那一秒……
-   - 今天有點累 $\rightarrow$ 最先感覺到透支的瞬間是……
-2. 中｜撥開旁人（拿掉別人的期待、外界規則、他人眼光，回到自己真實的感受）：
-   - 工作有夠難找的 $\rightarrow$ 如果拋開大家眼裡對找到好工作的標準和期待，我其實……
-   - 好想睡覺 $\rightarrow$ 如果不管今天還剩下什麼事沒做…… / 如果不勉強自己非得撐著……
-   - 學生開始怕了 $\rightarrow$ 拋開老師或長輩的包袱，我心裡其實……
-   - 今天有點累 $\rightarrow$ 如果不急著滿足別人的要求，我現在最想……
-3. 遠｜縮小放大（允許停留在這裡、縮小處理範圍、時間拉長、暫時無解）：
-   - 工作有夠難找的 $\rightarrow$ 允許自己暫時在這場卡關裡卡著，今天先這樣…… / 如果只看眼前今天能做的最小一步……
-   - 好想睡覺 $\rightarrow$ 今天就先停在這裡，剩下的明天…… / 先好好睡一覺，醒來再……
-   - 學生開始怕了 $\rightarrow$ 如果只看眼前能慢慢溝通的一小步…… / 允許這段關係暫時需要時間……
-   - 今天有點累 $\rightarrow$ 允許今天到這裡就好，剩下的明天……
+你的任務只有一件事：
+根據使用者當下寫下的文字，產生「可以自然接著寫下去」的句子起手式。
 
-【嚴格約束】
-- 語意必須「深度扣合使用者的具體情境與用詞」，絕不可回傳生硬套版的空話。
-- 嚴禁出現問號『？』，嚴禁心理分析/診斷，嚴禁安慰雞湯。
-- 輸出必須為 3 句起手式（依序為近/中/遠焦距），每句以『……』結尾。`.trim()
+【核心原則】
+1. 只做最小必要理解，絕不要把理解結果說出來。
+2. 不要分析、不要診斷、不要安慰、不要建議、不要說教。
+3. 不要預設負面情緒，也不要預設正面。
+4. 不要問問題（禁止出現「？」）。
+5. 每句必須以「……」結尾。
+6. 語意必須直接扣合使用者原文的具體詞彙與情境，禁止空泛套話。
+7. 如果這段文字沒有自然的寫作入口，就乾脆回傳空陣列。寧可沉默，也不要硬湊。
+
+【三個搜尋方向（優先順序，不是強制各一）】
+- 近：當下身體感受、具體瞬間、當前動作
+- 中：回到「我」——我在意什麼、想留下什麼、真正的位置
+- 遠：降低重量、縮小範圍、允許暫時停在這裡
+
+你不需要每個方向都產出句子。
+只產出「真正自然」的候選句。
+
+【輸出格式】
+請輸出 0～6 句候選起手式（越多越好，但必須自然）。
+之後會由規則引擎再篩選到最終 0～3 句。`.trim()
         }
       ]
     };
@@ -87,7 +92,7 @@ export class GeminiProxyClient {
         stems: {
           type: 'ARRAY',
           items: { type: 'STRING' },
-          description: '依序為近、中、遠焦距的 3 句起手式（緊扣使用者語境，以『……』結尾）'
+          description: '0～6 句自然的句子起手式，每句以「……」結尾。若無自然入口可為空陣列。'
         }
       },
       required: ['stems']
@@ -97,7 +102,7 @@ export class GeminiProxyClient {
       contents: [{ parts: [{ text: cleanText }] }],
       systemInstruction,
       generationConfig: {
-        temperature: 0.45,
+        temperature: 0.55,
         responseMimeType: 'application/json',
         responseSchema
       }
@@ -106,10 +111,9 @@ export class GeminiProxyClient {
     try {
       let res: Response;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6秒超時保護
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
 
       if (apiKey) {
-        // 優先直連 (同時傳入 Query Param 與 Header，台灣本地 IP 0.4s 極速響應)
         const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
         res = await fetch(targetUrl, {
           method: 'POST',
@@ -121,7 +125,6 @@ export class GeminiProxyClient {
           signal: controller.signal
         });
       } else if (proxyUrl) {
-        // 走 Cloudflare Proxy
         res = await fetch(proxyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -148,7 +151,10 @@ export class GeminiProxyClient {
       if (!text) return [];
 
       const parsed = JSON.parse(text);
-      return Array.isArray(parsed.stems) ? parsed.stems : [];
+      const candidates: string[] = Array.isArray(parsed.stems) ? parsed.stems : [];
+
+      // ---------- Stage 3 + 4：規則驗證 + 去重 + 最終選取 ----------
+      return this.filterAndSelectStems(candidates, cleanText);
     } catch (err) {
       console.warn('[GeminiProxyClient] 呼叫逾時或失敗:', err);
       return [];
@@ -156,113 +162,105 @@ export class GeminiProxyClient {
   }
 
   /**
-   * 【思緒分流器 Universal Thought Router】大眾通用五大分類與行動萃取
+   * 規則驗證 + 去重 + 最終選 0～3 句
+   */
+  private static filterAndSelectStems(candidates: string[], original: string): string[] {
+    const seen = new Set<string>();
+    const valid: string[] = [];
+
+    for (const raw of candidates) {
+      let s = (raw || '').trim();
+
+      // 基本清理
+      if (!s) continue;
+      if (!s.endsWith('……') && !s.endsWith('...')) {
+        // 強制補上省略號（若模型漏掉）
+        s = s.replace(/[。.!！？?]*$/, '') + '……';
+      }
+      // 統一成全形省略號
+      s = s.replace(/\.{3,}/g, '……').replace(/…+/g, '……');
+
+      // 規則驗證
+      if (s.includes('？') || s.includes('?')) continue;                    // 禁止問句
+      if (s.length < 6 || s.length > 60) continue;                          // 太短或太長
+      if (this.isTooGeneric(s)) continue;                                   // 空泛套話
+      if (this.isAnalyzing(s)) continue;                                    // 分析/診斷語氣
+      if (this.isAdvice(s)) continue;                                       // 建議/雞湯
+      if (this.isTooSimilar(s, original)) continue;                         // 幾乎只是重複原文
+      if (seen.has(s)) continue;                                            // 去重
+
+      seen.add(s);
+      valid.push(s);
+    }
+
+    // 最終最多取 3 句（保持模型給的相對順序）
+    return valid.slice(0, 3);
+  }
+
+  /** 空泛套話檢測 */
+  private static isTooGeneric(s: string): boolean {
+    const genericPatterns = [
+      /如果不在意別人/,
+      /如果不管別人的看法/,
+      /拋開所有期待/,
+      /允許自己暫時/,
+      /今天就先停在這裡/,
+      /如果只看眼前/,
+      /我其實真正想/,
+      /最讓我感到/,
+      /如果把這個感覺/,
+    ];
+    // 如果命中兩個以上常見模板，視為空泛
+    const hits = genericPatterns.filter(p => p.test(s)).length;
+    return hits >= 2;
+  }
+
+  /** 分析/診斷語氣檢測 */
+  private static isAnalyzing(s: string): boolean {
+    const bad = [
+      /你其實/,
+      /這代表/,
+      /這顯示/,
+      /你在表達/,
+      /你的感受是/,
+      /這反映了/,
+      /深層來說/,
+      /潛意識/,
+    ];
+    return bad.some(p => p.test(s));
+  }
+
+  /** 建議/雞湯檢測 */
+  private static isAdvice(s: string): boolean {
+    const bad = [
+      /應該/,
+      /不妨/,
+      /試著/,
+      /記得/,
+      /別忘了/,
+      /重要的是/,
+      /其實可以/,
+      /你可以/,
+    ];
+    return bad.some(p => p.test(s));
+  }
+
+  /** 與原文相似度過高（幾乎只是複述） */
+  private static isTooSimilar(stem: string, original: string): boolean {
+    const stemClean = stem.replace(/……/g, '').trim();
+    if (stemClean.length < 4) return true;
+    // 簡單檢查：如果 stem 幾乎完整包含原文，或原文幾乎完整包含 stem
+    return original.includes(stemClean) || stemClean.includes(original.slice(0, 12));
+  }
+
+  /**
+   * 【已棄用】思緒分流器
+   * V7.2 產品哲學已改為「不分類、不整理、不轉 Todo」
+   * 請勿再在核心流程中呼叫此方法。
+   * @deprecated
    */
   public static async routeThoughtAsync(rawInput: string): Promise<RoutedThought | null> {
-    const cleanText = rawInput.trim();
-    if (!cleanText) return null;
-
-    const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-
-    if (!proxyUrl && !apiKey) {
-      console.warn('[GeminiProxyClient] 未設定 Worker URL 或 API Key。');
-      return null;
-    }
-
-    const systemInstruction = {
-      parts: [
-        {
-          text: `你是一個大眾通用思緒分流引擎。你的任務是精準解構使用者的日常雜記、工作待辦、情緒碎念與靈感。
-
-【分類邊界仲裁規則】
-1. 複合型輸入（含有具體截止與行動者）：優先判定為【待辦事項】。
-2. 無行動意圖的情緒宣洩：判定為【心情隨筆】，action_items 強制為空陣列 []。
-3. 點子 vs 待辦：尚未確定執行方案的願景為【靈感創意】；具備時程為【待辦事項】。
-4. 資訊記錄為【知識備忘】。
-
-【優先等級 (Priority 1~5) 定標】
-- 5：今日截止、緊急財務/健康危機、高影響力核心阻斷。
-- 4：本週內需處理、重要專案節點。
-- 3：一般常規待辦、無立即懲罰的事項。
-- 2：值得保留的靈感、未定時程的待辦。
-- 1：純心情宣洩、隨筆碎念、雜訊。
-
-【約束】
-- 語氣保持冷靜客觀，嚴禁說教與強制加雞湯。
-- action_items 必須具體可執行，勿寫模糊空話。`.trim()
-        }
-      ]
-    };
-
-    const responseSchema = {
-      type: 'OBJECT',
-      properties: {
-        category: {
-          type: 'STRING',
-          enum: ['待辦事項', '靈感創意', '心情隨筆', '知識備忘', '碎屑雜訊']
-        },
-        sub_tags: {
-          type: 'ARRAY',
-          items: { type: 'STRING' }
-        },
-        summary: { type: 'STRING' },
-        action_items: {
-          type: 'ARRAY',
-          items: { type: 'STRING' }
-        },
-        priority: { type: 'INTEGER' },
-        status_hint: { type: 'STRING' }
-      },
-      required: ['category', 'sub_tags', 'summary', 'action_items', 'priority', 'status_hint']
-    };
-
-    const payload = {
-      contents: [{ parts: [{ text: cleanText }] }],
-      systemInstruction,
-      generationConfig: {
-        temperature: 0.15,
-        responseMimeType: 'application/json',
-        responseSchema
-      }
-    };
-
-    try {
-      let res: Response;
-      if (proxyUrl) {
-        res = await fetch(proxyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'gemini-3.5-flash-lite',
-            ...payload
-          })
-        });
-      } else {
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
-        res = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': apiKey
-          },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      if (!res.ok) {
-        console.error(`[GeminiProxyClient] 分流回應錯誤: ${res.status} ${res.statusText}`);
-        return null;
-      }
-
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) return null;
-
-      return JSON.parse(text) as RoutedThought;
-    } catch (err) {
-      console.error('[GeminiProxyClient] 分流呼叫失敗:', err);
-      return null;
-    }
+    console.warn('[GeminiProxyClient] routeThoughtAsync 已棄用，請移除呼叫。');
+    return null;
   }
 }
