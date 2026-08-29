@@ -76,7 +76,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   };
 
   return (
-    <div className={`w-full max-w-[630px] flex flex-col items-center ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
+    <div className={`w-full max-w-[690px] flex flex-col items-center ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
       {/* 頂部右上角：弱化次要入口「回來看看」 */}
       <div className="w-full flex justify-end pb-6 sm:pb-10 select-none">
         <button

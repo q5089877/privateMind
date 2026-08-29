@@ -104,7 +104,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="w-full max-w-[620px] mx-auto pb-28 relative select-text"
+      className="w-full max-w-[672px] mx-auto pb-28 relative select-text"
     >
       {/* 07｜去管理化時間線頂部導航 */}
       <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3 z-20 flex items-center justify-between border-b border-border-base mb-6 select-none">

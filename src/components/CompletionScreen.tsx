@@ -32,7 +32,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   const lastEntryContent = thread.entries[thread.entries.length - 1]?.content || '';
 
   return (
-    <div className="w-full max-w-[565px] space-y-6 sm:space-y-8 flex flex-col items-center text-center">
+    <div className="w-full max-w-[615px] space-y-6 sm:space-y-8 flex flex-col items-center text-center">
       {/* 定格字樣：已安放。 */}
       <div className="min-h-[40px] flex items-center justify-center">
         <p className="text-2xl sm:text-3xl font-light text-ink tracking-wide">
