@@ -1,85 +1,100 @@
 /**
  * 思緒停靠（Mind Harbor）V7.2 — UI 官方文案庫
+ * 01～19 已定案規格專用
  */
 
 export const UI_TEXT = {
-  // 【首頁】
+  // 【01｜首頁輸入與「停靠」】
   home: {
     title: '現在腦中有什麼？',
-    inputPlaceholder: '寫下來就好……',
-    submit: '送出',
+    inputPlaceholder: '寫下此刻想留下的任何一句話……',
+    submit: '停靠',
     reviewPast: '回來看看',
     quickOptions: [
-      '生氣',
-      '委屈',
-      '焦慮',
-      '難過',
-      '害怕',
-      '開心',
-      '說不上來'
-    ]
+      '今天有點累',
+      '有件事讓我在意',
+      '今天有件事很開心',
+      '突然想到一件事'
+    ],
+    // 【08｜「我現在說不上來」】
+    sayNothing: '我現在說不上來',
+    sayNothingAck: '看見了。',
+    sayNothingSettle: '先放在這裡。'
   },
 
-  // 【停靠後】
+  // 【03｜停靠完成狀態】
   completion: {
     ceremony: {
-      deposit: '已停靠。',
-      unspoken: '已停靠。'
+      deposit: '已安放。',
+      unspoken: '已安放。'
     },
     exits: {
-      backHome: '到這裡就好',
       addAddition: '＋ 接著說……'
     }
   },
 
-  // 【時間線與封存區】
+  // 【07｜回來看看 & 06, 12, 13｜Thread】
   review: {
-    title: '時間線',
-    subtitle: '時間保留變化，現在指向行動。',
-    archivedTitle: '已封存',
+    backBtn: '←',
     emptyState: '還沒有留下任何痕跡',
-    emptyArchivedState: '目前沒有已封存的思緒',
-    tabActive: '時間線',
-    tabArchived: '已封存',
-    toastArchived: '已封存',
-    toastUndo: '復原',
-    toastRestored: '已回來。',
+    today: '今天',
+    ineffableText: '說不上來……',
+    sandwichEllipsis: '···',
+    addAdditionBtn: '＋ 接著說……',
+    
+    // 【17, 18｜「收起來」語言與操作】
     card: {
-      currentActionHeader: '現在',
-      currentActionTitle: '當前行動',
-      pastTimelineHeader: '過去',
-      addAdditionBtn: '＋ 接著說……',
-      takeStepBtn: '帶走一小步',
-      actionPrompt: '寫下現在做得到的一步……',
-      directSetAction: '直接設為當前行動',
-      writeSmallerStep: '寫下一個更小步驟',
-      updateAction: '更換當前行動',
-      clearActionBtn: '清除',
-      archiveBtn: '封存',
-      restoreBtn: '還原',
-      moreBtn: '⋯',
-      confirmDeleteTitle: '確定要刪除這段紀錄嗎？',
-      confirmDeleteSubtext: '刪除後無法復原。',
-      keepBtn: '取消',
-      deleteBtn: '永久刪除'
+      tuckAwayBtn: '收起來',
+      tuckedAway: '已收起',
+      bringBackBtn: '放回眼前',
+      makeItVanishBtn: '讓它消失',
+      confirmVanishTitle: '確認不再讓這筆內容留在這裡？',
+      confirmVanishSubtext: '此動作將永久移除。',
+      cancelBtn: '取消'
     }
   },
 
-  // 【接著說……】
+  // 【18｜已收起空間】
+  hiddenSpace: {
+    backBtn: '< 回去',
+    title: '已收起',
+    emptyState: '目前沒有已收起的內容'
+  },
+
+  // 【04, 14｜「接著說……」輸入狀態】
   addition: {
-    inputPlaceholder: '接著說……',
-    saveBtn: '送出',
+    inputPlaceholder: '接著寫……',
+    saveBtn: '停靠',
     cancelBtn: '取消'
   },
 
-  // 【AI／提示引擎】
+  // 【02, 05, 14, 15, 16｜AI 入口與提示引擎】
   promptEngine: {
-    triggerBtn: '陪我想想',
-    lowPresenceBtn: '想再看一眼？',
-    header: '可以從這裡開始：',
-    footer: '也可以不選，直接繼續寫。',
-    refresh: '換一組',
-    close: '收起提示'
+    entryBtn: '沒想法的話，換個角度看看',
+    focalLengths: {
+      near: '近｜特寫鏡頭',
+      mid: '中｜撥開旁人',
+      far: '遠｜縮小放大'
+    }
+  },
+
+  // 【19｜「打理」】
+  manage: {
+    title: '打理',
+    languageHeader: '語言',
+    languages: {
+      zhTW: '繁體中文',
+      en: 'English',
+      ja: '日本語',
+      ko: '한국어'
+    }
+  },
+
+  // 【全局次要選單 (···)】
+  menu: {
+    trigger: '···',
+    hiddenSpaceItem: '已收起',
+    manageItem: '打理'
   },
 
   // 【緊急求助／專業支持】
@@ -110,10 +125,18 @@ export const UI_TEXT = {
   }
 };
 
-export const CORE_PRINCIPLES = [
-  '你的話留下來；系統不替你解釋你的話。',
-  '時間線保存過去，當前行動指出現在。',
-  '封存不是刪除；刪除才是真正消失。',
-  'AI 不需要理解你，才能幫你開始思考。',
-  '讓手勢表達空間關係，讓文字只說必要的事。'
-];
+export const CORE_PHILOSOPHY = {
+  motto: '腦中的事，不一定現在就要想清楚。',
+  principles: [
+    '你可以寫。',
+    '可以停靠。',
+    '可以什麼都不做。',
+    '可以接著說。',
+    '沒想法時，可以叫 AI 給你幾個入口。',
+    'AI 只給入口，不替你走。',
+    '內容可以一直留著。',
+    '不想看了，可以收起來。',
+    '真的不要了，才讓它消失。',
+    '即使說不上來，也算一次完整的停靠。'
+  ]
+};

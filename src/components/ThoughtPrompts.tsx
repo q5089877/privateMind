@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RefreshCw, X } from 'lucide-react';
-import { generatePrompts, PromptItem } from '../logic/promptEngine';
-import { UI_TEXT } from '../config/textConfig';
+import { generatePrompts } from '../logic/promptEngine';
+import { GeminiProxyClient } from '../logic/geminiProxyClient';
 import { triggerHaptic } from '../utils/haptics';
 
 interface ThoughtPromptsProps {
@@ -13,105 +12,100 @@ interface ThoughtPromptsProps {
 
 export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
   contextText,
-  onSelectPrompt,
-  onClose
+  onSelectPrompt
 }) => {
-  const [prompts, setPrompts] = useState<PromptItem[]>([]);
-  const [recentIds, setRecentIds] = useState<string[]>([]);
-  const [isRotating, setIsRotating] = useState(false);
-
-  const fetchPrompts = () => {
-    const nextPrompts = generatePrompts(contextText, recentIds);
-    setPrompts(nextPrompts);
-    setRecentIds(prev => {
-      const newIds = [...prev, ...nextPrompts.map(p => p.id)];
-      return newIds.slice(-12);
-    });
-  };
+  const [prompts, setPrompts] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchPrompts();
-  }, [contextText]);
+    let isMounted = true;
 
-  const handleRefresh = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic('step');
-    setIsRotating(true);
-    fetchPrompts();
-    setTimeout(() => setIsRotating(false), 300);
-  };
+    const loadPrompts = async () => {
+      if (!contextText || !contextText.trim()) {
+        const localItems = generatePrompts(contextText);
+        if (isMounted) setPrompts(localItems.map(p => p.text));
+        return;
+      }
+
+      setLoading(true);
+      try {
+        if (GeminiProxyClient.isConfigured()) {
+          const stems = await GeminiProxyClient.getPerspectiveStemsAsync(contextText);
+          if (isMounted) {
+            if (stems && stems.length > 0) {
+              setPrompts(stems);
+            } else {
+              const localItems = generatePrompts(contextText);
+              setPrompts(localItems.map(p => p.text));
+            }
+          }
+        } else {
+          const localItems = generatePrompts(contextText);
+          if (isMounted) setPrompts(localItems.map(p => p.text));
+        }
+      } catch (err) {
+        console.error('[ThoughtPrompts] 載入提示失敗，使用本機預設:', err);
+        const localItems = generatePrompts(contextText);
+        if (isMounted) setPrompts(localItems.map(p => p.text));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadPrompts();
+    return () => {
+      isMounted = false;
+    };
+  }, [contextText]);
 
   const handleSelect = (text: string) => {
     triggerHaptic('step');
     onSelectPrompt(text);
   };
 
+  if (prompts.length === 0 && !loading) {
+    return null;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 6 }}
-      className="p-4 sm:p-5 rounded-2xl border border-border-card bg-surface shadow-xs space-y-3.5 select-none"
+      className="p-4 sm:p-5 rounded-2xl border border-border-card bg-surface shadow-xs space-y-3 select-none"
     >
-      {/* 標題與關閉 */}
-      <div className="flex items-center justify-between">
-        <span className="prompt-header text-xs tracking-wide">
-          {UI_TEXT.promptEngine.header}
-        </span>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 text-ink-muted hover:text-ink transition-colors cursor-pointer rounded-md"
-            title={UI_TEXT.promptEngine.close}
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* 3 個開放思考提示 */}
+      {/* 提示選項 */}
       <div className="space-y-2">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={prompts.map(p => p.id).join('-')}
-            initial={{ opacity: 0, y: 3 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -3 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-2"
-          >
-            {prompts.map((prompt) => (
-              <button
-                key={prompt.id}
-                type="button"
-                onClick={() => handleSelect(prompt.text)}
-                className="w-full text-left p-3 rounded-xl border border-border-base bg-[#F9FAF9] hover:bg-surface hover:border-border-focus transition-all cursor-pointer flex items-start gap-2.5 group active:scale-[0.99]"
-              >
-                <span className="text-ink-muted group-hover:text-ink text-xs mt-0.5 select-none">○</span>
-                <span className="prompt-option-text text-xs sm:text-sm flex-1 leading-relaxed font-normal">
-                  {prompt.text}
-                </span>
-              </button>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* 底部說明與「換一組」 */}
-      <div className="flex items-center justify-between pt-1 text-xs">
-        <span className="secondary-label text-xs">
-          {UI_TEXT.promptEngine.footer}
-        </span>
-
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="refresh-btn flex items-center gap-1 text-xs font-normal transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-surface-muted active:scale-95"
-        >
-          <RefreshCw size={12} className={isRotating ? 'animate-spin' : ''} />
-          <span>{UI_TEXT.promptEngine.refresh}</span>
-        </button>
+        {loading ? (
+          <div className="py-3 text-center text-xs text-ink-muted animate-pulse">
+            思考入口生成中……
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={prompts.join('-')}
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-2"
+            >
+              {prompts.map((text, idx) => (
+                <button
+                  key={`prompt-${idx}`}
+                  type="button"
+                  onClick={() => handleSelect(text)}
+                  className="w-full text-left p-3 rounded-xl border border-border-base bg-[#F9FAF9] hover:bg-surface hover:border-border-focus transition-all cursor-pointer flex items-start gap-2.5 group active:scale-[0.99]"
+                >
+                  <span className="text-ink-muted group-hover:text-ink text-xs mt-0.5 select-none">·</span>
+                  <span className="prompt-option-text text-xs sm:text-sm flex-1 leading-relaxed font-normal text-ink">
+                    {text}
+                  </span>
+                </button>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
     </motion.div>
   );
