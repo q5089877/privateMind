@@ -148,8 +148,26 @@ export class GeminiProxyClient {
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) return [];
 
-      const parsed = JSON.parse(text);
-      const candidates: string[] = Array.isArray(parsed.stems) ? parsed.stems : [];
+      let candidates: string[] = [];
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          candidates = parsed;
+        } else if (Array.isArray(parsed?.stems)) {
+          candidates = parsed.stems;
+        } else if (typeof parsed === 'object' && parsed !== null) {
+          const values = Object.values(parsed);
+          for (const v of values) {
+            if (Array.isArray(v)) {
+              candidates = v as string[];
+              break;
+            }
+          }
+        }
+      } catch (parseErr) {
+        console.warn('[GeminiProxyClient] JSON 解析失敗:', parseErr, text);
+        return [];
+      }
 
       // ---------- Stage 3 + 4：規則驗證 + 去重 + 最終選取 ----------
       return this.filterAndSelectStems(candidates, cleanText);
