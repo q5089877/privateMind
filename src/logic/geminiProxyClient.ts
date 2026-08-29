@@ -101,87 +101,104 @@ export class GeminiProxyClient {
       contents: [{ parts: [{ text: cleanText }] }],
       systemInstruction,
       generationConfig: {
-        temperature: 0.2,
+        temperature: 0.35,
         responseMimeType: 'application/json',
         responseSchema
       }
     };
 
-    try {
-      let res: Response;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
-
-      if (proxyUrl) {
-        // 優先走 Cloudflare Worker 安全反向代理（完全避免瀏覽器 CORS 阻擋）
-        res = await fetch(proxyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'gemini-3.5-flash-lite',
-            ...payload
-          }),
-          signal: controller.signal
-        });
-      } else if (apiKey) {
-        // 次選直連（注意：瀏覽器環境下可能被 Google CORS 阻擋）
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
-        res = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': apiKey
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
-      } else {
-        clearTimeout(timeoutId);
-        return [];
-      }
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        console.warn(`[GeminiProxyClient] API 回應錯誤: ${res.status} ${res.statusText}`);
-        return [];
-      }
-
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) return [];
-
-      let candidates: string[] = [];
+    // 支援自動重試 1 次（應對 Google 503 短暫負載與行動網路波動）
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          candidates = parsed;
-        } else if (Array.isArray(parsed?.stems)) {
-          candidates = parsed.stems;
-        } else if (typeof parsed === 'object' && parsed !== null) {
-          const values = Object.values(parsed);
-          for (const v of values) {
-            if (Array.isArray(v)) {
-              candidates = v as string[];
-              break;
+        let res: Response;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 14000); // 放寬至 14 秒
+
+        if (proxyUrl) {
+          // 優先走 Cloudflare Worker 安全反向代理
+          res = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'gemini-3.5-flash-lite',
+              ...payload
+            }),
+            signal: controller.signal
+          });
+        } else if (apiKey) {
+          // 次選直連
+          const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
+          res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-goog-api-key': apiKey
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+        } else {
+          clearTimeout(timeoutId);
+          return [];
+        }
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          console.warn(`[GeminiProxyClient] 第 ${attempt} 次請求回應非 200: ${res.status}`);
+          if (attempt === 1) {
+            await new Promise(r => setTimeout(r, 600)); // 稍候重試
+            continue;
+          }
+          return [];
+        }
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          if (attempt === 1) continue;
+          return [];
+        }
+
+        let candidates: string[] = [];
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) {
+            candidates = parsed;
+          } else if (Array.isArray(parsed?.stems)) {
+            candidates = parsed.stems;
+          } else if (typeof parsed === 'object' && parsed !== null) {
+            const values = Object.values(parsed);
+            for (const v of values) {
+              if (Array.isArray(v)) {
+                candidates = v as string[];
+                break;
+              }
             }
           }
+        } catch (parseErr) {
+          console.warn('[GeminiProxyClient] JSON 解析失敗:', parseErr, text);
+          if (attempt === 1) continue;
+          return [];
         }
-      } catch (parseErr) {
-        console.warn('[GeminiProxyClient] JSON 解析失敗:', parseErr, text);
-        return [];
-      }
 
-      // ---------- Stage 3 + 4：規則驗證 + 去重 + 最終選取 ----------
-      return this.filterAndSelectStems(candidates, cleanText);
-    } catch (err) {
-      console.warn('[GeminiProxyClient] 呼叫逾時或失敗:', err);
-      return [];
+        // ---------- Stage 3 + 4：規則驗證 + 去重 + 最終選取 ----------
+        const result = this.filterAndSelectStems(candidates, cleanText);
+        if (result.length > 0) return result;
+      } catch (err) {
+        console.warn(`[GeminiProxyClient] 第 ${attempt} 次呼叫失敗:`, err);
+        if (attempt === 1) {
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
+      }
     }
+
+    return [];
   }
 
   /**
-   * 規則驗證 + 去重 + 最終選 0～3 句
+   * 規則驗證 + 去重 + 最終選 0～4 句
    */
   private static filterAndSelectStems(candidates: string[], original: string): string[] {
     const seen = new Set<string>();
@@ -199,8 +216,7 @@ export class GeminiProxyClient {
 
       // 規則驗證
       if (s.includes('？') || s.includes('?')) continue;                    // 禁止問句
-      if (s.length < 5 || s.length > 60) continue;                          // 太短或太長
-      if (this.isTooGeneric(s)) continue;                                   // 空泛套話
+      if (s.length < 5 || s.length > 70) continue;                          // 放寬長度範圍 (5~70)
       if (this.isAnalyzing(s)) continue;                                    // 分析/診斷語氣
       if (this.isAdvice(s)) continue;                                       // 建議/雞湯
       if (this.isTooSimilar(s, original)) continue;                         // 幾乎只是重複原文
@@ -226,7 +242,6 @@ export class GeminiProxyClient {
       /最讓我感到/,
       /如果把這個感覺/,
     ];
-    // 如果命中兩個以上常見模板，視為空泛
     const hits = genericPatterns.filter(p => p.test(s)).length;
     return hits >= 2;
   }
@@ -261,22 +276,19 @@ export class GeminiProxyClient {
     return bad.some(p => p.test(s));
   }
 
-  /** 與原文相似度過高（幾乎只是複述） */
+  /** 與原文相似度過高（僅剔除完全無延伸的純粹複述） */
   private static isTooSimilar(stem: string, original: string): boolean {
-    const stemClean = stem.replace(/……/g, '').trim();
-    if (stemClean.length < 4) return true;
-    // 簡單檢查：如果 stem 幾乎完整包含原文，或原文幾乎完整包含 stem
-    return original.includes(stemClean) || stemClean.includes(original.slice(0, 12));
+    const stemClean = stem.replace(/……/g, '').replace(/[，,。.\s]/g, '').trim();
+    const origClean = original.replace(/[，,。.\s]/g, '').trim();
+    if (stemClean.length < 3) return true;
+    // 只有在 stem 幾乎 100% 完全等於原文時才剔除（允許包含主題詞進行語義延展）
+    return stemClean === origClean;
   }
 
   /**
-   * 【已棄用】思緒分流器
-   * V7.2 產品哲學已改為「不分類、不整理、不轉 Todo」
-   * 請勿再在核心流程中呼叫此方法。
    * @deprecated
    */
   public static async routeThoughtAsync(rawInput: string): Promise<RoutedThought | null> {
-    console.warn('[GeminiProxyClient] routeThoughtAsync 已棄用，請移除呼叫。');
     return null;
   }
 }
