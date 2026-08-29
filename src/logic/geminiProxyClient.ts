@@ -16,7 +16,7 @@ export class GeminiProxyClient {
     return (
       localStorage.getItem('CLOUDFLARE_WORKER_URL') ||
       import.meta.env.VITE_CLOUDFLARE_WORKER_URL ||
-      ''
+      'https://raspy-bush-9ab5.q5089877.workers.dev'
     );
   }
 
