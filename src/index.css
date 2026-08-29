@@ -13,8 +13,8 @@
   --border-subtle: #ECEEF1;
   --border-focus: #1F2937;
 
-  --ink-primary: #181D27;      /* 主要標題與正文 (14.2:1, 深炭墨黑) */
-  --ink-heading: #1F2937;      /* 結構標題 (13.5:1) */
+  --ink-primary: #27272A;      /* 主要標題與正文 (11.8:1, WCAG AAA 柔和炭墨) */
+  --ink-heading: #27272A;      /* 結構標題 (11.8:1) */
   --ink-body: #374151;         /* 內文選項 (9.5:1, Gray-700) */
   --ink-stem: #4B5563;         /* 引導提示句 (7.0:1, Gray-600 通過 WCAG AAA) */
   --ink-secondary: #4B5563;    /* 次標與輔助說明 (7.0:1) */
