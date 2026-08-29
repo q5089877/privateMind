@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -21,7 +21,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 50)}px`;
+      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 68)}px`;
     }
   }, [inputText]);
 
@@ -29,12 +29,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
   useEffect(() => {
     const focusTimer = setTimeout(() => {
       textareaRef.current?.focus();
-    }, 50);
+    }, 60);
     return () => clearTimeout(focusTimer);
   }, []);
 
   const handleQuickSelect = (text: string) => {
     if (isSinking) return;
+    triggerHaptic('step');
     setInputText(text);
     textareaRef.current?.focus();
   };
@@ -66,69 +67,74 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
   };
 
   return (
-    <div
-      className={`w-full max-w-[500px] flex flex-col items-center text-center ${
-        isSinking ? 'sink-animation pointer-events-none' : ''
-      }`}
-    >
-      <h1 className="text-[26px] sm:text-[31px] font-medium tracking-[0.05em] text-ink mb-6 sm:mb-8 text-center">
-        {UI_TEXT.home.title}
-      </h1>
-
-      <div className="w-full space-y-4 sm:space-y-6">
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={UI_TEXT.home.inputPlaceholder}
-          className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted placeholder:font-light transition-colors duration-300 py-2.5 sm:py-3.5 text-[20px] sm:text-[23px] outline-none resize-none text-center leading-[1.5]"
-          autoFocus
-        />
-
-        {/* 狀態入口區：情緒快選 */}
-        <div className="flex flex-wrap justify-center gap-2">
-          {QUICK_OPTIONS.map((option, idx) => (
-            <button
-              key={`quick-opt-${idx}`}
-              onClick={() => handleQuickSelect(option)}
-              className="py-2 px-3.5 bg-surface border border-border-base hover:border-border-focus text-ink-secondary hover:text-ink rounded-xl text-[15px] sm:text-[16px] transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-xs"
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 動作按鈕區 */}
-      <div className="mt-4 flex justify-center items-center w-full">
-        <button
-          type="button"
-          onClick={handleContinue}
-          disabled={!inputText.trim()}
-          className={`px-8 sm:px-10 py-2.5 sm:py-3.5 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-[18px] sm:text-[21px] font-normal tracking-wide transition-all duration-400 cursor-pointer active:scale-98 ${
-            inputText.trim()
-              ? 'opacity-100 translate-y-0 pointer-events-auto'
-              : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'
-          }`}
-        >
-          {UI_TEXT.home.submit}
-        </button>
-      </div>
-
-      {/* 次要回顧入口 */}
-      <div className="mt-8">
+    <div className={`w-full max-w-xl flex flex-col items-center ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
+      {/* 頂部右上角：弱化次要入口「回來看看」 */}
+      <div className="w-full flex justify-end pb-8 sm:pb-12 select-none">
         <button
           type="button"
           onClick={() => {
             if (isSinking) return;
             onReview();
           }}
-          className="text-ink-muted hover:text-ink text-[14px] sm:text-[15px] transition-colors duration-300 py-2 cursor-pointer"
+          className="text-xs sm:text-[13px] text-ink-muted/70 hover:text-ink transition-colors cursor-pointer py-1 px-1 tracking-wider"
         >
-          {UI_TEXT.home.reviewPast}
+          {UI_TEXT.home.reviewBtn}
         </button>
+      </div>
+
+      {/* 主工作區：垂直居中偏上，大氣留白 */}
+      <div className="w-full flex flex-col items-center text-center space-y-6 sm:space-y-8 pt-2 sm:pt-4">
+        {/* 標題：沉穩墨黑 */}
+        <h1 className="text-[22px] sm:text-[25px] font-medium tracking-[0.03em] text-ink select-none">
+          {UI_TEXT.home.title}
+        </h1>
+
+        {/* 無邊界多行輸入區：大行距、無底線、紙張包容感 */}
+        <div className="w-full relative px-2">
+          <textarea
+            ref={textareaRef}
+            rows={2}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={UI_TEXT.home.inputPlaceholder}
+            className="w-full bg-transparent text-ink placeholder:text-ink-muted/50 placeholder:font-light font-light text-[18px] sm:text-[20px] leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-none"
+            autoFocus
+          />
+        </div>
+
+        {/* 輕盈流動標籤：極淡邊框便籤排版 */}
+        <div className="w-full flex flex-wrap justify-center gap-2 sm:gap-2.5 pt-1 select-none">
+          {QUICK_OPTIONS.map((option, idx) => (
+            <button
+              key={`quick-opt-${idx}`}
+              type="button"
+              onClick={() => handleQuickSelect(option)}
+              className="py-1.5 px-3.5 rounded-full border border-border-base/40 bg-surface-subtle/40 hover:bg-surface hover:border-border-focus/50 text-ink-secondary hover:text-ink text-xs sm:text-[13px] font-light transition-all duration-200 cursor-pointer active:scale-[0.98]"
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+
+        {/* 動作按鈕：有字時高亮，無字時平靜退場 */}
+        <div className="pt-3 h-12 flex justify-center items-center w-full">
+          <AnimatePresence>
+            {inputText.trim() && (
+              <motion.button
+                type="button"
+                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                onClick={handleContinue}
+                className="px-7 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-[15px] font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs"
+              >
+                {UI_TEXT.home.submit}
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
