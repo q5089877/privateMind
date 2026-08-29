@@ -69,16 +69,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onReview }
   return (
     <div className={`w-full max-w-xl flex flex-col items-center ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
       {/* 頂部右上角：弱化次要入口「回來看看」 */}
-      <div className="w-full flex justify-end pb-8 sm:pb-12 select-none">
+      <div className="w-full flex justify-end pb-6 sm:pb-10 select-none">
         <button
           type="button"
           onClick={() => {
             if (isSinking) return;
             onReview();
           }}
-          className="text-xs sm:text-[13px] text-ink-muted/70 hover:text-ink transition-colors cursor-pointer py-1 px-1 tracking-wider"
+          className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer py-1.5 px-3 rounded-full hover:bg-surface-hover tracking-wider font-light"
         >
-          {UI_TEXT.home.reviewBtn}
+          {UI_TEXT.home.reviewPast}
         </button>
       </div>
 

@@ -10,6 +10,7 @@ export const UI_TEXT = {
     inputPlaceholder: '寫下此刻想留下的任何一句話……',
     submit: '停靠',
     reviewPast: '回來看看',
+    reviewBtn: '回來看看',
     quickOptions: [
       '今天有點累',
       '有件事讓我在意',
