@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GeminiProxyClient } from '../logic/geminiProxyClient';
-import { generatePrompts } from '../logic/promptEngine';
+import { UI_TEXT } from '../config/textConfig';
 
 interface ThoughtPromptsProps {
   contextText?: string;
@@ -12,38 +12,56 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
 }) => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadPrompts = async () => {
       if (!contextText || !contextText.trim()) {
-        const localItems = generatePrompts(contextText);
-        if (isMounted) setPrompts(localItems.map(p => p.text));
+        if (isMounted) {
+          setPrompts([]);
+          setOfflineNotice(null);
+        }
+        return;
+      }
+
+      // 未配置 API Key / Worker：顯示溫和離線反饋，2.8s 後安靜淡出
+      if (!GeminiProxyClient.isConfigured()) {
+        if (isMounted) {
+          setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
+          fadeTimerRef.current = setTimeout(() => {
+            if (isMounted) setOfflineNotice(null);
+          }, 2800);
+        }
         return;
       }
 
       setLoading(true);
       try {
-        if (GeminiProxyClient.isConfigured()) {
-          const stems = await GeminiProxyClient.getPerspectiveStemsAsync(contextText);
-          if (isMounted) {
-            if (stems && stems.length > 0) {
-              setPrompts(stems);
-            } else {
-              // 若模型回傳空值，無縫提供 V7.2 標準三焦距起手式
-              const fallbackStems = generatePrompts(contextText);
-              setPrompts(fallbackStems.map(p => p.text));
-            }
+        const stems = await GeminiProxyClient.getPerspectiveStemsAsync(contextText);
+        if (isMounted) {
+          if (stems && stems.length > 0) {
+            setPrompts(stems);
+            setOfflineNotice(null);
+          } else {
+            setPrompts([]);
+            setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
+            fadeTimerRef.current = setTimeout(() => {
+              if (isMounted) setOfflineNotice(null);
+            }, 2800);
           }
-        } else {
-          const fallbackStems = generatePrompts(contextText);
-          if (isMounted) setPrompts(fallbackStems.map(p => p.text));
         }
       } catch (err) {
-        console.error('[ThoughtPrompts] 生成出錯，切換至標準三焦距起手式:', err);
-        const fallbackStems = generatePrompts(contextText);
-        if (isMounted) setPrompts(fallbackStems.map(p => p.text));
+        console.warn('[ThoughtPrompts] 連線失敗:', err);
+        if (isMounted) {
+          setPrompts([]);
+          setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
+          fadeTimerRef.current = setTimeout(() => {
+            if (isMounted) setOfflineNotice(null);
+          }, 2800);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -52,10 +70,11 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
     loadPrompts();
     return () => {
       isMounted = false;
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
     };
   }, [contextText]);
 
-  if (prompts.length === 0 && !loading) {
+  if (prompts.length === 0 && !loading && !offlineNotice) {
     return null;
   }
 
@@ -66,11 +85,24 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       exit={{ opacity: 0, y: 4 }}
       className="py-2 px-1 space-y-2 select-none"
     >
-      {loading ? (
+      {loading && (
         <div className="py-2 text-left text-xs text-ink-muted/60 animate-pulse font-light tracking-wide">
-          思考入口生成中……
+          {UI_TEXT.promptEngine.loading}
         </div>
-      ) : (
+      )}
+
+      {offlineNotice && !loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="py-2 text-left text-xs text-ink-muted/50 font-light tracking-wide"
+        >
+          {offlineNotice}
+        </motion.div>
+      )}
+
+      {prompts.length > 0 && !loading && (
         <AnimatePresence mode="wait">
           <motion.div
             key={prompts.join('-')}
@@ -97,3 +129,4 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
     </motion.div>
   );
 };
+

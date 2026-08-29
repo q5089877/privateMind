@@ -42,6 +42,9 @@ export const UI_TEXT = {
     ineffableText: '說不上來……',
     sandwichEllipsis: '···',
     addAdditionBtn: '＋ 接著說……',
+    toastTuckedAway: '已收起',
+    toastUndo: '復原',
+    toastBroughtBack: '已放回眼前。',
     
     // 【17, 18｜「收起來」語言與操作】
     card: {
@@ -57,7 +60,7 @@ export const UI_TEXT = {
 
   // 【18｜已收起空間】
   hiddenSpace: {
-    backBtn: '< 回去',
+    backBtn: '← 回去',
     title: '已收起',
     emptyState: '目前沒有已收起的內容'
   },
@@ -72,10 +75,12 @@ export const UI_TEXT = {
   // 【02, 05, 14, 15, 16｜AI 入口與提示引擎】
   promptEngine: {
     entryBtn: '沒想法的話，換個角度看看',
+    loading: '思考入口生成中……',
+    offlineNotice: '目前離線中，先留給自己慢慢寫……',
     focalLengths: {
-      near: '近｜特寫鏡頭',
-      mid: '中｜撥開旁人',
-      far: '遠｜縮小放大'
+      near: '近｜焦點伸展',
+      mid: '中｜抽離期待',
+      far: '遠｜尺度放寬'
     }
   },
 
