@@ -210,7 +210,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 </button>
               </div>
 
-              {/* 最後 1 則：終點（掛上整組 Thread 唯一的收起按鈕） */}
+              {/* 最後 1 則：終點（掛上整組 Thread 唯一的收起 / 已收起操作） */}
               <div key={entries[totalEntries - 1].id} className="group/entry flex items-baseline justify-between gap-3 py-1">
                 <div className="flex items-baseline gap-3 flex-1 min-w-0">
                   <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
@@ -221,7 +221,26 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                   </div>
                 </div>
 
-                {!isArchivedView && (
+                {isArchivedView ? (
+                  /* 18｜已收起空間：同行 Ghost Buttons (放回眼前 / 讓它消失) */
+                  <div className="flex items-center gap-2 select-none shrink-0 py-0.5">
+                    <button
+                      type="button"
+                      onClick={handleBringBack}
+                      className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base/50 hover:border-border-focus/70 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                    >
+                      {UI_TEXT.review.card.bringBackBtn}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowVanishConfirm(true)}
+                      className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-red-500 border border-border-base/50 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                    >
+                      {UI_TEXT.review.card.makeItVanishBtn}
+                    </button>
+                  </div>
+                ) : (
+                  /* 正常時間線：單一收起文字按鈕 */
                   <button
                     type="button"
                     onClick={handleTuckAway}
@@ -234,7 +253,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
             </>
           ) : (
-            /* 完整展示所有 Entries（只有最後一筆才帶整組的收起） */
+            /* 完整展示所有 Entries（只有最後一筆才帶整組的操作按鈕） */
             <>
               {entries.map((entry, idx) => {
                 const isLast = idx === entries.length - 1;
@@ -249,15 +268,36 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                       </div>
                     </div>
 
-                    {!isArchivedView && isLast && (
-                      <button
-                        type="button"
-                        onClick={handleTuckAway}
-                        className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
-                        title="收起來"
-                      >
-                        收起
-                      </button>
+                    {isLast && (
+                      isArchivedView ? (
+                        /* 18｜已收起空間：同行 Ghost Buttons */
+                        <div className="flex items-center gap-2 select-none shrink-0 py-0.5">
+                          <button
+                            type="button"
+                            onClick={handleBringBack}
+                            className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base/50 hover:border-border-focus/70 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                          >
+                            {UI_TEXT.review.card.bringBackBtn}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowVanishConfirm(true)}
+                            className="px-2.5 py-0.5 text-xs font-normal text-ink-secondary hover:text-red-500 border border-border-base/50 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                          >
+                            {UI_TEXT.review.card.makeItVanishBtn}
+                          </button>
+                        </div>
+                      ) : (
+                        /* 正常時間線：單一收起按鈕 */
+                        <button
+                          type="button"
+                          onClick={handleTuckAway}
+                          className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
+                          title="收起來"
+                        >
+                          收起
+                        </button>
+                      )
                     )}
                   </div>
                 );
@@ -281,48 +321,27 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </div>
         )}
 
-        {/* 底部輔助列 */}
-        {!isAdding && (
-          isArchivedView ? (
-            /* 18｜已收起空間：Ghost Buttons (1px 淡框、透明底、圓角 6px、大觸控熱區) */
-            <div className="pt-2 pl-14 flex items-center justify-end gap-2.5 select-none">
-              <button
-                type="button"
-                onClick={handleBringBack}
-                className="px-3.5 py-1 min-h-[30px] text-xs font-normal leading-tight text-ink-secondary hover:text-ink border border-border-base/60 hover:border-border-focus/80 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
-              >
-                {UI_TEXT.review.card.bringBackBtn}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowVanishConfirm(true)}
-                className="px-3.5 py-1 min-h-[30px] text-xs font-normal leading-tight text-ink-secondary hover:text-red-500 border border-border-base/60 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
-              >
-                {UI_TEXT.review.card.makeItVanishBtn}
-              </button>
-            </div>
-          ) : (
-            /* 正常時間線：左側極淡「＋ 接著說……」，展開時右側帶「收合思緒」 */
-            <div className="pt-0.5 pl-14 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setIsAdding(true)}
-                className="text-xs text-ink-muted/50 hover:text-ink font-light tracking-wide transition-colors py-0.5 cursor-pointer"
-              >
-                {UI_TEXT.review.card.addAdditionBtn}
-              </button>
+        {/* 正常時間線底部輔助列（已收起空間無此列） */}
+        {!isAdding && !isArchivedView && (
+          <div className="pt-0.5 pl-14 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setIsAdding(true)}
+              className="text-xs text-ink-muted/50 hover:text-ink font-light tracking-wide transition-colors py-0.5 cursor-pointer"
+            >
+              {UI_TEXT.review.card.addAdditionBtn}
+            </button>
 
-              {totalEntries > 2 && isExpanded && (
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(false)}
-                  className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
-                >
-                  收合思緒
-                </button>
-              )}
-            </div>
-          )
+            {totalEntries > 2 && isExpanded && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(false)}
+                className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
+              >
+                收合思緒
+              </button>
+            )}
+          </div>
         )}
       </motion.div>
     </div>
