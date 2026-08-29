@@ -9,7 +9,7 @@ export default {
       "http://localhost:5173",
       "http://localhost:3000",
       "http://127.0.0.1:5173",
-      "https://q5089877.github.io" // 可替換為你的 GitHub Pages 網址
+      "https://q5089877.github.io/privateMind" // 可替換為你的 GitHub Pages 網址
     ];
 
     const origin = request.headers.get("Origin") || "";
