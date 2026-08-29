@@ -114,24 +114,25 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             <button
               type="button"
               onClick={() => setIsViewingArchived(false)}
-              className="p-1.5 text-ink-muted hover:text-ink transition-colors cursor-pointer rounded-full flex items-center gap-1 text-sm font-light"
+              className="p-1.5 text-ink-muted hover:text-ink transition-colors cursor-pointer rounded-full flex items-center gap-1.5 text-xs sm:text-sm font-light"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
               <span>{UI_TEXT.hiddenSpace.backBtn.replace('←', '').trim()}</span>
             </button>
-            <span className="text-sm font-medium text-ink">
+            <span className="text-xs sm:text-sm font-medium text-ink">
               {UI_TEXT.hiddenSpace.title}
             </span>
           </div>
         ) : (
-          /* 【正常時間線】頂部：純返回 ←，無標題、無計數 */
+          /* 【正常時間線】頂部：← 回來看看 */
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-full transition-colors cursor-pointer"
+            className="p-1.5 text-ink-muted hover:text-ink transition-colors rounded-full cursor-pointer flex items-center gap-2 text-xs sm:text-sm font-light select-none"
             title="返回"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={15} />
+            <span className="text-ink-secondary hover:text-ink">{UI_TEXT.home.reviewBtn}</span>
           </button>
         )}
 
