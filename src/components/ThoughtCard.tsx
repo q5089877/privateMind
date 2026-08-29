@@ -37,8 +37,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const totalEntries = entries.length;
   const isSandwich = totalEntries > 2 && !isExpanded;
 
-  // 長按監聽（450ms 觸發浮動選單）
+  // 長按監聽（正常時間線 450ms 觸發「收起來」選單）
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (isArchivedView) return; // 已收起空間直接提供 Ghost Button，無需長按
     touchStartPosRef.current = { x: e.clientX, y: e.clientY };
     longPressTimerRef.current = setTimeout(() => {
       triggerHaptic('step');
@@ -168,38 +169,15 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 4 }}
                 transition={{ duration: 0.18 }}
-                className="absolute right-2 top-0 z-40 bg-surface/95 backdrop-blur-md border border-border-base/70 shadow-lg rounded-2xl py-1 px-1.5 flex items-center gap-1.5 select-none"
+                className="absolute right-2 top-0 z-40 bg-surface/95 backdrop-blur-md border border-border-base/70 shadow-lg rounded-2xl py-1 px-1.5 flex items-center select-none"
               >
-                {isArchivedView ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleBringBack}
-                      className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-xl cursor-pointer transition-colors"
-                    >
-                      {UI_TEXT.review.card.bringBackBtn}
-                    </button>
-                    <span className="text-border-base text-xs">·</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowFloatingMenu(false);
-                        setShowVanishConfirm(true);
-                      }}
-                      className="px-3 py-1.5 text-xs text-red-500/80 hover:text-red-600 hover:bg-red-500/10 rounded-xl cursor-pointer transition-colors"
-                    >
-                      {UI_TEXT.review.card.makeItVanishBtn}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleTuckAway}
-                    className="px-3.5 py-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-xl cursor-pointer transition-colors"
-                  >
-                    {UI_TEXT.review.card.tuckAwayBtn}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleTuckAway}
+                  className="px-3.5 py-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-xl cursor-pointer transition-colors"
+                >
+                  {UI_TEXT.review.card.tuckAwayBtn}
+                </button>
               </motion.div>
             </>
           )}
@@ -272,17 +250,38 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </div>
         )}
 
-        {/* 底部僅保留極淡的「＋ 接著說……」 */}
-        {!isAdding && !isArchivedView && (
-          <div className="pt-2 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setIsAdding(true)}
-              className="text-xs text-ink-muted/50 hover:text-ink font-light tracking-wide transition-colors py-0.5 cursor-pointer"
-            >
-              {UI_TEXT.review.card.addAdditionBtn}
-            </button>
-          </div>
+        {/* 底部操作列 */}
+        {!isAdding && (
+          isArchivedView ? (
+            /* 18｜已收起空間：Ghost Buttons (1px 淡框、透明底、圓角 6px、大觸控熱區) */
+            <div className="pt-3 flex items-center justify-end gap-2.5 select-none">
+              <button
+                type="button"
+                onClick={handleBringBack}
+                className="px-3.5 py-1.5 min-h-[32px] text-[13px] font-normal leading-tight text-ink-secondary hover:text-ink border border-border-base/60 hover:border-border-focus/80 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+              >
+                {UI_TEXT.review.card.bringBackBtn}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowVanishConfirm(true)}
+                className="px-3.5 py-1.5 min-h-[32px] text-[13px] font-normal leading-tight text-ink-secondary hover:text-red-500 border border-border-base/60 hover:border-red-500/50 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+              >
+                {UI_TEXT.review.card.makeItVanishBtn}
+              </button>
+            </div>
+          ) : (
+            /* 正常時間線：僅保留極淡的「＋ 接著說……」 */
+            <div className="pt-2 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsAdding(true)}
+                className="text-xs text-ink-muted/50 hover:text-ink font-light tracking-wide transition-colors py-0.5 cursor-pointer"
+              >
+                {UI_TEXT.review.card.addAdditionBtn}
+              </button>
+            </div>
+          )
         )}
       </motion.div>
     </div>
