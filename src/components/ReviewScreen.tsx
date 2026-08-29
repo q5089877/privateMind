@@ -124,15 +124,15 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             </span>
           </div>
         ) : (
-          /* 【正常時間線】頂部：← 回來看看 */
+          /* 【正常時間線】頂部：← 回首頁 */
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-ink-muted hover:text-ink transition-colors rounded-full cursor-pointer flex items-center gap-2 text-xs sm:text-sm font-light select-none"
-            title="返回"
+            className="p-1.5 text-ink-muted hover:text-ink transition-colors rounded-full cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm font-light select-none"
+            title="回到首頁"
           >
             <ArrowLeft size={15} />
-            <span className="text-ink-secondary hover:text-ink">{UI_TEXT.home.reviewBtn}</span>
+            <span className="text-ink-secondary hover:text-ink">回首頁</span>
           </button>
         )}
 
