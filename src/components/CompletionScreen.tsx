@@ -21,6 +21,7 @@ const formatTimestamp = (timestamp: number) => {
 
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({ 
   thread, 
+  onReset,
   onAppendEntry
 }) => {
   const [isAdding, setIsAdding] = useState(false);
@@ -76,13 +77,13 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* 底部出口：＋ 接著說…… */}
+      {/* 底部出口：＋ 接著說…… / 到這裡就好 */}
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.6 }}
         style={{ transform: 'translateY(16px)' }}
-        className="w-full flex flex-col items-center gap-3 pt-2"
+        className="w-full flex flex-col items-center gap-2 pt-2"
       >
         {!isAdding && onAppendEntry && (
           <button 
@@ -93,6 +94,14 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
             {UI_TEXT.completion.exits.addAddition}
           </button>
         )}
+
+        <button 
+          type="button"
+          onClick={onReset}
+          className="text-xs text-ink-muted hover:text-ink transition-colors py-1.5 px-4 rounded-full cursor-pointer hover:bg-surface-hover/50 select-none"
+        >
+          {UI_TEXT.completion.exits.backHome}
+        </button>
       </motion.div>
     </div>
   );

@@ -29,7 +29,8 @@ export const UI_TEXT = {
       unspoken: '已安放。'
     },
     exits: {
-      addAddition: '＋ 接著說……'
+      addAddition: '＋ 接著說……',
+      backHome: '到這裡就好'
     }
   },
 
