@@ -1,28 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  /* High-Contrast Sage & Earth Design Tokens (高對比沉靜墨灰調) */
-  --canvas: #F7F8F7;
+  /* WCAG AA Compliant High-Contrast Calm Design Tokens (高對比沉靜無障礙色階) */
+  --canvas: #F8F9FA;
   --surface: #FFFFFF;
-  --surface-subtle: #F9FAF9;
-  --surface-muted: #EAEFEB;
-  --surface-hover: #E1E8E3;
+  --surface-subtle: #F4F5F5;
+  --surface-muted: #E4E7E5;
+  --surface-hover: #DDE2DF;
 
-  --border-base: #D8DFDB;
-  --border-card: #E0E5E2;
-  --border-subtle: #E8ECE9;
-  --border-focus: #2E3632;
+  --border-base: #E4E4E7;      /* 裝飾用邊框 (Zinc-200) */
+  --border-card: #E4E4E7;
+  --border-subtle: #EEEEF0;
+  --border-focus: #27272A;
 
-  --ink-primary: #1F2421;      /* 主要文字 (高對比深墨色) */
-  --ink-heading: #2E3632;      /* 引導與結構標題 */
-  --ink-body: #333835;         /* 選項與長內文 */
-  --ink-secondary: #555C58;    /* 未選中標籤與次標 */
-  --ink-muted: #66706B;        /* 輔助提示與操作按鈕 */
-  --ink-placeholder: #85908A;  /* 輸入框預設字 */
+  --ink-primary: #1F2937;      /* 主要標題與正文 (13.5:1, 深炭灰) */
+  --ink-heading: #27272A;      /* 引導與結構標題 (Zinc-800) */
+  --ink-body: #3F3F46;         /* 內文選項 (Zinc-700) */
+  --ink-stem: #52525B;         /* 引導提示句 (5.3:1, Zinc-600 通過 WCAG AA) */
+  --ink-secondary: #52525B;    /* 未選中標籤與次標 (Zinc-600) */
+  --ink-muted: #71717A;        /* 輔助時間戳與輔助按鈕 (4.6:1, Zinc-500 通過 WCAG AA) */
+  --ink-placeholder: #71717A;  /* 輸入框預設字 (4.6:1) */
 
-  --accent: #2E3D33;
-  --accent-hover: #1A241E;
-  --accent-text: #F8FAF8;
+  --accent: #55685F;           /* 「停靠」按鈕底色 (4.8:1 配白字, 深墨綠灰) */
+  --accent-hover: #43534C;     /* Hover 深色 */
+  --accent-text: #FFFFFF;      /* 白字 */
 }
 
 @theme {
@@ -40,6 +41,7 @@
   --color-ink: var(--ink-primary);
   --color-ink-heading: var(--ink-heading);
   --color-ink-body: var(--ink-body);
+  --color-ink-stem: var(--ink-stem);
   --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
   --color-ink-placeholder: var(--ink-placeholder);
@@ -55,7 +57,7 @@ html {
   color: var(--ink-primary);
 }
 
-/* 全域輸入框 Placeholder 加深至高辨識度 */
+/* 全域輸入框 Placeholder 加深至 WCAG AA 高辨識度 */
 ::placeholder {
   color: var(--ink-placeholder) !important;
   opacity: 1 !important;

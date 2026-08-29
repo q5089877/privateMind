@@ -73,9 +73,9 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
             {prompts.map((text, idx) => (
               <div
                 key={`stem-${idx}`}
-                className="flex items-baseline gap-2 text-xs sm:text-sm text-ink-muted/85 font-light leading-relaxed tracking-wide"
+                className="flex items-baseline gap-2.5 text-xs sm:text-sm text-[#52525B] font-normal leading-[1.85] tracking-wide"
               >
-                <span className="text-ink-muted/40 text-xs select-none shrink-0">·</span>
+                <span className="text-[#71717A] text-xs select-none shrink-0">·</span>
                 <span className="flex-1 select-text">
                   {text}
                 </span>
