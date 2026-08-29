@@ -52,7 +52,7 @@
 }
 
 html {
-  font-size: 16px; /* 標準根基底 1rem = 16px */
+  font-size: 17.6px; /* 16px * 1.1 = 17.6px (全域排版等比放大 110%) */
   background-color: var(--canvas);
   color: var(--ink-primary);
   -webkit-font-smoothing: antialiased;
