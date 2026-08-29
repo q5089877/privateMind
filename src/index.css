@@ -1,25 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  /* Sage & Earth Design Tokens (鼠尾草冷杉 / 大地灰調) */
-  --canvas: #F3F6F3;
+  /* High-Contrast Sage & Earth Design Tokens (高對比沉靜墨灰調) */
+  --canvas: #F7F8F7;
   --surface: #FFFFFF;
-  --surface-subtle: #F7FAF8;
-  --surface-muted: #EBF1EC;
-  --surface-hover: #E1EBE3;
+  --surface-subtle: #F9FAF9;
+  --surface-muted: #EAEFEB;
+  --surface-hover: #E1E8E3;
 
-  --border-base: #D5DFD7;
-  --border-subtle: #E3ECE5;
-  --border-focus: #384A3F;
+  --border-base: #D8DFDB;
+  --border-card: #E0E5E2;
+  --border-subtle: #E8ECE9;
+  --border-focus: #2E3632;
 
-  --ink-primary: #242E28;
-  --ink-secondary: #4E5E54;
-  --ink-muted: #7D8F83;
-  --ink-faint: #A6B7AC;
+  --ink-primary: #1F2421;      /* 主要文字 (高對比深墨色) */
+  --ink-heading: #2E3632;      /* 引導與結構標題 */
+  --ink-body: #333835;         /* 選項與長內文 */
+  --ink-secondary: #555C58;    /* 未選中標籤與次標 */
+  --ink-muted: #66706B;        /* 輔助提示與操作按鈕 */
+  --ink-placeholder: #85908A;  /* 輸入框預設字 */
 
   --accent: #2E3D33;
-  --accent-hover: #1C2720;
-  --accent-text: #F4F7F4;
+  --accent-hover: #1A241E;
+  --accent-text: #F8FAF8;
 }
 
 @theme {
@@ -30,13 +33,16 @@
   --color-surface-hover: var(--surface-hover);
 
   --color-border-base: var(--border-base);
+  --color-border-card: var(--border-card);
   --color-border-subtle: var(--border-subtle);
   --color-border-focus: var(--border-focus);
 
   --color-ink: var(--ink-primary);
+  --color-ink-heading: var(--ink-heading);
+  --color-ink-body: var(--ink-body);
   --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
-  --color-ink-faint: var(--ink-faint);
+  --color-ink-placeholder: var(--ink-placeholder);
 
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
@@ -45,6 +51,32 @@
 
 html {
   font-size: 20.8px; /* 16px * 1.3 = 20.8px (加大 130%) */
+  background-color: var(--canvas);
+  color: var(--ink-primary);
+}
+
+/* 全域輸入框 Placeholder 加深至高辨識度 */
+::placeholder {
+  color: var(--ink-placeholder) !important;
+  opacity: 1 !important;
+}
+
+/* 核心語意類別 */
+.thought-text, .main-title {
+  color: var(--ink-primary) !important;
+}
+
+.prompt-header {
+  color: var(--ink-heading) !important;
+  font-weight: 500;
+}
+
+.prompt-option-text {
+  color: var(--ink-body) !important;
+}
+
+.secondary-label, .refresh-btn {
+  color: var(--ink-muted) !important;
 }
 
 .sink-animation {

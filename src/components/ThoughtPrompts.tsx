@@ -25,7 +25,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
     setPrompts(nextPrompts);
     setRecentIds(prev => {
       const newIds = [...prev, ...nextPrompts.map(p => p.id)];
-      return newIds.slice(-12); // 保留最近 12 筆去重
+      return newIds.slice(-12);
     });
   };
 
@@ -51,18 +51,18 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 6 }}
-      className="p-4 sm:p-5 rounded-2xl border border-border-base/60 bg-surface-subtle/70 space-y-3.5 select-none"
+      className="p-4 sm:p-5 rounded-2xl border border-border-card bg-surface shadow-xs space-y-3.5 select-none"
     >
       {/* 標題與關閉 */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-ink-muted font-normal tracking-wide">
+        <span className="prompt-header text-xs tracking-wide">
           {UI_TEXT.promptEngine.header}
         </span>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-ink-muted/50 hover:text-ink transition-colors cursor-pointer rounded-md"
+            className="p-1 text-ink-muted hover:text-ink transition-colors cursor-pointer rounded-md"
             title={UI_TEXT.promptEngine.close}
           >
             <X size={14} />
@@ -86,10 +86,12 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
                 key={prompt.id}
                 type="button"
                 onClick={() => handleSelect(prompt.text)}
-                className="w-full text-left p-3 rounded-xl border border-border-base/50 bg-surface/70 hover:bg-surface hover:border-border-focus text-xs sm:text-sm text-ink font-light leading-relaxed transition-all cursor-pointer flex items-start gap-2.5 group active:scale-[0.99]"
+                className="w-full text-left p-3 rounded-xl border border-border-base bg-[#F9FAF9] hover:bg-surface hover:border-border-focus transition-all cursor-pointer flex items-start gap-2.5 group active:scale-[0.99]"
               >
-                <span className="text-ink-muted/40 group-hover:text-ink text-xs mt-0.5">○</span>
-                <span className="flex-1">{prompt.text}</span>
+                <span className="text-ink-muted group-hover:text-ink text-xs mt-0.5 select-none">○</span>
+                <span className="prompt-option-text text-xs sm:text-sm flex-1 leading-relaxed font-normal">
+                  {prompt.text}
+                </span>
               </button>
             ))}
           </motion.div>
@@ -98,16 +100,16 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
 
       {/* 底部說明與「換一組」 */}
       <div className="flex items-center justify-between pt-1 text-xs">
-        <span className="text-[11px] text-ink-muted/60">
+        <span className="secondary-label text-xs">
           {UI_TEXT.promptEngine.footer}
         </span>
 
         <button
           type="button"
           onClick={handleRefresh}
-          className="flex items-center gap-1 text-xs text-ink-secondary hover:text-ink font-light transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-surface active:scale-95"
+          className="refresh-btn flex items-center gap-1 text-xs font-normal transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-surface-muted active:scale-95"
         >
-          <RefreshCw size={12} className={`text-ink-muted ${isRotating ? 'animate-spin' : ''}`} />
+          <RefreshCw size={12} className={isRotating ? 'animate-spin' : ''} />
           <span>{UI_TEXT.promptEngine.refresh}</span>
         </button>
       </div>

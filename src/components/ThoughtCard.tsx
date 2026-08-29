@@ -228,7 +228,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <div className="space-y-6">
               {(currentAction ? pastEntries : thread.entries).map((entry) => (
                 <div key={entry.id} className="space-y-1.5">
-                  <div className="text-xs text-ink-muted/40 font-mono select-none tracking-wider">
+                  <div className="text-xs text-ink-muted font-mono select-none tracking-wider">
                     {formatTimestamp(entry.createdAt)}
                   </div>
                   <div className="text-base sm:text-lg font-light leading-relaxed whitespace-pre-wrap text-ink">
@@ -348,7 +348,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                       <button 
                         type="button"
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="text-ink-muted/40 hover:text-ink cursor-pointer px-1.5 py-1 text-sm tracking-widest transition-colors select-none"
+                        className="text-ink-muted hover:text-ink cursor-pointer px-1.5 py-1 text-sm tracking-widest transition-colors select-none"
                         title="更多"
                       >
                         ···

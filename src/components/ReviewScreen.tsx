@@ -107,7 +107,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
               activeTab === 'active'
                 ? 'bg-surface text-ink font-medium shadow-xs'
-                : 'text-ink-muted hover:text-ink'
+                : 'text-ink-secondary hover:text-ink'
             }`}
           >
             {UI_TEXT.review.tabActive}（{activeThreads.length}）
@@ -118,7 +118,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             className={`px-3.5 py-1 text-xs rounded-lg transition-colors cursor-pointer ${
               activeTab === 'archived'
                 ? 'bg-surface text-ink font-medium shadow-xs'
-                : 'text-ink-muted hover:text-ink'
+                : 'text-ink-secondary hover:text-ink'
             }`}
           >
             {UI_TEXT.review.tabArchived}（{archivedThreads.length}）
