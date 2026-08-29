@@ -57,6 +57,13 @@ export const UI_TEXT = {
     saveBtn: '送出',
     cancelBtn: '取消'
   },
+  promptEngine: {
+    triggerBtn: '陪我想想',
+    header: '可以從這裡開始：',
+    footer: '也可以不選，直接繼續寫。',
+    refresh: '換一組',
+    close: '收起提示'
+  },
   layout: {
     supportBtn: '需要找人聊聊？',
     modal: {

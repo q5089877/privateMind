@@ -243,6 +243,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               <div className="pt-2">
                 <AdditionForm 
                   mode="append"
+                  contextText={thread.entries[thread.entries.length - 1]?.content || ''}
                   onSave={(content, type) => {
                     onAppend(content, type);
                     setIsAdding(false);
