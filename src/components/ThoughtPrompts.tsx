@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generatePrompts } from '../logic/promptEngine';
 import { GeminiProxyClient } from '../logic/geminiProxyClient';
-import { triggerHaptic } from '../utils/haptics';
 
 interface ThoughtPromptsProps {
   contextText?: string;
-  onSelectPrompt: (promptText: string) => void;
-  onClose?: () => void;
 }
 
 export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
-  contextText,
-  onSelectPrompt
+  contextText
 }) => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,55 +54,45 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
     };
   }, [contextText]);
 
-  const handleSelect = (text: string) => {
-    triggerHaptic('step');
-    onSelectPrompt(text);
-  };
-
   if (prompts.length === 0 && !loading) {
     return null;
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 6 }}
-      className="p-4 sm:p-5 rounded-2xl border border-border-card bg-surface shadow-xs space-y-3 select-none"
+      exit={{ opacity: 0, y: 4 }}
+      className="py-2 px-1 space-y-2 select-none"
     >
-      {/* 提示選項 */}
-      <div className="space-y-2">
-        {loading ? (
-          <div className="py-3 text-center text-xs text-ink-muted animate-pulse">
-            思考入口生成中……
-          </div>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={prompts.join('-')}
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-2"
-            >
-              {prompts.map((text, idx) => (
-                <button
-                  key={`prompt-${idx}`}
-                  type="button"
-                  onClick={() => handleSelect(text)}
-                  className="w-full text-left p-3 rounded-xl border border-border-base bg-[#F9FAF9] hover:bg-surface hover:border-border-focus transition-all cursor-pointer flex items-start gap-2.5 group active:scale-[0.99]"
-                >
-                  <span className="text-ink-muted group-hover:text-ink text-xs mt-0.5 select-none">·</span>
-                  <span className="prompt-option-text text-xs sm:text-sm flex-1 leading-relaxed font-normal text-ink">
-                    {text}
-                  </span>
-                </button>
-              ))}
-            </motion.div>
-          </AnimatePresence>
-        )}
-      </div>
+      {loading ? (
+        <div className="py-2 text-left text-xs text-ink-muted/60 animate-pulse font-light tracking-wide">
+          思考入口生成中……
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={prompts.join('-')}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-2.5"
+          >
+            {prompts.map((text, idx) => (
+              <div
+                key={`stem-${idx}`}
+                className="flex items-baseline gap-2 text-xs sm:text-sm text-ink-muted/85 font-light leading-relaxed tracking-wide"
+              >
+                <span className="text-ink-muted/40 text-xs select-none shrink-0">·</span>
+                <span className="flex-1 select-text">
+                  {text}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      )}
     </motion.div>
   );
 };

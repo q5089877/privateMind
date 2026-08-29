@@ -60,15 +60,11 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
         className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted font-light outline-none resize-none min-h-[50px] text-base leading-relaxed"
       />
 
-      {/* 靜態思考入口展示（僅供參考，不主動覆蓋使用者輸入） */}
+      {/* 靜態思考入口展示（純文字展示，不能點選，僅供看著參考） */}
       {showPrompts && (
         <div className="pt-1">
           <ThoughtPrompts 
             contextText={contextText || content}
-            onSelectPrompt={(stemText) => {
-              // 點選起手式時，僅作為起筆輔助填入輸入框，讓使用者接著寫
-              setContent(stemText);
-            }}
           />
         </div>
       )}
