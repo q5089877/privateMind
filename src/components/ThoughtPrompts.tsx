@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GeminiProxyClient } from '../logic/geminiProxyClient';
+import { generatePrompts } from '../logic/promptEngine';
 
 interface ThoughtPromptsProps {
   contextText?: string;
@@ -17,7 +18,8 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
 
     const loadPrompts = async () => {
       if (!contextText || !contextText.trim()) {
-        if (isMounted) setPrompts([]);
+        const localItems = generatePrompts(contextText);
+        if (isMounted) setPrompts(localItems.map(p => p.text));
         return;
       }
 
@@ -26,14 +28,22 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
         if (GeminiProxyClient.isConfigured()) {
           const stems = await GeminiProxyClient.getPerspectiveStemsAsync(contextText);
           if (isMounted) {
-            setPrompts(stems || []);
+            if (stems && stems.length > 0) {
+              setPrompts(stems);
+            } else {
+              // 若模型回傳空值，無縫提供 V7.2 標準三焦距起手式
+              const fallbackStems = generatePrompts(contextText);
+              setPrompts(fallbackStems.map(p => p.text));
+            }
           }
         } else {
-          if (isMounted) setPrompts([]);
+          const fallbackStems = generatePrompts(contextText);
+          if (isMounted) setPrompts(fallbackStems.map(p => p.text));
         }
       } catch (err) {
-        console.error('[ThoughtPrompts] Gemini AI 生成失敗:', err);
-        if (isMounted) setPrompts([]);
+        console.error('[ThoughtPrompts] 生成出錯，切換至標準三焦距起手式:', err);
+        const fallbackStems = generatePrompts(contextText);
+        if (isMounted) setPrompts(fallbackStems.map(p => p.text));
       } finally {
         if (isMounted) setLoading(false);
       }

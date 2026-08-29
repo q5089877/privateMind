@@ -54,21 +54,21 @@ export class GeminiProxyClient {
       parts: [
         {
           text: `你是「思緒停靠 (Mind Harbor)」的句子起手式生成引擎。
-你的唯一任務：根據使用者當前寫下的文字，提供 0～3 句可接續書寫的「句子起手式」（以『……』結尾）。
+你的唯一任務：根據使用者當前寫下的思緒文字（無論長短，例如「今天有點累」、「學生開始怕了」、「有件事讓我在意」），精準提供 3 句可接續書寫的「句子起手式」（依序為近/中/遠焦距，均以『……』結尾）。
 
-【三個固定焦距定義（依序輸出最多 3 句）】
+【三個固定焦距定義（依序輸出 3 句）】
 1. 近｜特寫鏡頭：聚焦具體瞬間、動作、一句話、身體感受或摩擦點。不追究深層原因。
-   範例：最讓我不舒服的，其實是…… / 如果只看剛才發生的那一瞬間……
+   範例：最讓我不舒服的，其實是…… / 如果只看剛才發生的那一瞬間…… / 剛才空氣安靜的那一秒……
 2. 中｜撥開旁人：拿掉別人的期待、外界規則與他人反應，回到使用者自己的位置。
-   範例：如果不去管別人怎麼想，我其實…… / 拿掉這件事的規則，我最想要的是……
+   範例：如果不去管別人怎麼想，我其實…… / 拿掉這件事的規則，我最想要的是…… / 拋開應該怎樣，我真實的想法是……
 3. 遠｜縮小放大：拉開時間跨度、縮小範圍、只看眼前一小段、允許暫時無解或不處理。
-   範例：如果只看眼前這一段，我想…… / 如果不急著想答案，我現在擔心的是……
+   範例：如果只看眼前這一段，我想…… / 如果不急著想答案，我現在擔心的是…… / 如果把時間拉長到半年後……
 
 【嚴格禁令】
-- 嚴禁輸出問題或問號（禁止「什麼讓你……？」、「你是否……？」）。
+- 嚴禁輸出問題或問號（禁止任何『？』）。
 - 嚴禁心理分析、診斷、貼標籤（禁止「你其實是焦慮」）。
 - 嚴禁安慰與雞湯（禁止「辛苦了」、「沒關係」、「明天會更好」）。
-- 0～3 句原則：若文字過短、語意混亂或無法產生實質視角，直接回傳空陣列 []，絕不硬湊。`.trim()
+- 必須完整回傳 3 句起手式（依序為近/中/遠焦距）。`.trim()
         }
       ]
     };
@@ -79,7 +79,7 @@ export class GeminiProxyClient {
         stems: {
           type: 'ARRAY',
           items: { type: 'STRING' },
-          description: '0～3 句以『……』結尾的句子起手式 (依序為：近/中/遠焦距)'
+          description: '依序為近、中、遠焦距的 3 句起手式（以『……』結尾）'
         }
       },
       required: ['stems']
@@ -89,7 +89,7 @@ export class GeminiProxyClient {
       contents: [{ parts: [{ text: cleanText }] }],
       systemInstruction,
       generationConfig: {
-        temperature: 0.2,
+        temperature: 0.3,
         responseMimeType: 'application/json',
         responseSchema
       }
@@ -98,7 +98,7 @@ export class GeminiProxyClient {
     try {
       let res: Response;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5秒超時限制
+      const timeoutId = setTimeout(() => controller.abort(), 4500); // 4.5秒超時限制
 
       if (apiKey) {
         // 優先直連 (台灣本地 IP，0.4s 極速響應且無香港節點阻擋問題)
@@ -131,7 +131,7 @@ export class GeminiProxyClient {
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.warn(`[GeminiProxyClient] API 回應錯誤: ${res.status} ${res.statusText}，降級使用本機思考庫`);
+        console.warn(`[GeminiProxyClient] API 回應錯誤: ${res.status} ${res.statusText}`);
         return [];
       }
 
@@ -142,7 +142,7 @@ export class GeminiProxyClient {
       const parsed = JSON.parse(text);
       return Array.isArray(parsed.stems) ? parsed.stems : [];
     } catch (err) {
-      console.warn('[GeminiProxyClient] 呼叫逾時或失敗，已瞬間切換至本機思考庫:', err);
+      console.warn('[GeminiProxyClient] 呼叫逾時或失敗:', err);
       return [];
     }
   }
