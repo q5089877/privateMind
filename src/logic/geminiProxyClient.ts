@@ -78,6 +78,7 @@ export class GeminiProxyClient {
 3. 【遠｜尺度放寬】：把這份感受安放下來、拉長時間留存、或收縮至當下最小一步允許暫時停留。
 
 【約束】
+- 句首直接起筆（嚴禁以「……」或點號開頭），僅在句尾以「……」留白結尾。
 - 嚴禁問號（？）、嚴禁心理分析/診斷、嚴禁說教與指示（禁止「你應該」、「請試著」）。
 - 尊重原文情緒極性，保持平靜留白。`.trim()
         }
@@ -189,18 +190,16 @@ export class GeminiProxyClient {
     for (const raw of candidates) {
       let s = (raw || '').trim();
 
-      // 基本清理
+      // 基本清理：拔除句首所有省略號、點號、破折號、標點
+      s = s.replace(/^[….\-·\s\d.、/]+/, '').trim();
       if (!s) continue;
-      if (!s.endsWith('……') && !s.endsWith('...')) {
-        // 強制補上省略號（若模型漏掉）
-        s = s.replace(/[。.!！？?]*$/, '') + '……';
-      }
-      // 統一成全形省略號
-      s = s.replace(/\.{3,}/g, '……').replace(/…+/g, '……');
+
+      // 結尾統一為標準全形省略號 ……
+      s = s.replace(/[。.!！？?….]*$/, '') + '……';
 
       // 規則驗證
       if (s.includes('？') || s.includes('?')) continue;                    // 禁止問句
-      if (s.length < 6 || s.length > 60) continue;                          // 太短或太長
+      if (s.length < 5 || s.length > 60) continue;                          // 太短或太長
       if (this.isTooGeneric(s)) continue;                                   // 空泛套話
       if (this.isAnalyzing(s)) continue;                                    // 分析/診斷語氣
       if (this.isAdvice(s)) continue;                                       // 建議/雞湯
@@ -209,9 +208,8 @@ export class GeminiProxyClient {
 
       seen.add(s);
       valid.push(s);
+      if (valid.length >= 4) break;
     }
-
-    // 最終最多取 4 句（保持模型給的相對順序）
     return valid.slice(0, 4);
   }
 
