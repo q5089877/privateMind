@@ -102,7 +102,7 @@ export class GeminiProxyClient {
 
       if (apiKey) {
         // 優先直連 (台灣本地 IP，0.4s 極速響應且無香港節點阻擋問題)
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
         res = await fetch(targetUrl, {
           method: 'POST',
           headers: {
@@ -118,7 +118,7 @@ export class GeminiProxyClient {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'gemini-flash-latest',
+            model: 'gemini-3.5-flash-lite',
             ...payload
           }),
           signal: controller.signal
@@ -226,12 +226,12 @@ export class GeminiProxyClient {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'gemini-flash-latest',
+            model: 'gemini-3.5-flash-lite',
             ...payload
           })
         });
       } else {
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
         res = await fetch(targetUrl, {
           method: 'POST',
           headers: {
