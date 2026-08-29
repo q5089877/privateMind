@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { generatePrompts } from '../logic/promptEngine';
 import { GeminiProxyClient } from '../logic/geminiProxyClient';
 
 interface ThoughtPromptsProps {
@@ -18,8 +17,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
 
     const loadPrompts = async () => {
       if (!contextText || !contextText.trim()) {
-        const localItems = generatePrompts(contextText);
-        if (isMounted) setPrompts(localItems.map(p => p.text));
+        if (isMounted) setPrompts([]);
         return;
       }
 
@@ -28,21 +26,14 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
         if (GeminiProxyClient.isConfigured()) {
           const stems = await GeminiProxyClient.getPerspectiveStemsAsync(contextText);
           if (isMounted) {
-            if (stems && stems.length > 0) {
-              setPrompts(stems);
-            } else {
-              const localItems = generatePrompts(contextText);
-              setPrompts(localItems.map(p => p.text));
-            }
+            setPrompts(stems || []);
           }
         } else {
-          const localItems = generatePrompts(contextText);
-          if (isMounted) setPrompts(localItems.map(p => p.text));
+          if (isMounted) setPrompts([]);
         }
       } catch (err) {
-        console.error('[ThoughtPrompts] 載入提示失敗，使用本機預設:', err);
-        const localItems = generatePrompts(contextText);
-        if (isMounted) setPrompts(localItems.map(p => p.text));
+        console.error('[ThoughtPrompts] Gemini AI 生成失敗:', err);
+        if (isMounted) setPrompts([]);
       } finally {
         if (isMounted) setLoading(false);
       }
