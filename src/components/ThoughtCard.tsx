@@ -183,19 +183,32 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           )}
         </AnimatePresence>
 
-        {/* 時間線思緒內容（Inline Flex 橫向緊湊排列，高度壓縮至 32px～36px） */}
-        <div className="space-y-1">
+        {/* 時間線思緒內容（Inline Flex 橫向緊湊排列 + 同行 Hover/淡入收起） */}
+        <div className="space-y-0.5">
           {isSandwich ? (
             /* 三明治折疊模式：顯示第 1 則 + ··· + 最後 1 則 */
             <>
               {/* 第 1 則：起點 */}
-              <div key={entries[0].id} className="flex items-baseline gap-3 py-1">
-                <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
-                  {formatEntryTime(entries[0].createdAt)}
+              <div key={entries[0].id} className="group/entry flex items-baseline justify-between gap-3 py-1">
+                <div className="flex items-baseline gap-3 flex-1 min-w-0">
+                  <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                    {formatEntryTime(entries[0].createdAt)}
+                  </div>
+                  <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                    {entries[0].content}
+                  </div>
                 </div>
-                <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                  {entries[0].content}
-                </div>
+
+                {!isArchivedView && (
+                  <button
+                    type="button"
+                    onClick={handleTuckAway}
+                    className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
+                    title="收起來"
+                  >
+                    收起
+                  </button>
+                )}
               </div>
 
               {/* 中間沉積：微型展開標籤 */}
@@ -211,26 +224,52 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
 
               {/* 最後 1 則：終點 */}
-              <div key={entries[totalEntries - 1].id} className="flex items-baseline gap-3 py-1">
-                <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
-                  {formatEntryTime(entries[totalEntries - 1].createdAt)}
+              <div key={entries[totalEntries - 1].id} className="group/entry flex items-baseline justify-between gap-3 py-1">
+                <div className="flex items-baseline gap-3 flex-1 min-w-0">
+                  <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                    {formatEntryTime(entries[totalEntries - 1].createdAt)}
+                  </div>
+                  <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                    {entries[totalEntries - 1].content}
+                  </div>
                 </div>
-                <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                  {entries[totalEntries - 1].content}
-                </div>
+
+                {!isArchivedView && (
+                  <button
+                    type="button"
+                    onClick={handleTuckAway}
+                    className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
+                    title="收起來"
+                  >
+                    收起
+                  </button>
+                )}
               </div>
             </>
           ) : (
             /* 完整展示所有 Entries（Inline Flex 橫向排版） */
             <>
               {entries.map((entry) => (
-                <div key={entry.id} className="flex items-baseline gap-3 py-1">
-                  <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
-                    {formatEntryTime(entry.createdAt)}
+                <div key={entry.id} className="group/entry flex items-baseline justify-between gap-3 py-1">
+                  <div className="flex items-baseline gap-3 flex-1 min-w-0">
+                    <div className="text-xs text-[#71717A] font-mono select-none shrink-0 w-11 tracking-tight">
+                      {formatEntryTime(entry.createdAt)}
+                    </div>
+                    <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                      {entry.content}
+                    </div>
                   </div>
-                  <div className="flex-1 text-[15px] sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                    {entry.content}
-                  </div>
+
+                  {!isArchivedView && (
+                    <button
+                      type="button"
+                      onClick={handleTuckAway}
+                      className="opacity-0 group-hover:opacity-100 max-sm:opacity-40 hover:!opacity-100 text-[11px] text-ink-muted/60 hover:text-ink transition-opacity cursor-pointer select-none shrink-0 py-0.5 px-1 font-light"
+                      title="收起來"
+                    >
+                      收起
+                    </button>
+                  )}
                 </div>
               ))}
             </>
@@ -252,7 +291,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
           </div>
         )}
 
-        {/* 底部操作列 */}
+        {/* 底部輔助列 */}
         {!isAdding && (
           isArchivedView ? (
             /* 18｜已收起空間：Ghost Buttons (1px 淡框、透明底、圓角 6px、大觸控熱區) */
@@ -273,8 +312,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </button>
             </div>
           ) : (
-            /* 正常時間線：左側「＋ 接著說……」，右側「收起來」Ghost Button（若展開則帶收合） */
-            <div className="pt-1 pl-14 flex items-center justify-between">
+            /* 正常時間線：左側極淡「＋ 接著說……」，展開時右側帶「收合思緒」 */
+            <div className="pt-0.5 pl-14 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setIsAdding(true)}
@@ -283,27 +322,15 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 {UI_TEXT.review.card.addAdditionBtn}
               </button>
 
-              <div className="flex items-center gap-2">
-                {/* 三明治展開狀態下的收合入口 */}
-                {totalEntries > 2 && isExpanded && (
-                  <button
-                    type="button"
-                    onClick={() => setIsExpanded(false)}
-                    className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
-                  >
-                    收合思緒
-                  </button>
-                )}
-
-                {/* 淡淡的「收起來」Ghost Button */}
+              {totalEntries > 2 && isExpanded && (
                 <button
                   type="button"
-                  onClick={handleTuckAway}
-                  className="px-2.5 py-0.5 min-h-[26px] text-xs font-normal leading-tight text-ink-secondary hover:text-ink border border-border-base/50 hover:border-border-focus/70 rounded-[6px] bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+                  onClick={() => setIsExpanded(false)}
+                  className="text-[11px] text-ink-muted/40 hover:text-ink font-light tracking-wide transition-colors py-0.5 px-1 cursor-pointer select-none"
                 >
-                  {UI_TEXT.review.card.tuckAwayBtn}
+                  收合思緒
                 </button>
-              </div>
+              )}
             </div>
           )
         )}
