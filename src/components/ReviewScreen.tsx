@@ -8,20 +8,20 @@ import { UI_TEXT } from '../config/textConfig';
 import { groupThreadsByDate } from '../utils/dateUtils';
 
 const itemVariants = {
-  initial: { opacity: 0, y: 12 },
+  initial: { opacity: 0, y: 16 },
   animate: (i: number) => ({
     opacity: 1,
     y: 0,
     transition: {
-      delay: Math.min((i || 0) * 0.04, 0.35),
-      duration: 0.35,
+      delay: Math.min((i || 0) * 0.08, 0.7),
+      duration: 0.7,
       ease: [0.16, 1, 0.3, 1]
     }
   }),
   exit: {
     opacity: 0,
-    y: 6,
-    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
+    y: 8,
+    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
