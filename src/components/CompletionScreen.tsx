@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { ThoughtThread } from '../types';
 import { AdditionForm } from './AdditionForm';
@@ -76,10 +76,11 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         initial={{ opacity: 0, scale: 0.88, y: -12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5 shadow-sm"
+        className="w-full relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5 shadow-sm"
         style={{ borderLeftColor: 'rgba(75,95,85,0.45)', borderLeftWidth: '2px' }}
       >
-        <div className="space-y-3 w-full text-left">
+        <Waves size={74} strokeWidth={1} className="absolute -right-3 -bottom-3 text-accent/[0.09] pointer-events-none" aria-hidden="true" />
+        <div className="relative space-y-3 w-full text-left">
           {thread.entries.map((entry) => (
             <div key={entry.id} className="space-y-1">
               <div className="text-xs text-ink-muted font-mono select-none tracking-tight">
@@ -95,7 +96,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         {/* ＋ 接著說…… 就地展開輸入區（Focus 喚起鍵盤） */}
         <AnimatePresence>
           {isAdding && onAppendEntry && (
-            <div className="pt-1">
+            <div className="relative pt-1">
               <AdditionForm 
                 contextText={lastEntryContent}
                 onSave={async (content, type) => {

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Anchor, Compass } from 'lucide-react';
+import { Anchor, Cloud, Compass } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -103,6 +103,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       <div className="w-full flex flex-col items-center text-center space-y-5 sm:space-y-7 pt-2 sm:pt-4">
         {/* 標題與核心免責許可副標（沉降時 0.3s 率先散去） */}
         <div className={`space-y-1.5 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
+          <div className="harbor-mark" aria-hidden="true">
+            <Anchor size={16} strokeWidth={1.45} />
+            <span className="harbor-wave harbor-wave-first" />
+            <span className="harbor-wave harbor-wave-second" />
+          </div>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink">
             {UI_TEXT.home.title}
           </h1>
@@ -165,8 +170,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22 }}
                 onClick={handleSayNothing}
-                className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors py-1.5 px-4 rounded-full hover:bg-surface-hover cursor-pointer font-light select-none"
+                className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors py-1.5 px-4 rounded-full hover:bg-surface-hover cursor-pointer font-light select-none inline-flex items-center gap-1.5"
               >
+                <Cloud size={14} strokeWidth={1.4} className="text-ink-muted/80" />
                 {UI_TEXT.home.sayNothing}
               </motion.button>
             )}
