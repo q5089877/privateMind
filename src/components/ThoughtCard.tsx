@@ -13,6 +13,7 @@ interface ThoughtCardProps {
   onArchive?: () => void;
   onRestore?: () => void;
   onAppend: (content: string, type: EntryType) => void;
+  onEdit?: (entryId: string, content: string) => void;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({
@@ -21,12 +22,15 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onDelete,
   onArchive,
   onRestore,
-  onAppend
+  onAppend,
+  onEdit
 }) => {
   // 06｜三明治結構：預設折疊中間內容
   const [isExpanded, setIsExpanded] = useState(false);
   const [showVanishConfirm, setShowVanishConfirm] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const [showRowActions, setShowRowActions] = useState(false);
   const [showFloatingMenu, setShowFloatingMenu] = useState(false);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
@@ -39,14 +43,34 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const isSandwich = totalEntries > 2 && !isExpanded;
 
   const handleRowClick = () => {
-    if (isAdding) return;
+    if (isAdding || editingEntryId) return;
     triggerHaptic('step');
     setShowRowActions(prev => !prev);
   };
 
+  const handleStartEdit = (entry: DialogueEntry) => {
+    setEditingEntryId(entry.id);
+    setEditContent(entry.content);
+    setShowRowActions(false);
+    triggerHaptic('step');
+  };
+
+  const handleSaveEdit = (entryId: string) => {
+    if (!editContent.trim()) return;
+    triggerHaptic('settle');
+    onEdit?.(entryId, editContent.trim());
+    setEditingEntryId(null);
+    setEditContent('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntryId(null);
+    setEditContent('');
+  };
+
   // 長按監聽（正常時間線 450ms 觸發「收起來」選單）
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isArchivedView) return; // 已收起空間直接提供 Ghost Button，無需長按
+    if (isArchivedView || editingEntryId) return; // 編輯中或已收起空間無需長按
     touchStartPosRef.current = { x: e.clientX, y: e.clientY };
     longPressTimerRef.current = setTimeout(() => {
       triggerHaptic('step');
@@ -100,6 +124,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     onDelete();
     setShowVanishConfirm(false);
   };
+
+  const lastEntry = entries[totalEntries - 1];
 
   return (
     <div className="relative group">
@@ -226,24 +252,61 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 </button>
               </div>
 
-              {/* 最後 1 則：終點 */}
+              {/* 最後 1 則：終點（支援修改） */}
               <div
-                key={entries[totalEntries - 1].id}
+                key={lastEntry.id}
                 onClick={handleRowClick}
                 className="group/entry flex items-baseline justify-between gap-3 py-1 cursor-pointer rounded-lg hover:bg-surface-subtle/50 transition-colors px-1 -mx-1"
               >
                 <div className="flex items-baseline gap-3 flex-1 min-w-0">
                   <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
-                    {formatEntryTime(entries[totalEntries - 1].createdAt)}
+                    {formatEntryTime(lastEntry.createdAt)}
                   </div>
-                  <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                    {entries[totalEntries - 1].content}
-                  </div>
+                  {editingEntryId === lastEntry.id ? (
+                    <div className="flex-1 space-y-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                      <textarea
+                        autoFocus
+                        rows={2}
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSaveEdit(lastEntry.id);
+                          } else if (e.key === 'Escape') {
+                            handleCancelEdit();
+                          }
+                        }}
+                        className="w-full bg-surface text-ink text-sm sm:text-base leading-relaxed p-2.5 rounded-xl border border-border-focus outline-none resize-none font-normal shadow-xs"
+                      />
+                      <div className="flex justify-end gap-2 select-none">
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                        >
+                          {UI_TEXT.review.card.cancelEditBtn}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(lastEntry.id)}
+                          disabled={!editContent.trim()}
+                          className="text-xs bg-accent text-accent-text hover:bg-accent-hover px-3 py-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 font-normal"
+                        >
+                          {UI_TEXT.review.card.saveEditBtn}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                      {lastEntry.content}
+                    </div>
+                  )}
                 </div>
 
                 {/* 點擊文字後跳出的按鈕群 */}
                 <AnimatePresence>
-                  {showRowActions && !isAdding && (
+                  {showRowActions && !isAdding && editingEntryId !== lastEntry.id && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.92, x: 4 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -254,6 +317,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     >
                       {isArchivedView ? (
                         <>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(lastEntry)}
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                          >
+                            {UI_TEXT.review.card.editBtn}
+                          </button>
                           <button
                             type="button"
                             onClick={handleBringBack}
@@ -280,6 +350,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                             className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                           >
                             {UI_TEXT.review.addAdditionBtn}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(lastEntry)}
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                          >
+                            {UI_TEXT.review.card.editBtn}
                           </button>
                           <button
                             type="button"
@@ -312,15 +389,52 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                       <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
                         {formatEntryTime(entry.createdAt)}
                       </div>
-                      <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
-                        {entry.content}
-                      </div>
+                      {isLast && editingEntryId === entry.id ? (
+                        <div className="flex-1 space-y-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                          <textarea
+                            autoFocus
+                            rows={2}
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSaveEdit(entry.id);
+                              } else if (e.key === 'Escape') {
+                                handleCancelEdit();
+                              }
+                            }}
+                            className="w-full bg-surface text-ink text-sm sm:text-base leading-relaxed p-2.5 rounded-xl border border-border-focus outline-none resize-none font-normal shadow-xs"
+                          />
+                          <div className="flex justify-end gap-2 select-none">
+                            <button
+                              type="button"
+                              onClick={handleCancelEdit}
+                              className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                            >
+                              {UI_TEXT.review.card.cancelEditBtn}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEdit(entry.id)}
+                              disabled={!editContent.trim()}
+                              className="text-xs bg-accent text-accent-text hover:bg-accent-hover px-3 py-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 font-normal"
+                            >
+                              {UI_TEXT.review.card.saveEditBtn}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 text-sm sm:text-base font-normal leading-[1.65] whitespace-pre-wrap text-ink tracking-wide">
+                          {entry.content}
+                        </div>
+                      )}
                     </div>
 
                     {isLast && (
-                      /* 點擊文字後跳出的按鈕群 */
+                      /* 點擊文字後跳出的按鈕群（含修改） */
                       <AnimatePresence>
-                        {showRowActions && !isAdding && (
+                        {showRowActions && !isAdding && editingEntryId !== entry.id && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.92, x: 4 }}
                             animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -331,6 +445,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                           >
                             {isArchivedView ? (
                               <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(entry)}
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                >
+                                  {UI_TEXT.review.card.editBtn}
+                                </button>
                                 <button
                                   type="button"
                                   onClick={handleBringBack}
@@ -357,6 +478,13 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                   className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                                 >
                                   {UI_TEXT.review.addAdditionBtn}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(entry)}
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                >
+                                  {UI_TEXT.review.card.editBtn}
                                 </button>
                                 <button
                                   type="button"

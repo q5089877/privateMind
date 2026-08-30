@@ -26,6 +26,7 @@ export interface IFlowActions {
   submitText(content: string, type?: EntryType): Promise<void>;
   submitSayNothing(): Promise<void>;
   appendEntry(threadId: string, content: string, type?: EntryType): Promise<void>;
+  updateEntry(threadId: string, entryId: string, content: string): Promise<void>;
   setCurrentAction(threadId: string, entryId: string | null): Promise<void>;
   archiveThread(threadId: string): Promise<void>;
   restoreThread(threadId: string): Promise<void>;

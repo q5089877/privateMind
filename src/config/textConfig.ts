@@ -51,6 +51,9 @@ export const UI_TEXT = {
     // 【17, 18｜「收起來」語言與操作】
     card: {
       addAdditionBtn: '＋ 接著說……',
+      editBtn: '修改',
+      saveEditBtn: '儲存',
+      cancelEditBtn: '取消',
       tuckAwayBtn: '收起來',
       tuckedAway: '已收起',
       bringBackBtn: '放回眼前',

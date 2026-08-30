@@ -36,6 +36,10 @@ export function useFlow() {
       await engine.appendEntry(threadId, content, type);
       sync();
     },
+    updateEntry: async (threadId: string, entryId: string, content: string) => {
+      await engine.updateEntry(threadId, entryId, content);
+      sync();
+    },
     setCurrentAction: async (threadId: string, entryId: string | null) => {
       await engine.setCurrentAction(threadId, entryId);
       sync();

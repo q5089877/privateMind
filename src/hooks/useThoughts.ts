@@ -6,7 +6,7 @@ import { useFlow } from './useFlow';
  * SRP: 此 Hook 專注於「回來看看」頁面的對話線程資料流
  */
 export function useThoughts() {
-  const { getAllThreads, deleteThread, appendEntry, setCurrentAction, archiveThread, restoreThread } = useFlow();
+  const { getAllThreads, deleteThread, appendEntry, updateEntry, setCurrentAction, archiveThread, restoreThread } = useFlow();
   const [threads, setThreads] = useState<ThoughtThread[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +52,11 @@ export function useThoughts() {
     await fetch();
   };
 
+  const handleEdit = async (threadId: string, entryId: string, content: string) => {
+    await updateEntry(threadId, entryId, content);
+    await fetch();
+  };
+
   const handleSetCurrentAction = async (threadId: string, entryId: string | null) => {
     await setCurrentAction(threadId, entryId);
     await fetch();
@@ -66,6 +71,7 @@ export function useThoughts() {
     handleArchive,
     handleRestore,
     handleAppend,
+    handleEdit,
     handleSetCurrentAction,
     refresh: fetch
   };

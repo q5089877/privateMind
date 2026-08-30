@@ -131,6 +131,28 @@ export class FlowEngine {
     }
   }
 
+  /**
+   * 修改 Entry 內容（支援修改時間軸最後一次留言）
+   */
+  public async updateEntry(threadId: string, entryId: string, content: string) {
+    if (!content.trim()) return;
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    const entry = target.entries.find(e => e.id === entryId);
+    if (!entry) return;
+
+    entry.content = content.trim();
+    target.updatedAt = Date.now();
+
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = { ...target };
+      this.notify();
+    }
+  }
+
   public async setCurrentAction(threadId: string, entryId: string | null) {
     const threads = await this.storage.getThreads();
     const target = threads.find(t => t.id === threadId);
