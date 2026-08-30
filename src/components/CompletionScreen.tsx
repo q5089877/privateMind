@@ -70,11 +70,11 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* 0.0s~0.25s Entry 落定（卡片永久留下作為確認） */}
+      {/* Entry 落定就位（卡片永久留下作為確認） */}
       <motion.div 
-        initial={{ opacity: 0.6, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, scale: 0.88, y: -12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="w-full p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5"
       >
         <div className="space-y-3 w-full text-left">
