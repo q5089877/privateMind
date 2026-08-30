@@ -88,6 +88,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           type="button"
           onClick={() => {
             if (isSinking) return;
+            triggerHaptic('unlatch');
             onReview();
           }}
           className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer py-1.5 px-3 rounded-full hover:bg-surface-hover tracking-wider font-light"

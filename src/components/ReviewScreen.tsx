@@ -8,16 +8,20 @@ import { UI_TEXT } from '../config/textConfig';
 import { groupThreadsByDate } from '../utils/dateUtils';
 
 const itemVariants = {
-  initial: { opacity: 0, y: -4 },
-  animate: {
+  initial: { opacity: 0, y: 12 },
+  animate: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.25, ease: 'easeOut' }
-  },
+    transition: {
+      delay: Math.min((i || 0) * 0.04, 0.35),
+      duration: 0.35,
+      ease: [0.16, 1, 0.3, 1]
+    }
+  }),
   exit: {
     opacity: 0,
     y: 6,
-    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -155,45 +159,52 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : UI_TEXT.review.emptyState}
           </div>
         ) : (
-          groupedData.map((group) => (
-            <div key={group.dateKey} className="space-y-2.5">
-              {/* 日期標題：強化層級（圓點 + 加粗標題） */}
-              <div className="flex items-center gap-2 select-none pb-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-ink" />
-                <h2 className="text-xs sm:text-sm font-semibold text-ink tracking-wide">
-                  {group.header}
-                </h2>
-              </div>
+          (() => {
+            let globalCount = 0;
+            return groupedData.map((group) => (
+              <div key={group.dateKey} className="space-y-2.5">
+                {/* 日期標題：強化層級（圓點 + 加粗標題） */}
+                <div className="flex items-center gap-2 select-none pb-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink" />
+                  <h2 className="text-xs sm:text-sm font-semibold text-ink tracking-wide">
+                    {group.header}
+                  </h2>
+                </div>
 
-              {/* 極淡垂直時間軸線（串聯零碎思緒，緊湊排版） */}
-              <div className="border-l border-border-base pl-3.5 sm:pl-4 ml-0.5 space-y-3 sm:space-y-3.5">
-                <AnimatePresence mode="popLayout">
-                  {group.threads.map((thread, idx) => (
-                    <motion.div
-                      key={thread.id}
-                      layout
-                      variants={itemVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
-                      className={idx < group.threads.length - 1 ? 'pb-2.5 border-b border-border-subtle' : ''}
-                    >
-                      <ThoughtCard
-                        thread={thread}
-                        isArchivedView={isViewingArchived}
-                        onDelete={() => onDeleteClick(thread.id)}
-                        onArchive={() => onArchiveClick(thread.id)}
-                        onRestore={() => onRestoreClick(thread.id)}
-                        onAppend={(content, type) => handleAppend(thread.id, content, type)}
-                        onEdit={(entryId, content) => handleEdit(thread.id, entryId, content)}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                {/* 極淡垂直時間軸線（串聯零碎思緒，緊湊排版） */}
+                <div className="border-l border-border-base pl-3.5 sm:pl-4 ml-0.5 space-y-3 sm:space-y-3.5">
+                  <AnimatePresence mode="popLayout">
+                    {group.threads.map((thread, idx) => {
+                      const itemIdx = globalCount++;
+                      return (
+                        <motion.div
+                          key={thread.id}
+                          layout
+                          custom={itemIdx}
+                          variants={itemVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          transition={{ layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }}
+                          className={idx < group.threads.length - 1 ? 'pb-2.5 border-b border-border-subtle' : ''}
+                        >
+                          <ThoughtCard
+                            thread={thread}
+                            isArchivedView={isViewingArchived}
+                            onDelete={() => onDeleteClick(thread.id)}
+                            onArchive={() => onArchiveClick(thread.id)}
+                            onRestore={() => onRestoreClick(thread.id)}
+                            onAppend={(content, type) => handleAppend(thread.id, content, type)}
+                            onEdit={(entryId, content) => handleEdit(thread.id, entryId, content)}
+                          />
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
               </div>
-            </div>
-          ))
+            ));
+          })()
         )}
       </div>
 
