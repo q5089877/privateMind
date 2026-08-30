@@ -50,7 +50,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     };
   }, []);
 
-  // 0.0s 點擊「停靠」：脫扣震動、收起鍵盤、周遭環境 0.3s 散去，唯獨文字 2.0s 慢速縮小至 25% 下沉
+  // 0.0s 點擊「停靠」：脫扣震動、收起鍵盤、周遭環境 0.3s 散去，唯獨文字 2.0s 慢速縮小至 50% 下沉
   const handleContinue = () => {
     if (!inputText.trim() || isSinking) return;
     textareaRef.current?.blur();
