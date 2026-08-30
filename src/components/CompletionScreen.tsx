@@ -8,7 +8,7 @@ import { AdditionForm } from './AdditionForm';
 interface CompletionScreenProps {
   thread: ThoughtThread | null;
   onReset: () => void;
-  onAppendEntry?: (content: string, type?: import('../types').EntryType) => void;
+  onAppendEntry?: (content: string, type?: import('../types').EntryType) => void | Promise<void>;
 }
 
 const formatTimestamp = (timestamp: number) => {
@@ -98,8 +98,8 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
             <div className="pt-1">
               <AdditionForm 
                 contextText={lastEntryContent}
-                onSave={(content, type) => {
-                  onAppendEntry(content, type);
+                onSave={async (content, type) => {
+                  await onAppendEntry(content, type);
                   setIsAdding(false);
                 }}
                 onCancel={() => {

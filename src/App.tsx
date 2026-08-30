@@ -32,9 +32,9 @@ const App: React.FC = () => {
           <CompletionScreen 
             thread={flow.currentThread}
             onReset={() => flow.finish()} 
-            onAppendEntry={(content, type) => {
+            onAppendEntry={async (content, type) => {
               if (flow.currentThread?.id) {
-                flow.appendEntry(flow.currentThread.id, content, type);
+                await flow.appendEntry(flow.currentThread.id, content, type);
               }
             }}
           />
@@ -70,4 +70,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

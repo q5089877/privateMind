@@ -13,7 +13,7 @@ interface ThoughtCardProps {
   onDelete: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
-  onAppend: (content: string, type: EntryType) => void;
+  onAppend: (content: string, type: EntryType) => void | Promise<void>;
   onEdit?: (entryId: string, content: string) => void;
 }
 
@@ -521,8 +521,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             <AdditionForm
               mode="append"
               contextText={entries[entries.length - 1]?.content || ''}
-              onSave={(content, type) => {
-                onAppend(content, type);
+              onSave={async (content, type) => {
+                await onAppend(content, type);
                 setIsAdding(false);
               }}
               onCancel={() => setIsAdding(false)}

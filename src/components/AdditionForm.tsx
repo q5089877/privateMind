@@ -5,7 +5,7 @@ import { EntryType } from '../types';
 import { ThoughtPrompts } from './ThoughtPrompts';
 
 interface AdditionFormProps {
-  onSave: (content: string, type: EntryType) => void;
+  onSave: (content: string, type: EntryType) => void | Promise<void>;
   onCancel: () => void;
   mode?: 'append';
   placeholder?: string;
@@ -25,12 +25,19 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
   const [content, setContent] = useState(initialContent);
   const [showPrompts, setShowPrompts] = useState(false);
   const [aiUsed, setAiUsed] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    if (!content.trim()) return;
+  const handleSave = async () => {
+    if (!content.trim() || isSaving) return;
     triggerHaptic('settle');
-    // 嚴格原則：只有使用者自己寫下的文字才會被存下，AI 提示直接退場不進 Entry
-    onSave(content.trim(), 'thought');
+    setIsSaving(true);
+    try {
+      // 嚴格原則：只有使用者自己寫下的文字才會被存下，AI 提示直接退場不進 Entry
+      await onSave(content.trim(), 'thought');
+    } catch (error) {
+      console.error('[AdditionForm] 儲存失敗：', error);
+      setIsSaving(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -98,11 +105,11 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
           </button>
           <button 
             type="button"
-            disabled={!content.trim()}
+            disabled={!content.trim() || isSaving}
             onClick={handleSave}
             className="px-5 py-1.5 text-xs rounded-full bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-40 transition-all cursor-pointer active:scale-98 font-normal"
           >
-            {submitText || UI_TEXT.addition.saveBtn}
+            {isSaving ? '停靠中…' : (submitText || UI_TEXT.addition.saveBtn)}
           </button>
         </div>
       </div>
