@@ -15,64 +15,67 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
   const [prompts, setPrompts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
-  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchedTextRef = useRef<string>('');
 
   useEffect(() => {
     let isMounted = true;
+    const cleanText = (contextText || '').trim();
 
-    const loadPrompts = async () => {
-      if (!contextText || !contextText.trim()) {
-        if (isMounted) {
-          setPrompts([]);
-          setOfflineNotice(null);
-        }
-        return;
-      }
+    if (!cleanText) {
+      setPrompts([]);
+      setOfflineNotice(null);
+      setLoading(false);
+      return;
+    }
 
-      // 未配置 API Key / Worker：顯示溫和離線反饋，2.8s 後安靜淡出
+    // 若與上次抓取的字樣完全相同，且已有起手式，則不重複呼叫
+    if (cleanText === lastFetchedTextRef.current && prompts.length > 0) {
+      return;
+    }
+
+    // 清除先前的防抖計時器
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // 500ms 防抖：使用者停下打字後自動重新生成即時 AI 起手式
+    setLoading(true);
+    debounceTimerRef.current = setTimeout(async () => {
       if (!GeminiProxyClient.isConfigured()) {
         if (isMounted) {
+          setLoading(false);
           setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
-          fadeTimerRef.current = setTimeout(() => {
-            if (isMounted) setOfflineNotice(null);
-          }, 2800);
         }
         return;
       }
 
-      setLoading(true);
       try {
-        const stems = await GeminiProxyClient.getPerspectiveStemsAsync(contextText);
+        lastFetchedTextRef.current = cleanText;
+        const stems = await GeminiProxyClient.getPerspectiveStemsAsync(cleanText);
         if (isMounted) {
           if (stems && stems.length > 0) {
             setPrompts(stems);
             setOfflineNotice(null);
           } else {
-            setPrompts([]);
             setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
-            fadeTimerRef.current = setTimeout(() => {
-              if (isMounted) setOfflineNotice(null);
-            }, 2800);
           }
         }
       } catch (err) {
-        console.warn('[ThoughtPrompts] 連線失敗:', err);
+        console.warn('[ThoughtPrompts] 連線或生成失敗:', err);
         if (isMounted) {
-          setPrompts([]);
           setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
-          fadeTimerRef.current = setTimeout(() => {
-            if (isMounted) setOfflineNotice(null);
-          }, 2800);
         }
       } finally {
         if (isMounted) setLoading(false);
       }
-    };
+    }, 500);
 
-    loadPrompts();
     return () => {
       isMounted = false;
-      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
     };
   }, [contextText]);
 
