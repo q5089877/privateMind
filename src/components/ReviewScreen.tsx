@@ -160,17 +160,12 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       {/* 07｜自然日期流動排版（帶極淡時間軸微結構與緊湊節奏） */}
       <div className="space-y-7 sm:space-y-8">
         {groupedData.length === 0 ? (
-          <div className="py-20 flex flex-col items-center gap-3 select-none">
-            <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-1 h-1 rounded-full bg-ink-muted/40" />
-              <div className="w-1 h-1 rounded-full bg-ink-muted/25" />
-              <div className="w-1 h-1 rounded-full bg-ink-muted/12" />
-            </div>
-            <p className="text-sm text-ink-muted font-light">
+          <div className="py-24 flex flex-col items-center gap-2 select-none text-center">
+            <p className="text-sm text-ink-secondary font-light tracking-wide">
               {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : '這裡還很安靜。'}
             </p>
             {!isViewingArchived && (
-              <p className="text-xs text-ink-muted/55 font-light">
+              <p className="text-xs text-ink-muted/60 font-light tracking-wider">
                 準備好時，讓第一個念頭停靠。
               </p>
             )}
