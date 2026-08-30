@@ -5,10 +5,12 @@ import { UI_TEXT } from '../config/textConfig';
 
 interface ThoughtPromptsProps {
   contextText?: string;
+  onSelectPrompt?: (text: string) => void;
 }
 
 export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
-  contextText
+  contextText,
+  onSelectPrompt
 }) => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,10 +85,10 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 4 }}
-      className="py-2 px-1 space-y-2 select-none"
+      className="py-1 px-0.5 space-y-1.5 select-none"
     >
       {loading && (
-        <div className="py-2 text-left text-xs text-ink-muted animate-pulse font-light tracking-wide">
+        <div className="py-1.5 text-left text-xs text-ink-muted animate-pulse font-light tracking-wide">
           {UI_TEXT.promptEngine.loading}
         </div>
       )}
@@ -96,7 +98,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="py-2 text-left text-xs text-ink-muted font-light tracking-wide"
+          className="py-1.5 text-left text-xs text-ink-muted font-light tracking-wide"
         >
           {offlineNotice}
         </motion.div>
@@ -110,14 +112,17 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="space-y-2.5"
+            className="space-y-2 pt-0.5"
           >
             {prompts.map((text, idx) => (
               <div
                 key={`stem-${idx}`}
-                className="flex items-baseline gap-2.5 text-xs sm:text-sm text-ink-stem font-normal leading-[1.85] tracking-wide"
+                onClick={() => onSelectPrompt?.(text)}
+                className="flex items-baseline gap-2 text-[13px] sm:text-[13.5px] text-[#4B5563] font-normal leading-[1.7] tracking-wide cursor-pointer hover:text-ink transition-colors rounded-lg py-0.5"
+                title="點擊帶入輸入框"
               >
-                <span className="text-ink-muted text-xs select-none shrink-0">·</span>
+                {/* 獨立圓點容器，確保折行時第二行完美對齊首字（懸掛縮排 Hanging Indent） */}
+                <span className="text-[#71717A] text-xs select-none shrink-0 w-2.5 text-center">·</span>
                 <span className="flex-1 select-text">
                   {text}
                 </span>

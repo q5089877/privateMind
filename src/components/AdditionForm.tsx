@@ -48,8 +48,8 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
   };
 
   return (
-    <div className="mt-3 p-4 rounded-2xl border border-border-base bg-surface-subtle overflow-hidden space-y-3.5">
-      {/* 使用者輸入區 */}
+    <div className="mt-2.5 px-3.5 py-3 sm:px-4 rounded-xl border border-border-base bg-surface-subtle overflow-hidden space-y-2.5">
+      {/* 使用者輸入區（無底線、乾淨通透純留白） */}
       <textarea
         autoFocus
         rows={2}
@@ -57,14 +57,17 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder || UI_TEXT.addition.inputPlaceholder}
-        className="w-full bg-transparent border-b border-border-base focus:border-border-focus text-ink placeholder:text-ink-muted font-light outline-none resize-none min-h-[50px] text-base leading-relaxed"
+        className="w-full bg-transparent text-ink placeholder:text-ink-muted font-light outline-none resize-none min-h-[48px] text-[15px] sm:text-base leading-relaxed border-none"
       />
 
-      {/* 靜態思考入口展示（純文字展示，不能點選，僅供看著參考） */}
+      {/* 靜態思考入口展示（支援點擊帶入起手式，完美懸掛縮排） */}
       {showPrompts && (
-        <div className="pt-1">
+        <div className="pt-0.5">
           <ThoughtPrompts 
             contextText={content.trim() || contextText.trim()}
+            onSelectPrompt={(selectedText) => {
+              setContent(selectedText);
+            }}
           />
         </div>
       )}
