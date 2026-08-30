@@ -207,12 +207,12 @@ export class GeminiProxyClient {
     for (const raw of candidates) {
       let s = (raw || '').trim();
 
-      // 基本清理：拔除句首所有省略號、點號、破折號、標點
-      s = s.replace(/^[….\-·\s\d.、/]+/, '').trim();
+      // 基本清理：拔除句首所有省略號、點號、逗號、破折號、引號、括號、序號與標點
+      s = s.replace(/^[….\-·\s\d.、/，,"'“”‘’\[\]:：;；~～]+/, '').trim();
       if (!s) continue;
 
-      // 結尾統一為標準全形省略號 ……
-      s = s.replace(/[。.!！？?….]*$/, '') + '……';
+      // 結尾統一為標準全形省略號 ……（先剔除所有多餘標點）
+      s = s.replace(/[。.!！？?….,，:：;；\s]*$/, '') + '……';
 
       // 規則驗證
       if (s.includes('？') || s.includes('?')) continue;                    // 禁止問句
