@@ -15,10 +15,12 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
   const [prompts, setPrompts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchedTextRef = useRef<string>('');
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
+    // 規格鎖定：一旦 AI 回應成功生成，後續打字不再改變或干擾提示內容
+    if (hasLoadedRef.current) return;
+
     let isMounted = true;
     const cleanText = (contextText || '').trim();
 
@@ -29,19 +31,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       return;
     }
 
-    // 若與上次抓取的字樣完全相同，且已有起手式，則不重複呼叫
-    if (cleanText === lastFetchedTextRef.current && prompts.length > 0) {
-      return;
-    }
-
-    // 清除先前的防抖計時器
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // 500ms 防抖：使用者停下打字後自動重新生成即時 AI 起手式
-    setLoading(true);
-    debounceTimerRef.current = setTimeout(async () => {
+    const loadPrompts = async () => {
       if (!GeminiProxyClient.isConfigured()) {
         if (isMounted) {
           setLoading(false);
@@ -50,13 +40,14 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
         return;
       }
 
+      setLoading(true);
       try {
-        lastFetchedTextRef.current = cleanText;
         const stems = await GeminiProxyClient.getPerspectiveStemsAsync(cleanText);
         if (isMounted) {
           if (stems && stems.length > 0) {
             setPrompts(stems);
             setOfflineNotice(null);
+            hasLoadedRef.current = true; // 鎖定狀態，不再隨打字重新請求
           } else {
             setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
           }
@@ -69,13 +60,12 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       } finally {
         if (isMounted) setLoading(false);
       }
-    }, 500);
+    };
+
+    loadPrompts();
 
     return () => {
       isMounted = false;
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
     };
   }, [contextText]);
 
