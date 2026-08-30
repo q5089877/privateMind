@@ -16,7 +16,14 @@ export class LocalStorageManager implements IStorageProvider {
 
   async getThreads(): Promise<ThoughtThread[]> {
     const data = localStorage.getItem(this.THREADS_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    try {
+      return JSON.parse(data);
+    } catch {
+      console.error('[StorageManager] 資料解析失敗，清除損毀資料並重置');
+      localStorage.removeItem(this.THREADS_KEY);
+      return [];
+    }
   }
 
   async deleteThread(id: string): Promise<void> {
