@@ -50,7 +50,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     };
   }, []);
 
-  // 0.0s 點擊「停靠」：立即 dismiss 鍵盤並解除 focus，文字由大變小至 50% 沉落落下
+  // 0.0s 點擊「停靠」：立即 dismiss 鍵盤並解除 focus，文字慢慢縮小至 25% 沉落
   const handleContinue = () => {
     if (!inputText.trim() || isSinking) return;
     textareaRef.current?.blur();
@@ -58,7 +58,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onStartInput(inputText);
-    }, 450);
+    }, 850);
   };
 
   const handleSayNothing = () => {
@@ -68,7 +68,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onSayNothing?.();
-    }, 450);
+    }, 850);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
