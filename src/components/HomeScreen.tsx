@@ -120,7 +120,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isSinking ? '' : UI_TEXT.home.inputPlaceholder}
-            className="w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-0 border-b border-border-base focus:border-ink-muted transition-colors duration-300"
+            className="home-thought-input w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-0 border-b border-border-base transition-all duration-500"
             autoFocus
           />
         </div>

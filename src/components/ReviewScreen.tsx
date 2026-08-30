@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Archive, CalendarDays, Ellipsis, Feather } from 'lucide-react';
+import { ArchiveRestore, ArrowLeft, Archive, CalendarDays, Ellipsis, Feather } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
@@ -196,7 +196,9 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
         {groupedData.length === 0 ? (
           <div className="py-24 flex flex-col items-center gap-3 select-none text-center">
             <div className="p-3 rounded-full bg-surface-subtle border border-border-subtle mb-1 text-accent/60">
-              <Feather size={20} strokeWidth={1.25} />
+              {isViewingArchived
+                ? <ArchiveRestore size={20} strokeWidth={1.25} />
+                : <Feather size={20} strokeWidth={1.25} />}
             </div>
             <p className="text-sm text-ink-secondary font-light tracking-wide">
               {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : '這裡還很安靜。'}
@@ -214,7 +216,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
               <div key={group.dateKey} className="space-y-2.5">
                 {/* 日期標題：強化層級（圓點 + 加粗標題） */}
                 <div className="flex items-center gap-2 select-none pb-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ink" />
+                  <span className="timeline-wave-node" aria-hidden="true" />
                   <h2 className="text-xs sm:text-sm font-semibold text-ink tracking-wide">
                     {group.header}
                   </h2>
@@ -297,4 +299,3 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     </motion.div>
   );
 };
-
