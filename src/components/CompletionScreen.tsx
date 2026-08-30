@@ -54,7 +54,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   return (
     <div className="w-full max-w-xl space-y-4 sm:space-y-5 flex flex-col items-center text-center">
       {/* 0.25s~0.8s 淡入，3.0s~3.8s 淡出；提示短暫存在，卡片永久留下 */}
-      <div className="min-h-[32px] flex items-center justify-center pt-2 select-none">
+      <div className={`flex items-center justify-center pt-2 select-none overflow-hidden transition-all duration-700 ${showNotice && !isAdding ? 'min-h-[40px] opacity-100' : 'min-h-0 opacity-0 pointer-events-none'}`}>
         <AnimatePresence>
           {showNotice && !isAdding && (
             <motion.p

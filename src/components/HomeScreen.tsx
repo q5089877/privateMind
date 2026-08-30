@@ -13,6 +13,7 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothing, onReview }) => {
   const [inputText, setInputText] = useState('');
   const [isSinking, setIsSinking] = useState(false);
+  const [nowStr, setNowStr] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const QUICK_OPTIONS = UI_TEXT.home.quickOptions;
@@ -31,6 +32,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       textareaRef.current?.focus();
     }, 60);
     return () => clearTimeout(focusTimer);
+  }, []);
+
+  // 當下時間（每分鐘更新，強化「現在」感）
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const weekday = ['日','一','二','三','四','五','六'][now.getDay()];
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      setNowStr(`週${weekday}　${h}:${m}`);
+    };
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleQuickSelect = (text: string) => {
@@ -108,6 +123,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             {UI_TEXT.home.subtitle}
           </p>
         </div>
+
+        {/* 當下時間錨點（填補留白、強化「現在」感，沉降時同步消失） */}
+        {nowStr && (
+          <div className={`select-none transition-opacity duration-300 ${isSinking ? 'opacity-0' : ''}`}>
+            <span className="text-xs text-ink-muted/45 font-mono tracking-[0.2em]">{nowStr}</span>
+          </div>
+        )}
 
         {/* 無邊界多行輸入區：沉降時作為全畫面唯一焦點，2.0s 慢速縮小至 25% 沉落 */}
         <div className={`w-full relative px-2 ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
