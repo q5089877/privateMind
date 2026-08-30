@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Compass } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -91,9 +92,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             triggerHaptic('unlatch');
             onReview();
           }}
-          className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer py-1.5 px-3 rounded-full hover:bg-surface-hover tracking-wider font-light"
+          className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-all cursor-pointer py-1.5 px-3 rounded-full hover:bg-surface-hover tracking-wider font-light flex items-center gap-1.5 border border-transparent hover:border-border-subtle"
         >
-          {UI_TEXT.home.reviewPast}
+          <Compass size={14} strokeWidth={1.5} className="text-ink-muted/80" />
+          <span>{UI_TEXT.home.reviewPast}</span>
         </button>
       </div>
 

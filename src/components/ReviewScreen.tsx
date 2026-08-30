@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Feather, Archive } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
@@ -141,10 +141,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             </button>
             <button
               type="button"
-              onClick={() => setIsViewingArchived(true)}
-              className="px-3 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base hover:border-border-focus rounded-full bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+              onClick={() => {
+                triggerHaptic('unlatch');
+                setIsViewingArchived(true);
+              }}
+              className="px-3 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base hover:border-border-focus rounded-full bg-transparent transition-all cursor-pointer active:scale-[0.98] flex items-center gap-1.5"
             >
-              {UI_TEXT.hiddenSpace.title}
+              <Archive size={12} strokeWidth={1.5} className="text-ink-muted" />
+              <span>{UI_TEXT.hiddenSpace.title}</span>
             </button>
           </div>
         )}
@@ -160,7 +164,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       {/* 07｜自然日期流動排版（帶極淡時間軸微結構與緊湊節奏） */}
       <div className="space-y-7 sm:space-y-8">
         {groupedData.length === 0 ? (
-          <div className="py-24 flex flex-col items-center gap-2 select-none text-center">
+          <div className="py-24 flex flex-col items-center gap-3 select-none text-center">
+            <div className="p-3 rounded-full bg-surface-subtle border border-border-subtle mb-1 text-accent/60">
+              <Feather size={20} strokeWidth={1.25} />
+            </div>
             <p className="text-sm text-ink-secondary font-light tracking-wide">
               {isViewingArchived ? UI_TEXT.hiddenSpace.emptyState : '這裡還很安靜。'}
             </p>

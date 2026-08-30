@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Check } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { ThoughtThread } from '../types';
 import { AdditionForm } from './AdditionForm';
@@ -135,18 +136,20 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           <button 
             type="button"
             onClick={handleStartAdd}
-            className="text-xs sm:text-sm text-ink hover:text-ink-primary font-normal py-1.5 px-4 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98"
+            className="text-xs sm:text-sm text-ink hover:text-ink-primary font-normal py-1.5 px-4 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98 flex items-center gap-1.5"
           >
-            {UI_TEXT.completion.exits.addAddition}
+            <Plus size={13} strokeWidth={1.5} className="text-ink-muted" />
+            <span>{UI_TEXT.completion.exits.addAddition.replace('＋ ', '')}</span>
           </button>
         )}
 
         <button 
           type="button"
           onClick={onReset}
-          className="text-xs text-ink-muted/60 hover:text-ink transition-colors py-1 px-3 rounded-full cursor-pointer hover:bg-surface-hover/50 font-light"
+          className="text-xs text-ink-muted hover:text-ink transition-colors cursor-pointer py-1.5 px-3 rounded-full flex items-center gap-1.5"
         >
-          {UI_TEXT.completion.exits.backHome}
+          <Check size={12} strokeWidth={1.5} className="text-ink-muted/70" />
+          <span>{UI_TEXT.completion.exits.backHome}</span>
         </button>
       </motion.div>
     </div>

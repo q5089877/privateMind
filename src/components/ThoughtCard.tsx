@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Pencil, Archive, Trash2, Eye, Plus } from 'lucide-react';
 import { ThoughtThread, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
@@ -449,23 +450,26 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleStartEdit(entry)}
-                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                 >
-                                  {UI_TEXT.review.card.editBtn}
+                                  <Pencil size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.editBtn}</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleBringBack}
-                                  className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                 >
-                                  {UI_TEXT.review.card.bringBackBtn}
+                                  <Eye size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.bringBackBtn}</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setShowVanishConfirm(true)}
-                                  className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs"
+                                  className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs flex items-center gap-1.5"
                                 >
-                                  {UI_TEXT.review.card.makeItVanishBtn}
+                                  <Trash2 size={11} strokeWidth={1.5} className="text-ink-muted group-hover:text-red-600" />
+                                  <span>{UI_TEXT.review.card.makeItVanishBtn}</span>
                                 </button>
                               </>
                             ) : (
@@ -476,24 +480,27 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                     setIsAdding(true);
                                     setShowRowActions(false);
                                   }}
-                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-3 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-3 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                 >
-                                  {UI_TEXT.review.addAdditionBtn}
+                                  <Plus size={12} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.addAdditionBtn.replace('＋ ', '')}</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStartEdit(entry)}
-                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                 >
-                                  {UI_TEXT.review.card.editBtn}
+                                  <Pencil size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.editBtn}</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleTuckAway}
-                                  className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                   title={UI_TEXT.review.card.tuckAwayBtn}
                                 >
-                                  {UI_TEXT.review.card.tuckAwayBtn}
+                                  <Archive size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.tuckAwayBtn}</span>
                                 </button>
                               </>
                             )}
