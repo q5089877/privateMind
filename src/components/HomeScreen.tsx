@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
-import { UI_TEXT, CORE_PHILOSOPHY } from '../config/textConfig';
+import { UI_TEXT } from '../config/textConfig';
 
 interface HomeScreenProps {
   onStartInput: (text: string) => void;

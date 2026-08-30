@@ -55,8 +55,18 @@ export function formatDateGroupHeader(timestamp: unknown): string {
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
 
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate();
+
   if (isToday) {
     return '今天';
+  }
+  if (isYesterday) {
+    return '昨天';
   }
 
   const month = d.getMonth() + 1;

@@ -10,15 +10,15 @@ export function useThoughts() {
   const [threads, setThreads] = useState<ThoughtThread[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     const data = await getAllThreads();
     setThreads(data);
     setLoading(false);
-  };
+  }, [getAllThreads]);
 
   useEffect(() => {
     fetch();
-  }, []);
+  }, [fetch]);
 
   const activeThreads = useMemo(() => {
     return threads
@@ -32,35 +32,68 @@ export function useThoughts() {
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }, [threads]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     setThreads(prev => prev.filter(t => t.id !== id));
     await deleteThread(id);
-  };
+  }, [deleteThread]);
 
-  const handleArchive = async (id: string) => {
-    setThreads(prev => prev.map(t => t.id === id ? { ...t, isArchived: true } : t));
+  const handleArchive = useCallback(async (id: string) => {
+    setThreads(prev => prev.map(t => t.id === id ? { ...t, isArchived: true, updatedAt: Date.now() } : t));
     await archiveThread(id);
-  };
+  }, [archiveThread]);
 
-  const handleRestore = async (id: string) => {
-    setThreads(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t));
+  const handleRestore = useCallback(async (id: string) => {
+    setThreads(prev => prev.map(t => t.id === id ? { ...t, isArchived: false, updatedAt: Date.now() } : t));
     await restoreThread(id);
-  };
+  }, [restoreThread]);
 
-  const handleAppend = async (threadId: string, content: string, type?: import('../types').EntryType) => {
+  const handleAppend = useCallback(async (threadId: string, content: string, type?: import('../types').EntryType) => {
+    const now = Date.now();
+    // 樂觀更新：預先塞入新 Entry，讓 UI 瞬間反饋
+    setThreads(prev => prev.map(t => {
+      if (t.id === threadId) {
+        const newEntry = { 
+          id: `opt-${now}`, 
+          threadId, 
+          content, 
+          createdAt: now, 
+          type: type || 'thought' 
+        };
+        return { 
+          ...t, 
+          entries: [...t.entries, newEntry], 
+          updatedAt: now, 
+          isArchived: false, 
+          currentActionId: type === 'action' ? newEntry.id : t.currentActionId 
+        };
+      }
+      return t;
+    }));
     await appendEntry(threadId, content, type);
-    await fetch();
-  };
+    fetch(); // 背景回填真實 ID 與正確資料
+  }, [appendEntry, fetch]);
 
-  const handleEdit = async (threadId: string, entryId: string, content: string) => {
+  const handleEdit = useCallback(async (threadId: string, entryId: string, content: string) => {
+    // 樂觀更新：直接改掉對應的文字
+    setThreads(prev => prev.map(t => {
+      if (t.id === threadId) {
+        return { 
+          ...t, 
+          entries: t.entries.map(e => e.id === entryId ? { ...e, content } : e), 
+          updatedAt: Date.now() 
+        };
+      }
+      return t;
+    }));
     await updateEntry(threadId, entryId, content);
-    await fetch();
-  };
+    fetch();
+  }, [updateEntry, fetch]);
 
-  const handleSetCurrentAction = async (threadId: string, entryId: string | null) => {
+  const handleSetCurrentAction = useCallback(async (threadId: string, entryId: string | null) => {
+    setThreads(prev => prev.map(t => t.id === threadId ? { ...t, currentActionId: entryId, updatedAt: Date.now() } : t));
     await setCurrentAction(threadId, entryId);
-    await fetch();
-  };
+    fetch();
+  }, [setCurrentAction, fetch]);
 
   return {
     activeThreads,

@@ -26,43 +26,33 @@ export function useFlow() {
     // Actions
     submitText: async (val: string, type?: import('../types').EntryType) => {
       await engine.submitText(val, type);
-      sync();
     },
     submitSayNothing: async () => {
       await engine.submitSayNothing();
-      sync();
     },
     appendEntry: async (threadId: string, content: string, type?: import('../types').EntryType) => {
       await engine.appendEntry(threadId, content, type);
-      sync();
     },
     updateEntry: async (threadId: string, entryId: string, content: string) => {
       await engine.updateEntry(threadId, entryId, content);
-      sync();
     },
     setCurrentAction: async (threadId: string, entryId: string | null) => {
       await engine.setCurrentAction(threadId, entryId);
-      sync();
     },
     archiveThread: async (threadId: string) => {
       await engine.archiveThread(threadId);
-      sync();
     },
     restoreThread: async (threadId: string) => {
       await engine.restoreThread(threadId);
-      sync();
     },
     deleteThread: async (threadId: string) => {
       await engine.deleteThread(threadId);
-      sync();
     },
     finish: () => {
       engine.reset();
-      sync();
     },
     transition: (s: FlowState) => {
       engine.transition(s);
-      sync();
     },
     getAllThreads: () => engine.getAllThreads()
   };

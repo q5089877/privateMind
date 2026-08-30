@@ -2,15 +2,6 @@
  * Gemini Client (支援 Cloudflare Proxy 與直連 Google API 雙模)
  * Mind Harbor Perspective Engine v2
  */
-export interface RoutedThought {
-  category: '待辦事項' | '靈感創意' | '心情隨筆' | '知識備忘' | '碎屑雜訊';
-  sub_tags: string[];
-  summary: string;
-  action_items: string[];
-  priority: number;
-  status_hint: string;
-}
-
 export class GeminiProxyClient {
   private static getProxyUrl(): string {
     try {
