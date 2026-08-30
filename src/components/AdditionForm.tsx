@@ -64,7 +64,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
       {showPrompts && (
         <div className="pt-1">
           <ThoughtPrompts 
-            contextText={contextText || content}
+            contextText={content.trim() || contextText.trim()}
           />
         </div>
       )}

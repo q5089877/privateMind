@@ -44,7 +44,7 @@ export class GeminiProxyClient {
    */
   public static async getPerspectiveStemsAsync(rawInput: string): Promise<string[]> {
     const cleanText = rawInput.trim();
-    if (!cleanText || cleanText.length < 2) return [];
+    if (!cleanText || cleanText.length < 1) return [];
 
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
