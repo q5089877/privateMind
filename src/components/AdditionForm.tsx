@@ -3,6 +3,7 @@ import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 import { EntryType } from '../types';
 import { ThoughtPrompts } from './ThoughtPrompts';
+import { Sparkles } from 'lucide-react';
 
 interface AdditionFormProps {
   onSave: (content: string, type: EntryType) => void | Promise<void>;
@@ -89,7 +90,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
               onClick={handleInvokeAi}
               className="text-xs text-ink-muted hover:text-ink transition-colors cursor-pointer py-1 px-1 rounded-lg flex items-center gap-1.5 select-none"
             >
-              <span className="text-ink-muted text-xs">·</span>
+              <Sparkles size={13} strokeWidth={1.5} className="text-ink-muted" />
               <span>{UI_TEXT.promptEngine.entryBtn}</span>
             </button>
           )}

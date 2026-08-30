@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Feather, Archive } from 'lucide-react';
+import { ArrowLeft, Archive, CalendarDays, Ellipsis, Feather } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { ThoughtCard } from './ThoughtCard';
 import { useThoughts } from '../hooks/useThoughts';
@@ -128,7 +128,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
             <div />
           </div>
         ) : (
-          /* 【正常時間線】左返回 / 右已收起 */
+          /* 【正常時間線】左返回 / 右側收納選單 */
           <div className="flex items-center justify-between w-full">
             <button
               type="button"
@@ -139,17 +139,44 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
               <ArrowLeft size={15} />
               <span className="text-ink-secondary hover:text-ink">{UI_TEXT.review.backHome}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('unlatch');
-                setIsViewingArchived(true);
-              }}
-              className="px-3 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base hover:border-border-focus rounded-full bg-transparent transition-all cursor-pointer active:scale-[0.98] flex items-center gap-1.5"
-            >
-              <Archive size={12} strokeWidth={1.5} className="text-ink-muted" />
-              <span>{UI_TEXT.hiddenSpace.title}</span>
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="更多選項"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setShowDrawerMenu(prev => !prev);
+                }}
+                className="p-1.5 text-ink-muted hover:text-ink border border-transparent hover:border-border-base rounded-full transition-all cursor-pointer active:scale-[0.98]"
+              >
+                <Ellipsis size={18} strokeWidth={1.5} />
+              </button>
+
+              <AnimatePresence>
+                {showDrawerMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: -4 }}
+                    transition={{ duration: 0.16 }}
+                    className="absolute right-0 top-full mt-1.5 min-w-28 rounded-xl border border-border-base bg-surface/95 backdrop-blur-md shadow-lg p-1 z-30"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('unlatch');
+                        setShowDrawerMenu(false);
+                        setIsViewingArchived(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Archive size={13} strokeWidth={1.5} className="text-ink-muted" />
+                      <span>{UI_TEXT.hiddenSpace.title}</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         )}
       </header>
@@ -157,7 +184,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       {/* 頁面標題：定向錨點，非 sticky，僅正常時間線顯示 */}
       {!isViewingArchived && (
         <div className="mb-5 select-none">
-          <h1 className="text-lg font-medium text-ink tracking-tight">思緒紀錄</h1>
+          <h1 className="text-lg font-medium text-ink tracking-tight flex items-center gap-2">
+            <CalendarDays size={17} strokeWidth={1.5} className="text-ink-muted" />
+            思緒紀錄
+          </h1>
         </div>
       )}
 
@@ -267,5 +297,4 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
     </motion.div>
   );
 };
-
 

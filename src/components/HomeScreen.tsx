@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Compass } from 'lucide-react';
+import { Anchor, Compass } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -151,8 +151,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
                 exit={{ opacity: 0, y: 4, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 onClick={handleContinue}
-                className="px-6 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-base font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs"
+                className="px-6 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-base font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs inline-flex items-center gap-1.5"
               >
+                <Anchor size={14} strokeWidth={1.7} />
                 {UI_TEXT.home.submit}
               </motion.button>
             ) : (
@@ -175,4 +176,3 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     </div>
   );
 };
-
