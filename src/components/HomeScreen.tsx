@@ -50,13 +50,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     };
   }, []);
 
-  // 0.0s 點擊「停靠」：立即 dismiss 鍵盤並解除 focus，文字在 2.0 秒內緩慢縮小至 25% 沉落
+  // 0.0s 點擊「停靠」：脫扣震動、收起鍵盤、周遭環境 0.3s 散去，唯獨文字 2.0s 慢速縮小至 25% 下沉
   const handleContinue = () => {
     if (!inputText.trim() || isSinking) return;
     textareaRef.current?.blur();
-    triggerHaptic('settle');
+    triggerHaptic('unlatch');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
+      triggerHaptic('docking');
       onStartInput(inputText);
     }, 2000);
   };
@@ -64,9 +65,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   const handleSayNothing = () => {
     if (isSinking) return;
     textareaRef.current?.blur();
-    triggerHaptic('settle');
+    triggerHaptic('unlatch');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
+      triggerHaptic('docking');
       onSayNothing?.();
     }, 2000);
   };
@@ -79,9 +81,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   };
 
   return (
-    <div className={`w-full max-w-[690px] flex flex-col items-center ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
-      {/* 頂部右上角：弱化次要入口「再次相遇」 */}
-      <div className="w-full flex justify-end pb-6 sm:pb-10 select-none">
+    <div className="w-full max-w-[690px] flex flex-col items-center">
+      {/* 頂部右上角：弱化次要入口「再次相遇」（沉降時 0.3s 率先散去） */}
+      <div className={`w-full flex justify-end pb-6 sm:pb-10 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
         <button
           type="button"
           onClick={() => {
@@ -94,10 +96,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
         </button>
       </div>
 
-      {/* 主工作區：垂直居中偏上，大氣留白 */}
+      {/* 主工作區 */}
       <div className="w-full flex flex-col items-center text-center space-y-5 sm:space-y-7 pt-2 sm:pt-4">
-        {/* 標題與核心免責許可副標 */}
-        <div className="space-y-1.5 select-none">
+        {/* 標題與核心免責許可副標（沉降時 0.3s 率先散去） */}
+        <div className={`space-y-1.5 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
           <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-ink">
             {UI_TEXT.home.title}
           </h1>
@@ -106,22 +108,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           </p>
         </div>
 
-        {/* 無邊界多行輸入區：大行距、無底線、紙張包容感 */}
-        <div className="w-full relative px-2">
+        {/* 無邊界多行輸入區：沉降時作為全畫面唯一焦點，2.0s 慢速縮小至 25% 沉落 */}
+        <div className={`w-full relative px-2 ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
           <textarea
             ref={textareaRef}
             rows={2}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={UI_TEXT.home.inputPlaceholder}
+            placeholder={isSinking ? '' : UI_TEXT.home.inputPlaceholder}
             className="w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-none"
             autoFocus
           />
         </div>
 
-        {/* 輕盈流動標籤：極淡邊框便籤排版 */}
-        <div className="w-full flex flex-wrap justify-center gap-2 sm:gap-2.5 pt-1 select-none">
+        {/* 輕盈流動標籤（沉降時 0.3s 率先散去） */}
+        <div className={`w-full flex flex-wrap justify-center gap-2 sm:gap-2.5 pt-1 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
           {QUICK_OPTIONS.map((option, idx) => (
             <button
               key={`quick-opt-${idx}`}
@@ -134,8 +136,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
           ))}
         </div>
 
-        {/* 動作按鈕：有字時高亮「停靠」，無字時提供「我現在說不上來」 */}
-        <div className="pt-3 h-12 flex justify-center items-center w-full">
+        {/* 動作按鈕（沉降時 0.3s 率先散去） */}
+        <div className={`pt-3 h-12 flex justify-center items-center w-full transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
           <AnimatePresence mode="wait">
             {inputText.trim() ? (
               <motion.button
