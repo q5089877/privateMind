@@ -52,7 +52,8 @@
 }
 
 html {
-  font-size: 19.2px; /* 16px * 1.2 = 19.2px (全域排版等比放大 120%) */
+  font-size: clamp(16px, 1.2vw + 14px, 19.2px); /* 響應式字級：小螢幕防擠壓，大螢幕維持 19.2px 禪意排版 */
+  min-height: 100dvh; /* 防止 iOS/Android 虛擬鍵盤彈起時視區推擠裁切 */
   background-color: var(--canvas);
   background-image:
     radial-gradient(ellipse at 50% 32%, rgba(223, 233, 225, 0.72) 0%, rgba(248, 249, 250, 0) 54%),

@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Pencil, Archive, Trash2, Eye, Plus } from 'lucide-react';
+import { Pencil, Archive, Copy, Wind, Eye, Plus } from 'lucide-react';
 import { ThoughtThread, DialogueEntry, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
@@ -33,11 +33,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [showRowActions, setShowRowActions] = useState(false);
-  const [showFloatingMenu, setShowFloatingMenu] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
-
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const entries = thread.entries || [];
   const totalEntries = entries.length;
@@ -69,36 +66,8 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     setEditContent('');
   };
 
-  // 長按監聽（正常時間線 450ms 觸發「收起來」選單）
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isArchivedView || editingEntryId) return; // 編輯中或已收起空間無需長按
-    touchStartPosRef.current = { x: e.clientX, y: e.clientY };
-    longPressTimerRef.current = setTimeout(() => {
-      triggerHaptic('step');
-      setShowFloatingMenu(true);
-    }, 450);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!touchStartPosRef.current || !longPressTimerRef.current) return;
-    const dist = Math.hypot(e.clientX - touchStartPosRef.current.x, e.clientY - touchStartPosRef.current.y);
-    if (dist > 10) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
-  const handlePointerUpOrCancel = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    touchStartPosRef.current = null;
-  };
-
   // 收起來儀式（下沉淡出）
   const handleTuckAway = () => {
-    setShowFloatingMenu(false);
     setShowRowActions(false);
     setExitDirection('sink');
     triggerHaptic('settle');
@@ -110,7 +79,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
 
   // 放回眼前儀式（浮起淡出）
   const handleBringBack = () => {
-    setShowFloatingMenu(false);
     setShowRowActions(false);
     setExitDirection('float');
     triggerHaptic('step');
@@ -126,16 +94,24 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     setShowVanishConfirm(false);
   };
 
+  const handleCopyThread = async () => {
+    const text = entries.map(entry => entry.content.trim()).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      triggerHaptic('light');
+      setCopyFeedback(UI_TEXT.review.card.copiedThread);
+    } catch {
+      setCopyFeedback(UI_TEXT.review.card.copyFailed);
+    }
+    window.setTimeout(() => setCopyFeedback(null), 2200);
+  };
+
   const lastEntry = entries[totalEntries - 1];
 
   return (
     <div className="relative group">
       <motion.div
         layout
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUpOrCancel}
-        onPointerLeave={handlePointerUpOrCancel}
         animate={
           exitDirection === 'sink'
             ? { y: 30, opacity: 0, scale: 0.98, filter: 'blur(2px)' }
@@ -187,35 +163,6 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 </div>
               </motion.div>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 長按浮現的極簡操作膠囊 */}
-        <AnimatePresence>
-          {showFloatingMenu && (
-            <>
-              {/* 點擊遮罩關閉 */}
-              <div
-                className="fixed inset-0 z-30"
-                onClick={() => setShowFloatingMenu(false)}
-              />
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 4 }}
-                transition={{ duration: 0.18 }}
-                className="absolute right-2 top-0 z-40 bg-surface/95 backdrop-blur-md border border-border-base shadow-lg rounded-2xl py-1 px-1.5 flex items-center select-none"
-              >
-                <button
-                  type="button"
-                  onClick={handleTuckAway}
-                  className="px-3.5 py-1.5 text-xs text-ink-secondary hover:text-ink hover:bg-surface-hover rounded-xl cursor-pointer transition-colors"
-                >
-                  {UI_TEXT.review.card.tuckAwayBtn}
-                </button>
-              </motion.div>
-            </>
           )}
         </AnimatePresence>
 
@@ -320,23 +267,34 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleStartEdit(lastEntry)}
-                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                           >
-                            {UI_TEXT.review.card.editBtn}
+                            <Pencil size={11} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.card.editBtn}</span>
                           </button>
                           <button
                             type="button"
                             onClick={handleBringBack}
-                            className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                           >
-                            {UI_TEXT.review.card.bringBackBtn}
+                            <Eye size={11} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.card.bringBackBtn}</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowVanishConfirm(true)}
-                            className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs"
+                            className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs flex items-center gap-1.5"
                           >
-                            {UI_TEXT.review.card.makeItVanishBtn}
+                            <Wind size={11} strokeWidth={1.5} className="text-ink-muted group-hover:text-red-600" />
+                            <span>{UI_TEXT.review.card.makeItVanishBtn}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyThread()}
+                            className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                          >
+                            <Copy size={11} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.card.copyThreadBtn}</span>
                           </button>
                         </>
                       ) : (
@@ -347,24 +305,35 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                               setIsAdding(true);
                               setShowRowActions(false);
                             }}
-                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-3 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-3 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                           >
-                            {UI_TEXT.review.addAdditionBtn}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleStartEdit(lastEntry)}
-                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
-                          >
-                            {UI_TEXT.review.card.editBtn}
+                            <Plus size={12} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.addAdditionBtn.replace('＋ ', '')}</span>
                           </button>
                           <button
                             type="button"
                             onClick={handleTuckAway}
-                            className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                             title={UI_TEXT.review.card.tuckAwayBtn}
                           >
-                            {UI_TEXT.review.card.tuckAwayBtn}
+                            <Archive size={11} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.card.tuckAwayBtn}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(lastEntry)}
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                          >
+                            <Pencil size={11} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.card.editBtn}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyThread()}
+                            className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                          >
+                            <Copy size={11} strokeWidth={1.5} className="text-ink-muted" />
+                            <span>{UI_TEXT.review.card.copyThreadBtn}</span>
                           </button>
                         </>
                       )}
@@ -468,8 +437,16 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                   onClick={() => setShowVanishConfirm(true)}
                                   className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs flex items-center gap-1.5"
                                 >
-                                  <Trash2 size={11} strokeWidth={1.5} className="text-ink-muted group-hover:text-red-600" />
+                                  <Wind size={11} strokeWidth={1.5} className="text-ink-muted group-hover:text-red-600" />
                                   <span>{UI_TEXT.review.card.makeItVanishBtn}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleCopyThread()}
+                                  className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                                >
+                                  <Copy size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.copyThreadBtn}</span>
                                 </button>
                               </>
                             ) : (
@@ -487,6 +464,15 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={handleTuckAway}
+                                  className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                                  title={UI_TEXT.review.card.tuckAwayBtn}
+                                >
+                                  <Archive size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.tuckAwayBtn}</span>
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => handleStartEdit(entry)}
                                   className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                 >
@@ -495,12 +481,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={handleTuckAway}
+                                  onClick={() => void handleCopyThread()}
                                   className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
-                                  title={UI_TEXT.review.card.tuckAwayBtn}
                                 >
-                                  <Archive size={11} strokeWidth={1.5} className="text-ink-muted" />
-                                  <span>{UI_TEXT.review.card.tuckAwayBtn}</span>
+                                  <Copy size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                  <span>{UI_TEXT.review.card.copyThreadBtn}</span>
                                 </button>
                               </>
                             )}

@@ -53,6 +53,9 @@ export const UI_TEXT = {
     card: {
       addAdditionBtn: '＋ 接著說……',
       editBtn: '修改',
+      copyThreadBtn: '複製這段',
+      copiedThread: '已複製這段思緒',
+      copyFailed: '暫時無法複製',
       saveEditBtn: '儲存',
       cancelEditBtn: '取消',
       tuckAwayBtn: '收起來',
@@ -62,7 +65,7 @@ export const UI_TEXT = {
       confirmVanishTitle: '確認不再讓這筆內容留在這裡？',
       confirmVanishSubtext: '此動作將永久移除。',
       cancelBtn: '取消',
-      expandSandwich: '··· 展開中間思緒',
+      expandSandwich: '···',
       collapseSandwich: '收合思緒'
     }
   },

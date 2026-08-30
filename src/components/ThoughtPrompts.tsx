@@ -85,8 +85,20 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       className="py-1 px-0.5 space-y-1.5 select-none"
     >
       {loading && (
-        <div className="py-1.5 text-left text-xs text-ink-muted animate-pulse font-light tracking-wide">
-          {UI_TEXT.promptEngine.loading}
+        <div className="py-2 space-y-2.5 select-none" aria-busy="true">
+          <div className="text-[11px] text-ink-muted/70 font-light tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent/50 animate-pulse" />
+            <span>{UI_TEXT.promptEngine.loading}</span>
+          </div>
+          {[72, 86, 60].map((widthPct, idx) => (
+            <div key={`skeleton-${idx}`} className="flex items-center gap-2">
+              <span className="text-[#71717A] text-xs select-none shrink-0 w-2.5 text-center">·</span>
+              <div 
+                className="h-3.5 bg-surface-muted/50 rounded-md animate-pulse" 
+                style={{ width: `${widthPct}%` }} 
+              />
+            </div>
+          ))}
         </div>
       )}
 
@@ -131,4 +143,3 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
     </motion.div>
   );
 };
-

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Bird, X, Phone } from 'lucide-react';
+import { X, Phone } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 
 interface LayoutProps {
@@ -11,7 +11,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showSupportModal, setShowSupportModal] = useState(false);
 
   return (
-    <div className="min-h-screen bg-transparent text-ink flex flex-col font-sans selection:bg-accent/15 selection:text-ink">
+    <div className="min-h-[100dvh] bg-transparent text-ink flex flex-col font-sans selection:bg-accent/15 selection:text-ink">
       <main className="flex-grow flex flex-col items-center px-4 sm:px-6 max-w-[800px] mx-auto w-full py-6 sm:py-10">
         <div className="flex-grow flex flex-col items-center pt-8 sm:pt-16 w-full">
           {children}
@@ -21,9 +21,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="pt-2 pb-4 sm:pb-6 flex justify-center">
         <button 
           onClick={() => setShowSupportModal(true)}
-          className="flex items-center gap-1.5 text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors duration-300 cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-ink-muted/70 hover:text-ink transition-colors duration-300 cursor-pointer select-none"
         >
-          <Bird size={15} strokeWidth={1.5} />
+          <span className="w-1.5 h-1.5 rounded-full bg-accent/40 inline-block" />
           <span>{UI_TEXT.layout.supportBtn}</span>
         </button>
       </footer>
