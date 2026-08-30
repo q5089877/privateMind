@@ -102,7 +102,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             {UI_TEXT.home.title}
           </h1>
           <p className="text-xs sm:text-sm text-ink-muted/80 font-light tracking-wide">
-            {CORE_PHILOSOPHY.motto}
+            {UI_TEXT.home.subtitle}
           </p>
         </div>
 

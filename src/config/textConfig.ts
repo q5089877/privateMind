@@ -7,6 +7,7 @@ export const UI_TEXT = {
   // 【01｜首頁輸入與「停靠」】
   home: {
     title: '現在腦中有什麼？',
+    subtitle: '想法、感覺，或只是突然想到的一件事，都可以。',
     inputPlaceholder: '寫下此刻想留下的任何一句話……',
     submit: '停靠',
     reviewPast: '再次相遇',
