@@ -253,12 +253,11 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
               </div>
 
               {/* 最後 1 則：終點（支援修改） */}
-              <div
-                key={lastEntry.id}
-                onClick={handleRowClick}
-                className="group/entry flex items-baseline justify-between gap-3 py-1 cursor-pointer rounded-lg hover:bg-surface-subtle/50 transition-colors px-1 -mx-1"
-              >
-                <div className="flex items-baseline gap-3 flex-1 min-w-0">
+              <div key={lastEntry.id} className="group/entry py-0.5">
+                <div
+                  onClick={handleRowClick}
+                  className="flex items-baseline gap-3 py-1 cursor-pointer rounded-lg hover:bg-surface-subtle/50 transition-colors px-1 -mx-1"
+                >
                   <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
                     {formatEntryTime(lastEntry.createdAt)}
                   </div>
@@ -304,37 +303,37 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                   )}
                 </div>
 
-                {/* 點擊文字後跳出的按鈕群 */}
+                {/* 點擊文字後跳出的按鈕群：於文字正下方縮排展開，絕不壓縮文字 */}
                 <AnimatePresence>
                   {showRowActions && !isAdding && editingEntryId !== lastEntry.id && (
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.92, x: 4 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.92, x: 4 }}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.15 }}
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 select-none shrink-0"
+                      className="pl-15 pt-1 pb-1.5 flex flex-wrap items-center gap-2 select-none"
                     >
                       {isArchivedView ? (
                         <>
                           <button
                             type="button"
                             onClick={() => handleStartEdit(lastEntry)}
-                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                           >
                             {UI_TEXT.review.card.editBtn}
                           </button>
                           <button
                             type="button"
                             onClick={handleBringBack}
-                            className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                           >
                             {UI_TEXT.review.card.bringBackBtn}
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowVanishConfirm(true)}
-                            className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs"
+                            className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs"
                           >
                             {UI_TEXT.review.card.makeItVanishBtn}
                           </button>
@@ -347,21 +346,21 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                               setIsAdding(true);
                               setShowRowActions(false);
                             }}
-                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-3 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                           >
                             {UI_TEXT.review.addAdditionBtn}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleStartEdit(lastEntry)}
-                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                           >
                             {UI_TEXT.review.card.editBtn}
                           </button>
                           <button
                             type="button"
                             onClick={handleTuckAway}
-                            className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                            className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                             title={UI_TEXT.review.card.tuckAwayBtn}
                           >
                             {UI_TEXT.review.card.tuckAwayBtn}
@@ -382,10 +381,12 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                 return (
                   <div 
                     key={entry.id} 
-                    onClick={handleRowClick}
-                    className={`group/entry flex items-baseline justify-between gap-3 py-1 cursor-pointer rounded-lg hover:bg-surface-subtle/50 transition-colors px-1 -mx-1 ${isFollowUp ? 'pl-2 border-l border-border-base ml-1.5' : ''}`}
+                    className={`group/entry py-0.5 ${isFollowUp ? 'pl-2 border-l border-border-base ml-1.5' : ''}`}
                   >
-                    <div className="flex items-baseline gap-3 flex-1 min-w-0">
+                    <div
+                      onClick={handleRowClick}
+                      className="flex items-baseline gap-3 py-1 cursor-pointer rounded-lg hover:bg-surface-subtle/50 transition-colors px-1 -mx-1"
+                    >
                       <div className="text-xs text-ink-muted font-mono select-none shrink-0 w-12 tracking-tight">
                         {formatEntryTime(entry.createdAt)}
                       </div>
@@ -432,37 +433,37 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     </div>
 
                     {isLast && (
-                      /* 點擊文字後跳出的按鈕群（含修改） */
+                      /* 點擊文字後跳出的按鈕群：於文字正下方縮排展開 */
                       <AnimatePresence>
                         {showRowActions && !isAdding && editingEntryId !== entry.id && (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.92, x: 4 }}
-                            animate={{ opacity: 1, scale: 1, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.92, x: 4 }}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
                             transition={{ duration: 0.15 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1.5 select-none shrink-0"
+                            className="pl-15 pt-1 pb-1.5 flex flex-wrap items-center gap-2 select-none"
                           >
                             {isArchivedView ? (
                               <>
                                 <button
                                   type="button"
                                   onClick={() => handleStartEdit(entry)}
-                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                                 >
                                   {UI_TEXT.review.card.editBtn}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleBringBack}
-                                  className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink-secondary hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                                 >
                                   {UI_TEXT.review.card.bringBackBtn}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setShowVanishConfirm(true)}
-                                  className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs"
+                                  className="text-xs font-light text-ink-muted hover:text-red-600 transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-red-500/10 shadow-xs"
                                 >
                                   {UI_TEXT.review.card.makeItVanishBtn}
                                 </button>
@@ -475,21 +476,21 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                     setIsAdding(true);
                                     setShowRowActions(false);
                                   }}
-                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-3 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                                 >
                                   {UI_TEXT.review.addAdditionBtn}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStartEdit(entry)}
-                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink hover:text-ink-primary transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                                 >
                                   {UI_TEXT.review.card.editBtn}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleTuckAway}
-                                  className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
+                                  className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-0.5 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs"
                                   title={UI_TEXT.review.card.tuckAwayBtn}
                                 >
                                   {UI_TEXT.review.card.tuckAwayBtn}
