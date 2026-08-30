@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Pencil, Archive, Trash2, Eye, Plus } from 'lucide-react';
-import { ThoughtThread, EntryType } from '../types';
+import { ThoughtThread, DialogueEntry, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 import { formatEntryTime } from '../utils/dateUtils';
@@ -546,4 +546,3 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
     </div>
   );
 };
-

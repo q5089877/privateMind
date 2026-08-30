@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GeminiProxyClient } from '../logic/geminiProxyClient';
+import { generatePrompts } from '../logic/promptEngine';
 import { UI_TEXT } from '../config/textConfig';
 
 interface ThoughtPromptsProps {
@@ -35,7 +36,8 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       if (!GeminiProxyClient.isConfigured()) {
         if (isMounted) {
           setLoading(false);
-          setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
+          setPrompts(generatePrompts(cleanText).map(prompt => prompt.text));
+          hasLoadedRef.current = true;
         }
         return;
       }
@@ -49,13 +51,15 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
             setOfflineNotice(null);
             hasLoadedRef.current = true; // 鎖定狀態，不再隨打字重新請求
           } else {
-            setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
+            setPrompts(generatePrompts(cleanText).map(prompt => prompt.text));
+            hasLoadedRef.current = true;
           }
         }
       } catch (err) {
         console.warn('[ThoughtPrompts] 連線或生成失敗:', err);
         if (isMounted) {
-          setOfflineNotice(UI_TEXT.promptEngine.offlineNotice);
+          setPrompts(generatePrompts(cleanText).map(prompt => prompt.text));
+          hasLoadedRef.current = true;
         }
       } finally {
         if (isMounted) setLoading(false);

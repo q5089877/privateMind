@@ -8,10 +8,10 @@ export class GeminiProxyClient {
       return (
         (typeof localStorage !== 'undefined' ? localStorage.getItem('CLOUDFLARE_WORKER_URL') : null) ||
         (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_CLOUDFLARE_WORKER_URL : null) ||
-        'https://raspy-bush-9ab5.q5089877.workers.dev'
+        ''
       );
     } catch {
-      return 'https://raspy-bush-9ab5.q5089877.workers.dev';
+      return '';
     }
   }
 
@@ -303,10 +303,4 @@ export class GeminiProxyClient {
     return stemClean === origClean;
   }
 
-  /**
-   * @deprecated
-   */
-  public static async routeThoughtAsync(rawInput: string): Promise<RoutedThought | null> {
-    return null;
-  }
 }

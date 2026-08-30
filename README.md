@@ -23,8 +23,8 @@
 ## 🛠️ 技術架構 (Tech Stack)
 
 * **前端框架**：React + TypeScript + Vite + Tailwind CSS + Framer Motion
-* **儲存策略**：純本機端儲存 (LocalStorage / IndexedDB)，零雲端相依，極致隱私
-* **提示引擎**：本機端焦距提示引擎 (近 / 中 / 遠 句子起手式) + 獨立 Safety Gate
+* **儲存策略**：純本機端儲存（LocalStorage），思緒紀錄不會上傳。
+* **提示引擎**：預設使用本機三焦距提示（近 / 中 / 遠）。若自行設定 Cloudflare Worker 或 Gemini API，才會將目前輸入的一則文字送往該服務取得提示；連線失敗時會自動回到本機提示。
 
 ---
 
