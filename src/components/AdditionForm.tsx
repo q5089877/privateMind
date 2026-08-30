@@ -57,7 +57,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder || UI_TEXT.addition.inputPlaceholder}
-        className="w-full bg-transparent text-ink placeholder:text-ink-muted font-light outline-none resize-none min-h-[48px] text-[15px] sm:text-base leading-relaxed border-none"
+        className="w-full bg-transparent text-ink placeholder:text-ink-muted font-light outline-none resize-none min-h-[44px] text-sm sm:text-base leading-relaxed border-none"
       />
 
       {/* 靜態思考入口展示（支援點擊帶入起手式，完美懸掛縮排） */}
