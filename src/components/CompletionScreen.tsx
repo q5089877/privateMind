@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UI_TEXT } from '../config/textConfig';
 import { ThoughtThread } from '../types';
@@ -25,6 +25,26 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   onAppendEntry
 }) => {
   const [isAdding, setIsAdding] = useState(false);
+  const [showNotice, setShowNotice] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // V7.2 時序：0.25s~0.8s 淡入 -> 0.8s~3.0s 安靜停留 -> 3.0s~3.8s 提示淡出
+  useEffect(() => {
+    timerRef.current = setTimeout(() => {
+      setShowNotice(false);
+    }, 3000);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  // 中斷規則：點擊「＋ 接著說」立即淡出提示並就地展開輸入框
+  const handleStartAdd = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setShowNotice(false);
+    setIsAdding(true);
+  };
 
   if (!thread) return null;
 
@@ -33,15 +53,30 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
 
   return (
     <div className="w-full max-w-xl space-y-4 sm:space-y-5 flex flex-col items-center text-center">
-      {/* 定格字樣：已安放。 */}
-      <div className="flex items-center justify-center pt-2">
-        <p className="text-xl sm:text-2xl font-light text-ink tracking-wide">
-          {ceremonyText}
-        </p>
+      {/* 0.25s~0.8s 淡入，3.0s~3.8s 淡出；提示短暫存在，卡片永久留下 */}
+      <div className="min-h-[32px] flex items-center justify-center pt-2 select-none">
+        <AnimatePresence>
+          {showNotice && !isAdding && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.8 } }}
+              transition={{ delay: 0.25, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="text-lg sm:text-xl font-light text-ink tracking-wide"
+            >
+              {ceremonyText}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* 時間線思緒節點流 */}
-      <div className="w-full p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5">
+      {/* 0.0s~0.25s Entry 落定（卡片永久留下作為確認） */}
+      <motion.div 
+        initial={{ opacity: 0.6, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5"
+      >
         <div className="space-y-3 w-full text-left">
           {thread.entries.map((entry) => (
             <div key={entry.id} className="space-y-1">
@@ -55,7 +90,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           ))}
         </div>
 
-        {/* 停靠時可直接接著說 */}
+        {/* ＋ 接著說…… 就地展開輸入區（Focus 喚起鍵盤） */}
         <AnimatePresence>
           {isAdding && onAppendEntry && (
             <div className="pt-1">
@@ -72,19 +107,19 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
             </div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
-      {/* 底部出口：＋ 接著說…… / 到這裡就好 */}
+      {/* 底部出口：＋ 接著說…… / 到這裡就好（安靜停留，零催促） */}
       <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.3 }}
-        className="w-full flex flex-col items-center gap-1.5 pt-1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25, duration: 0.4 }}
+        className="w-full flex flex-col items-center gap-1.5 pt-1 select-none"
       >
         {!isAdding && onAppendEntry && (
           <button 
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={handleStartAdd}
             className="text-xs sm:text-sm text-ink hover:text-ink-primary font-normal py-1.5 px-4 rounded-full hover:bg-surface-hover transition-colors cursor-pointer active:scale-98"
           >
             {UI_TEXT.completion.exits.addAddition}
@@ -94,7 +129,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         <button 
           type="button"
           onClick={onReset}
-          className="text-xs text-ink-muted hover:text-ink transition-colors py-1 px-3 rounded-full cursor-pointer hover:bg-surface-hover/50 select-none"
+          className="text-xs text-ink-muted/60 hover:text-ink transition-colors py-1 px-3 rounded-full cursor-pointer hover:bg-surface-hover/50 font-light"
         >
           {UI_TEXT.completion.exits.backHome}
         </button>

@@ -26,8 +26,8 @@ export const UI_TEXT = {
   // 【03｜停靠完成狀態】
   completion: {
     ceremony: {
-      deposit: '已安放。',
-      unspoken: '已安放。'
+      deposit: '放在這裡了。',
+      unspoken: '放在這裡了。'
     },
     exits: {
       addAddition: '＋ 接著說……',

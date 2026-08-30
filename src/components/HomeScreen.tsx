@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHaptic } from '../utils/haptics';
-import { UI_TEXT } from '../config/textConfig';
+import { UI_TEXT, CORE_PHILOSOPHY } from '../config/textConfig';
 
 interface HomeScreenProps {
   onStartInput: (text: string) => void;
@@ -50,22 +50,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     };
   }, []);
 
+  // 0.0s 點擊「停靠」：立即 dismiss 鍵盤並解除 focus，原文字 0.0s~0.25s 落下
   const handleContinue = () => {
     if (!inputText.trim() || isSinking) return;
+    textareaRef.current?.blur();
     triggerHaptic('settle');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onStartInput(inputText);
-    }, 1400);
+    }, 250);
   };
 
   const handleSayNothing = () => {
     if (isSinking) return;
+    textareaRef.current?.blur();
     triggerHaptic('settle');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       onSayNothing?.();
-    }, 1400);
+    }, 250);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -77,7 +80,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
 
   return (
     <div className={`w-full max-w-[690px] flex flex-col items-center ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
-      {/* 頂部右上角：弱化次要入口「回來看看」 */}
+      {/* 頂部右上角：弱化次要入口「再次相遇」 */}
       <div className="w-full flex justify-end pb-6 sm:pb-10 select-none">
         <button
           type="button"
@@ -92,11 +95,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       </div>
 
       {/* 主工作區：垂直居中偏上，大氣留白 */}
-      <div className="w-full flex flex-col items-center text-center space-y-6 sm:space-y-8 pt-2 sm:pt-4">
-        {/* 標題：沉穩墨黑 */}
-        <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-ink select-none">
-          {UI_TEXT.home.title}
-        </h1>
+      <div className="w-full flex flex-col items-center text-center space-y-5 sm:space-y-7 pt-2 sm:pt-4">
+        {/* 標題與核心免責許可副標 */}
+        <div className="space-y-1.5 select-none">
+          <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-ink">
+            {UI_TEXT.home.title}
+          </h1>
+          <p className="text-xs sm:text-sm text-ink-muted/80 font-light tracking-wide">
+            {CORE_PHILOSOPHY.motto}
+          </p>
+        </div>
 
         {/* 無邊界多行輸入區：大行距、無底線、紙張包容感 */}
         <div className="w-full relative px-2">
