@@ -110,47 +110,52 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
       exit={{ opacity: 0 }}
       className="w-full max-w-[672px] mx-auto pb-28 relative select-text"
     >
-      {/* 07｜去管理化時間線頂部導航 */}
-      <header className="sticky top-0 bg-canvas/95 backdrop-blur-md py-3 z-20 flex items-center justify-between border-b border-border-base mb-6 select-none">
+      <header className="sticky top-0 bg-transparent backdrop-blur-sm py-3 z-20 mb-4 select-none px-1">
         {isViewingArchived ? (
-          /* 【已收起空間】頂部：< 回去 / 標題 */
-          <div className="flex items-center gap-3">
+          /* 【已收起空間】三欄：左返回 / 中標題 / 右空白 */
+          <div className="grid grid-cols-3 items-center w-full">
             <button
               type="button"
               onClick={() => setIsViewingArchived(false)}
-              className="p-1.5 text-ink-muted hover:text-ink transition-colors cursor-pointer rounded-full flex items-center gap-1.5 text-xs sm:text-sm font-light"
+              className="p-1.5 text-ink-muted hover:text-ink transition-colors cursor-pointer rounded-full flex items-center gap-1.5 text-xs sm:text-sm font-light justify-self-start"
             >
               <ArrowLeft size={15} />
               <span>{UI_TEXT.hiddenSpace.backBtn.replace('←', '').trim()}</span>
             </button>
-            <span className="text-xs sm:text-sm font-medium text-ink">
+            <span className="text-xs sm:text-sm font-medium text-ink text-center justify-self-center">
               {UI_TEXT.hiddenSpace.title}
             </span>
+            <div />
           </div>
         ) : (
-          /* 【正常時間線】頂部：← 回首頁 */
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-ink-muted hover:text-ink transition-colors rounded-full cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm font-light select-none"
-            title={UI_TEXT.review.backHome}
-          >
-            <ArrowLeft size={15} />
-            <span className="text-ink-secondary hover:text-ink">{UI_TEXT.review.backHome}</span>
-          </button>
-        )}
-
-        {/* 右側：淡淡的「已收起」按鈕 */}
-        {!isViewingArchived && (
-          <button
-            type="button"
-            onClick={() => setIsViewingArchived(true)}
-            className="px-3 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base hover:border-border-focus rounded-full bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
-          >
-            {UI_TEXT.hiddenSpace.title}
-          </button>
+          /* 【正常時間線】左返回 / 右已收起 */
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-ink-muted hover:text-ink transition-colors rounded-full cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm font-light select-none"
+              title={UI_TEXT.review.backHome}
+            >
+              <ArrowLeft size={15} />
+              <span className="text-ink-secondary hover:text-ink">{UI_TEXT.review.backHome}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsViewingArchived(true)}
+              className="px-3 py-1 text-xs font-normal text-ink-secondary hover:text-ink border border-border-base hover:border-border-focus rounded-full bg-transparent transition-colors cursor-pointer active:scale-[0.98]"
+            >
+              {UI_TEXT.hiddenSpace.title}
+            </button>
+          </div>
         )}
       </header>
+
+      {/* 頁面標題：定向錨點，非 sticky，僅正常時間線顯示 */}
+      {!isViewingArchived && (
+        <div className="mb-5 select-none">
+          <h1 className="text-lg font-medium text-ink tracking-tight">思緒紀錄</h1>
+        </div>
+      )}
 
       {/* 07｜自然日期流動排版（帶極淡時間軸微結構與緊湊節奏） */}
       <div className="space-y-7 sm:space-y-8">
@@ -172,7 +177,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                 </div>
 
                 {/* 極淡垂直時間軸線（串聯零碎思緒，緊湊排版） */}
-                <div className="border-l border-border-base pl-3.5 sm:pl-4 ml-0.5 space-y-3 sm:space-y-3.5">
+                <div className="border-l border-border-base pl-3.5 sm:pl-4 ml-0.5 space-y-2">
                   <AnimatePresence mode="popLayout">
                     {group.threads.map((thread, idx) => {
                       const itemIdx = globalCount++;

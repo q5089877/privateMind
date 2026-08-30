@@ -54,6 +54,8 @@
 html {
   font-size: 19.2px; /* 16px * 1.2 = 19.2px (全域排版等比放大 120%) */
   background-color: var(--canvas);
+  background-image: radial-gradient(ellipse at 50% 38%, #EEF2EE 0%, #F8F9FA 68%);
+  background-attachment: fixed;
   color: var(--ink-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

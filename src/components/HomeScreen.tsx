@@ -101,7 +101,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       <div className="w-full flex flex-col items-center text-center space-y-5 sm:space-y-7 pt-2 sm:pt-4">
         {/* 標題與核心免責許可副標（沉降時 0.3s 率先散去） */}
         <div className={`space-y-1.5 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
-          <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-ink">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink">
             {UI_TEXT.home.title}
           </h1>
           <p className="text-xs sm:text-sm text-ink-muted/80 font-light tracking-wide">
@@ -118,7 +118,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isSinking ? '' : UI_TEXT.home.inputPlaceholder}
-            className="w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-none"
+            className="w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-0 border-b border-border-base focus:border-ink-muted transition-colors duration-300"
             autoFocus
           />
         </div>
@@ -149,7 +149,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
                 exit={{ opacity: 0, y: 4, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 onClick={handleContinue}
-                className="px-8 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-base font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs"
+                className="px-6 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-base font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs"
               >
                 {UI_TEXT.home.submit}
               </motion.button>

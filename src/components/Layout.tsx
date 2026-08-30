@@ -11,7 +11,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showSupportModal, setShowSupportModal] = useState(false);
 
   return (
-    <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans selection:bg-accent/15 selection:text-ink">
+    <div className="min-h-screen bg-transparent text-ink flex flex-col font-sans selection:bg-accent/15 selection:text-ink">
       <main className="flex-grow flex flex-col items-center px-4 sm:px-6 max-w-[800px] mx-auto w-full py-6 sm:py-10">
         <div className="flex-grow flex flex-col items-center pt-8 sm:pt-16 w-full">
           {children}

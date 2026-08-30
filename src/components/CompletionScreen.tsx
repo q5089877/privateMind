@@ -75,7 +75,8 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         initial={{ opacity: 0, scale: 0.88, y: -12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5"
+        className="w-full p-4 sm:p-5 rounded-2xl bg-surface-subtle border border-border-base text-left space-y-3.5 shadow-sm"
+        style={{ borderLeftColor: 'rgba(75,95,85,0.45)', borderLeftWidth: '2px' }}
       >
         <div className="space-y-3 w-full text-left">
           {thread.entries.map((entry) => (
@@ -116,6 +117,20 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
         transition={{ delay: 0.25, duration: 0.4 }}
         className="w-full flex flex-col items-center gap-1.5 pt-1 select-none"
       >
+        {/* 儀式文字消失後的靜態定向提示 */}
+        <AnimatePresence>
+          {!showNotice && !isAdding && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, ease: 'easeIn' }}
+              className="text-xs text-ink-muted font-light tracking-wide mb-1"
+            >
+              已記下。可以繼續，也可以就這樣。
+            </motion.p>
+          )}
+        </AnimatePresence>
+
         {!isAdding && onAppendEntry && (
           <button 
             type="button"
