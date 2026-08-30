@@ -13,19 +13,27 @@ export interface RoutedThought {
 
 export class GeminiProxyClient {
   private static getProxyUrl(): string {
-    return (
-      localStorage.getItem('CLOUDFLARE_WORKER_URL') ||
-      import.meta.env.VITE_CLOUDFLARE_WORKER_URL ||
-      'https://raspy-bush-9ab5.q5089877.workers.dev'
-    );
+    try {
+      return (
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('CLOUDFLARE_WORKER_URL') : null) ||
+        (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_CLOUDFLARE_WORKER_URL : null) ||
+        'https://raspy-bush-9ab5.q5089877.workers.dev'
+      );
+    } catch {
+      return 'https://raspy-bush-9ab5.q5089877.workers.dev';
+    }
   }
 
   private static getApiKey(): string {
-    return (
-      localStorage.getItem('GEMINI_API_KEY') ||
-      import.meta.env.VITE_GEMINI_API_KEY ||
-      ''
-    );
+    try {
+      return (
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('GEMINI_API_KEY') : null) ||
+        (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY : null) ||
+        ''
+      );
+    } catch {
+      return '';
+    }
   }
 
   public static isConfigured(): boolean {
@@ -160,27 +168,7 @@ export class GeminiProxyClient {
           return [];
         }
 
-        let candidates: string[] = [];
-        try {
-          const parsed = JSON.parse(text);
-          if (Array.isArray(parsed)) {
-            candidates = parsed;
-          } else if (Array.isArray(parsed?.stems)) {
-            candidates = parsed.stems;
-          } else if (typeof parsed === 'object' && parsed !== null) {
-            const values = Object.values(parsed);
-            for (const v of values) {
-              if (Array.isArray(v)) {
-                candidates = v as string[];
-                break;
-              }
-            }
-          }
-        } catch (parseErr) {
-          console.warn('[GeminiProxyClient] JSON 解析失敗:', parseErr, text);
-          if (attempt === 1) continue;
-          return [];
-        }
+        const candidates = this.extractStemsFromRawText(text);
 
         // ---------- Stage 3 + 4：規則驗證 + 去重 + 最終選取 ----------
         const result = this.filterAndSelectStems(candidates, cleanText);
@@ -195,6 +183,44 @@ export class GeminiProxyClient {
     }
 
     return [];
+  }
+
+  /**
+   * 容錯解析器：優先標準 JSON 解析，若模型輸出非標準引號或格式則走強健行抽取
+   */
+  private static extractStemsFromRawText(text: string): string[] {
+    // 1. 標準 JSON 嘗試
+    try {
+      const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.stems)) return parsed.stems;
+      if (typeof parsed === 'object' && parsed !== null) {
+        for (const v of Object.values(parsed)) {
+          if (Array.isArray(v)) return v as string[];
+        }
+      }
+    } catch {
+      // 容錯進入正則行提取
+    }
+
+    // 2. 備用：逐行正則抽取清洗
+    const lines = text.split('\n');
+    const extracted: string[] = [];
+
+    for (const line of lines) {
+      let s = line.trim();
+      // 移除開頭符號
+      s = s.replace(/^[\[\],"'“”‘’\s\d.、/·\-*「]+/, '').trim();
+      // 移除結尾符號
+      s = s.replace(/["'“”‘’\[\],，;\s」]+$/, '').trim();
+
+      if (s.length >= 4) {
+        extracted.push(s);
+      }
+    }
+
+    return extracted;
   }
 
   /**
