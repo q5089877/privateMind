@@ -143,7 +143,7 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             : { y: 0, opacity: 1, scale: 1 }
         }
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-        className="relative select-text transition-colors rounded-2xl py-2 px-3 bg-surface shadow-sm border border-border-subtle hover:shadow-md hover:border-border-base transition-shadow duration-200"
+        className="relative select-text transition-all duration-200 rounded-2xl py-2 px-3 bg-surface shadow-sm border border-border-subtle hover:shadow-md hover:border-border-base"
       >
         {/* 讓它消失 二度確認 Modal */}
         <AnimatePresence>
