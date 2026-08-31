@@ -8,6 +8,8 @@ import { Eye, ArrowLeftRight, Clock, Target, Compass } from 'lucide-react';
 interface ThoughtPromptsProps {
   contextText?: string;
   onSelectPrompt?: (text: string) => void;
+  onSelectOperation?: (operation: ThoughtOperation) => void;
+  compact?: boolean;
 }
 
 const getOperationIcon = (type: ThoughtOperation['type']) => {
@@ -27,7 +29,9 @@ const getOperationIcon = (type: ThoughtOperation['type']) => {
 
 export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
   contextText,
-  onSelectPrompt
+  onSelectPrompt,
+  onSelectOperation,
+  compact = false
 }) => {
   const [operations, setOperations] = useState<ThoughtOperation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -152,15 +156,16 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
             transition={{ duration: 0.25 }}
             className="space-y-1.5 pt-0.5"
           >
-            <div className="text-[11px] text-ink-muted/65 font-light tracking-wider mb-1">
-              思維操作入口：
-            </div>
+            {!compact && <div className="text-[11px] text-ink-muted/65 font-light tracking-wider mb-1">思維操作入口：</div>}
             <div className="grid grid-cols-1 gap-1.5">
               {operations.map((op, idx) => (
                 <button
                   key={`op-card-${idx}`}
                   type="button"
-                  onClick={() => onSelectPrompt?.(op.actionPrompt)}
+                  onClick={() => {
+                    onSelectOperation?.(op);
+                    onSelectPrompt?.(op.actionPrompt);
+                  }}
                   className="w-full text-left p-2.5 rounded-xl border border-border-subtle bg-surface/70 hover:bg-surface hover:border-border-base transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-2xs flex flex-col gap-0.5"
                   title="點擊帶入此操作視角"
                 >

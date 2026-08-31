@@ -100,7 +100,7 @@ export class FlowEngine {
     this.state = 'PRESENT_SETTLED';
   }
 
-  public async appendEntry(threadId: string, content: string, type: EntryType = 'thought') {
+  public async appendEntry(threadId: string, content: string, type: EntryType = 'thought', trayId?: string) {
     if (!content.trim()) return;
     const threads = await this.storage.getThreads();
     const target = threads.find(t => t.id === threadId);
@@ -113,7 +113,8 @@ export class FlowEngine {
       threadId,
       createdAt: now,
       content: content.trim(),
-      type
+      type,
+      trayId
     };
 
     target.entries.push(newEntry);
@@ -127,6 +128,53 @@ export class FlowEngine {
     await this.storage.updateThread(target);
     if (this.currentThread?.id === threadId) {
       this.currentThread = { ...target };
+      this.notify();
+    }
+  }
+
+  /**
+   * 建立未命名托盤（Piles）
+   */
+  public async createTray(threadId: string, name?: string): Promise<string> {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return '';
+
+    const trayId = this.generateId('tray');
+    if (!target.trays) {
+      target.trays = [];
+    }
+    target.trays.push({
+      id: trayId,
+      name,
+      createdAt: Date.now()
+    });
+    target.updatedAt = Date.now();
+
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) {
+      this.currentThread = { ...target };
+    }
+    this.notify();
+    return trayId;
+  }
+
+  /**
+   * 移動 Entry 至指定托盤（trayId 為 undefined 代表回到預設堆）
+   */
+  public async moveEntryToTray(threadId: string, entryId: string, trayId: string | undefined): Promise<void> {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    const entry = target.entries.find(e => e.id === entryId);
+    if (entry) {
+      entry.trayId = trayId;
+      target.updatedAt = Date.now();
+      await this.storage.updateThread(target);
+      if (this.currentThread?.id === threadId) {
+        this.currentThread = { ...target };
+      }
       this.notify();
     }
   }

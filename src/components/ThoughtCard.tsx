@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Pencil, Archive, Copy, Wind, Eye, Plus } from 'lucide-react';
+import { Pencil, Archive, Copy, Wind, Eye, Plus, Layers, ArrowRightLeft } from 'lucide-react';
 import { ThoughtThread, DialogueEntry, EntryType } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
@@ -15,6 +15,8 @@ interface ThoughtCardProps {
   onRestore?: () => void;
   onAppend: (content: string, type: EntryType) => void | Promise<void>;
   onEdit?: (entryId: string, content: string) => void;
+  onCreateTray?: (threadId: string) => Promise<string>;
+  onMoveEntryToTray?: (threadId: string, entryId: string, trayId: string | undefined) => void;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({
@@ -24,7 +26,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onArchive,
   onRestore,
   onAppend,
-  onEdit
+  onEdit,
+  onCreateTray,
+  onMoveEntryToTray
 }) => {
   // 06｜三明治結構：預設折疊中間內容
   const [isExpanded, setIsExpanded] = useState(false);
@@ -35,10 +39,37 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [showRowActions, setShowRowActions] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
+  const [activeTrayFilter, setActiveTrayFilter] = useState<'all' | string>('all');
+  const [showMoveMenuForEntryId, setShowMoveMenuForEntryId] = useState<string | null>(null);
 
-  const entries = thread.entries || [];
+  const trays = thread.trays || [];
+  const rawEntries = thread.entries || [];
+
+  // 根據所選托盤過濾 Entries（'all' 顯示全部）
+  const entries = activeTrayFilter === 'all'
+    ? rawEntries
+    : activeTrayFilter === 'default'
+      ? rawEntries.filter(e => !e.trayId)
+      : rawEntries.filter(e => e.trayId === activeTrayFilter);
+
   const totalEntries = entries.length;
-  const isSandwich = totalEntries > 2 && !isExpanded;
+  const isSandwich = totalEntries > 2 && !isExpanded && activeTrayFilter === 'all';
+
+  const handleCreateNewTray = async () => {
+    if (!onCreateTray) return;
+    triggerHaptic('step');
+    const newTrayId = await onCreateTray(thread.id);
+    if (newTrayId) {
+      setActiveTrayFilter(newTrayId);
+    }
+  };
+
+  const handleMoveEntry = (entryId: string, trayId: string | undefined) => {
+    triggerHaptic('step');
+    onMoveEntryToTray?.(thread.id, entryId, trayId);
+    setShowMoveMenuForEntryId(null);
+    setShowRowActions(false);
+  };
 
   const handleRowClick = () => {
     if (isAdding || editingEntryId) return;
@@ -165,6 +196,66 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 托盤分堆導航列（若已有多個托盤，或使用者點擊分堆時呈現） */}
+        {(trays.length > 0) && (
+          <div className="flex items-center gap-1.5 pb-2 mb-2 border-b border-border-subtle/60 overflow-x-auto no-scrollbar select-none">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('step');
+                setActiveTrayFilter('all');
+              }}
+              className={`px-2.5 py-0.5 rounded-full text-xs font-light transition-colors cursor-pointer ${
+                activeTrayFilter === 'all'
+                  ? 'bg-accent/15 text-ink font-normal'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+              }`}
+            >
+              全部 ({rawEntries.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('step');
+                setActiveTrayFilter('default');
+              }}
+              className={`px-2.5 py-0.5 rounded-full text-xs font-light transition-colors cursor-pointer ${
+                activeTrayFilter === 'default'
+                  ? 'bg-accent/15 text-ink font-normal'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+              }`}
+            >
+              未分堆 ({rawEntries.filter(e => !e.trayId).length})
+            </button>
+            {trays.map((tray, tIdx) => (
+              <button
+                key={tray.id}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('step');
+                  setActiveTrayFilter(tray.id);
+                }}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-light transition-colors cursor-pointer ${
+                  activeTrayFilter === tray.id
+                    ? 'bg-accent/15 text-ink font-normal'
+                    : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+                }`}
+              >
+                {tray.name || `第 ${tIdx + 1} 堆`} ({rawEntries.filter(e => e.trayId === tray.id).length})
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={handleCreateNewTray}
+              className="px-2 py-0.5 text-xs text-ink-muted hover:text-ink hover:bg-surface-hover rounded-full transition-colors cursor-pointer flex items-center gap-1 shrink-0 ml-auto"
+              title="再分一堆"
+            >
+              <Plus size={11} strokeWidth={1.5} />
+              <span>再放一堆</span>
+            </button>
+          </div>
+        )}
 
         {/* 時間線思緒內容（點擊整列切換浮現按鈕） */}
         <div className="space-y-0.5">
@@ -479,6 +570,66 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                   <Pencil size={11} strokeWidth={1.5} className="text-ink-muted" />
                                   <span>{UI_TEXT.review.card.editBtn}</span>
                                 </button>
+                                {/* 托盤分堆入口 */}
+                                {trays.length === 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleCreateNewTray}
+                                    className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                                    title="將思緒分堆"
+                                  >
+                                    <Layers size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                    <span>分一堆</span>
+                                  </button>
+                                ) : (
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowMoveMenuForEntryId(prev => prev === entry.id ? null : entry.id)}
+                                      className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
+                                    >
+                                      <ArrowRightLeft size={11} strokeWidth={1.5} className="text-ink-muted" />
+                                      <span>移至…</span>
+                                    </button>
+
+                                    {showMoveMenuForEntryId === entry.id && (
+                                      <div className="absolute left-0 bottom-full mb-1 bg-surface border border-border-base rounded-xl shadow-md py-1 px-1 z-20 min-w-[110px] space-y-0.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMoveEntry(entry.id, undefined)}
+                                          className={`w-full text-left px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                                            !entry.trayId ? 'bg-accent/15 text-ink font-medium' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+                                          }`}
+                                        >
+                                          未分堆
+                                        </button>
+                                        {trays.map((t, idx) => (
+                                          <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => handleMoveEntry(entry.id, t.id)}
+                                            className={`w-full text-left px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                                              entry.trayId === t.id ? 'bg-accent/15 text-ink font-medium' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+                                            }`}
+                                          >
+                                            {t.name || `第 ${idx + 1} 堆`}
+                                          </button>
+                                        ))}
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            const newId = await onCreateTray?.(thread.id);
+                                            if (newId) handleMoveEntry(entry.id, newId);
+                                          }}
+                                          className="w-full text-left px-2.5 py-1 text-xs text-accent hover:bg-accent/10 rounded-lg transition-colors flex items-center gap-1"
+                                        >
+                                          <Plus size={10} />
+                                          <span>新的一堆</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => void handleCopyThread()}

@@ -32,6 +32,15 @@ export const UI_TEXT = {
       deposit: '放在這裡了。',
       unspoken: '放在這裡了。'
     },
+    desk: {
+      title: '思緒桌面',
+      hint: '先看見它們。想換個看法時，再選一個角度。',
+      perspectiveBtn: '換個看法',
+      resetPerspective: '回到全部',
+      perspectiveActive: '正在用這個角度看',
+      writingHint: '這只是看法，不是答案。',
+      operationHint: '選一個角度；內容不會被改動。'
+    },
     exits: {
       addAddition: '＋ 接著說……',
       backHome: '到這裡就好'
@@ -89,7 +98,7 @@ export const UI_TEXT = {
   // 【02, 05, 14, 15, 16｜AI 入口與提示引擎】
   promptEngine: {
     entryBtn: '沒想法的話，換個角度看看',
-    loading: '思考入口生成中……',
+    loading: '正在整理幾個可看的角度……',
     offlineNotice: '目前離線中，先留給自己慢慢寫……',
     focalLengths: {
       near: '近｜焦點伸展',
@@ -152,8 +161,8 @@ export const CORE_PHILOSOPHY = {
     '可以停靠。',
     '可以什麼都不做。',
     '可以接著說。',
-    '沒想法時，可以叫 AI 給你幾個入口。',
-    'AI 只給入口，不替你走。',
+    '沒想法時，可以換一個角度看。',
+    'AI 只提供操作，不替你下結論。',
     '內容可以一直留著。',
     '不想看了，可以收起來。',
     '真的不要了，才讓它消失。',

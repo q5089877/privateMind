@@ -95,6 +95,27 @@ export function useThoughts() {
     fetch();
   }, [engine, fetch]);
 
+  const handleCreateTray = useCallback(async (threadId: string, name?: string) => {
+    const trayId = await engine.createTray(threadId, name);
+    fetch();
+    return trayId;
+  }, [engine, fetch]);
+
+  const handleMoveEntryToTray = useCallback(async (threadId: string, entryId: string, trayId: string | undefined) => {
+    setThreads(prev => prev.map(t => {
+      if (t.id === threadId) {
+        return {
+          ...t,
+          entries: t.entries.map(e => e.id === entryId ? { ...e, trayId } : e),
+          updatedAt: Date.now()
+        };
+      }
+      return t;
+    }));
+    await engine.moveEntryToTray(threadId, entryId, trayId);
+    fetch();
+  }, [engine, fetch]);
+
   return {
     activeThreads,
     archivedThreads,
@@ -106,6 +127,8 @@ export function useThoughts() {
     handleAppend,
     handleEdit,
     handleSetCurrentAction,
+    handleCreateTray,
+    handleMoveEntryToTray,
     refresh: fetch
   };
 }

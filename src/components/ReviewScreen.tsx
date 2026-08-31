@@ -40,7 +40,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
 
   const {
     activeThreads, archivedThreads, loading,
-    handleDelete, handleArchive, handleRestore, handleAppend, handleEdit
+    handleDelete, handleArchive, handleRestore, handleAppend, handleEdit,
+    handleCreateTray, handleMoveEntryToTray
   } = useThoughts();
 
   const onDeleteClick = (id: string) => {
@@ -247,6 +248,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ onClose }) => {
                             onRestore={() => onRestoreClick(thread.id)}
                             onAppend={(content, type) => handleAppend(thread.id, content, type)}
                             onEdit={(entryId, content) => handleEdit(thread.id, entryId, content)}
+                            onCreateTray={handleCreateTray}
+                            onMoveEntryToTray={handleMoveEntryToTray}
                           />
                         </motion.div>
                       );
