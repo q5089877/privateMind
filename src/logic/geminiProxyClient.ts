@@ -14,13 +14,15 @@ export interface PileAnalysis {
   observations: string[];
 }
 
+const GEMINI_MODEL = 'gemini-3.6-flash';
+
 export class GeminiProxyClient {
   private static getProxyUrl(): string {
     try {
       return (
         (typeof localStorage !== 'undefined' ? localStorage.getItem('CLOUDFLARE_WORKER_URL') : null) ||
         (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_CLOUDFLARE_WORKER_URL : null) ||
-        ''
+        'https://raspy-bush-9ab5.q5089877.workers.dev'
       );
     } catch {
       return '';
@@ -52,13 +54,14 @@ export class GeminiProxyClient {
     if (!proxyUrl && !apiKey) return empty;
 
     const payload = {
+      model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: `以下是使用者自己分出的、尚未命名的思緒堆：\n${JSON.stringify(usablePiles)}\n\n請只根據每堆裡的原文，回傳 JSON：{"piles":[{"id":"...","label":"..."}],"observations":["..."]}。每堆給一個 2～8 字的暫時堆名；觀察最多兩句，只能描述已分出的堆之間明顯存在的結構。禁止診斷、揣測情緒或人格、給建議、使用問句、使用「你」。若沒有可靠觀察，observations 回傳空陣列。`.trim() }] }],
       generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
     };
     try {
       const response = proxyUrl
         ? await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!response.ok) return empty;
       const data = await response.json();
       const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
@@ -155,6 +158,7 @@ export class GeminiProxyClient {
     };
 
     const payload = {
+      model: GEMINI_MODEL,
       contents: [
         {
           role: 'user',
@@ -189,7 +193,7 @@ export class GeminiProxyClient {
         if (!response.ok) throw new Error(`Proxy error: ${response.statusText}`);
         data = await response.json();
       } else {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
