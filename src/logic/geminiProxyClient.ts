@@ -9,6 +9,11 @@ export interface ThoughtOperation {
   actionPrompt: string;  // 點擊後帶入輸入框的起手文字 (例如: "如果先不看工作，我身體真正的感覺是……")
 }
 
+export interface PileAnalysis {
+  labels: Record<string, string>;
+  observations: string[];
+}
+
 export class GeminiProxyClient {
   private static getProxyUrl(): string {
     try {
@@ -36,6 +41,40 @@ export class GeminiProxyClient {
 
   public static isConfigured(): boolean {
     return !!(this.getProxyUrl().trim() || this.getApiKey().trim());
+  }
+
+  public static async analyzePilesAsync(piles: Array<{ id: string; items: string[] }>): Promise<PileAnalysis> {
+    const usablePiles = piles.filter(pile => pile.items.length > 0);
+    if (usablePiles.length < 2) return { labels: {}, observations: [] };
+    const empty: PileAnalysis = { labels: {}, observations: [] };
+    const proxyUrl = this.getProxyUrl();
+    const apiKey = this.getApiKey();
+    if (!proxyUrl && !apiKey) return empty;
+
+    const payload = {
+      contents: [{ role: 'user', parts: [{ text: `以下是使用者自己分出的、尚未命名的思緒堆：\n${JSON.stringify(usablePiles)}\n\n請只根據每堆裡的原文，回傳 JSON：{"piles":[{"id":"...","label":"..."}],"observations":["..."]}。每堆給一個 2～8 字的暫時堆名；觀察最多兩句，只能描述已分出的堆之間明顯存在的結構。禁止診斷、揣測情緒或人格、給建議、使用問句、使用「你」。若沒有可靠觀察，observations 回傳空陣列。`.trim() }] }],
+      generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
+    };
+    try {
+      const response = proxyUrl
+        ? await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!response.ok) return empty;
+      const data = await response.json();
+      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+      const ids = new Set(usablePiles.map(pile => pile.id));
+      const forbidden = ['你', '焦慮', '憂鬱', '心理', '應該', '建議', '?', '？'];
+      const labels = Object.fromEntries((Array.isArray(parsed.piles) ? parsed.piles : [])
+        .filter((pile: any) => ids.has(pile.id) && typeof pile.label === 'string' && pile.label.trim() && pile.label.trim().length <= 12)
+        .map((pile: any) => [pile.id, pile.label.trim()]));
+      const observations = (Array.isArray(parsed.observations) ? parsed.observations : [])
+        .filter((item: unknown) => typeof item === 'string' && item.trim() && !forbidden.some(word => item.includes(word)))
+        .slice(0, 2)
+        .map((item: string) => item.trim());
+      return { labels, observations };
+    } catch {
+      return empty;
+    }
   }
 
   /**
@@ -150,7 +189,7 @@ export class GeminiProxyClient {
         if (!response.ok) throw new Error(`Proxy error: ${response.statusText}`);
         data = await response.json();
       } else {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -195,4 +234,3 @@ export class GeminiProxyClient {
     return ops.map((op) => op.actionPrompt);
   }
 }
-

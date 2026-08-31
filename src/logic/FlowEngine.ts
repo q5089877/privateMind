@@ -159,6 +159,21 @@ export class FlowEngine {
     return trayId;
   }
 
+  /** 分流畫面固定提供四個暫時、無名稱的思緒格。 */
+  public async ensureTrays(threadId: string, count: number = 4): Promise<void> {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+    target.trays = target.trays || [];
+    while (target.trays.length < count) {
+      target.trays.push({ id: this.generateId('tray'), createdAt: Date.now() });
+    }
+    target.updatedAt = Date.now();
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) this.currentThread = { ...target };
+    this.notify();
+  }
+
   /**
    * 移動 Entry 至指定托盤（trayId 為 undefined 代表回到預設堆）
    */
@@ -177,6 +192,20 @@ export class FlowEngine {
       }
       this.notify();
     }
+  }
+
+  /** 儲存 AI 對使用者已分好之思緒堆的暫時閱讀。 */
+  public async savePileAnalysis(threadId: string, labels: Record<string, string>, observations: string[]): Promise<void> {
+    const threads = await this.storage.getThreads();
+    const target = threads.find(t => t.id === threadId);
+    if (!target) return;
+
+    target.trays = target.trays?.map(tray => ({ ...tray, aiLabel: labels[tray.id] || tray.aiLabel }));
+    target.pileObservations = observations.slice(0, 2);
+    target.updatedAt = Date.now();
+    await this.storage.updateThread(target);
+    if (this.currentThread?.id === threadId) this.currentThread = { ...target };
+    this.notify();
   }
 
   /**
@@ -273,4 +302,3 @@ export class FlowEngine {
       : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
 }
-

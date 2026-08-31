@@ -6,6 +6,7 @@ import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 import { formatEntryTime } from '../utils/dateUtils';
 import { AdditionForm } from './AdditionForm';
+import { GeminiProxyClient } from '../logic/geminiProxyClient';
 
 interface ThoughtCardProps {
   thread: ThoughtThread;
@@ -16,7 +17,9 @@ interface ThoughtCardProps {
   onAppend: (content: string, type: EntryType) => void | Promise<void>;
   onEdit?: (entryId: string, content: string) => void;
   onCreateTray?: (threadId: string) => Promise<string>;
-  onMoveEntryToTray?: (threadId: string, entryId: string, trayId: string | undefined) => void;
+  onMoveEntryToTray?: (threadId: string, entryId: string, trayId: string | undefined) => void | Promise<void>;
+  onSavePileAnalysis?: (threadId: string, labels: Record<string, string>, observations: string[]) => Promise<void>;
+  onStartSorting?: (threadId: string) => Promise<void>;
 }
 
 export const ThoughtCard: React.FC<ThoughtCardProps> = ({
@@ -28,7 +31,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   onAppend,
   onEdit,
   onCreateTray,
-  onMoveEntryToTray
+  onMoveEntryToTray,
+  onSavePileAnalysis,
+  onStartSorting
 }) => {
   // 06｜三明治結構：預設折疊中間內容
   const [isExpanded, setIsExpanded] = useState(false);
@@ -41,6 +46,10 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const [exitDirection, setExitDirection] = useState<'sink' | 'float' | null>(null);
   const [activeTrayFilter, setActiveTrayFilter] = useState<'all' | string>('all');
   const [showMoveMenuForEntryId, setShowMoveMenuForEntryId] = useState<string | null>(null);
+  const [isAnalyzingPiles, setIsAnalyzingPiles] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
+  const [isSorting, setIsSorting] = useState(false);
+  const [draggingEntryId, setDraggingEntryId] = useState<string | null>(null);
 
   const trays = thread.trays || [];
   const rawEntries = thread.entries || [];
@@ -55,20 +64,48 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const totalEntries = entries.length;
   const isSandwich = totalEntries > 2 && !isExpanded && activeTrayFilter === 'all';
 
-  const handleCreateNewTray = async () => {
+  const handleCreateNewTray = async (entryId?: string) => {
     if (!onCreateTray) return;
     triggerHaptic('step');
     const newTrayId = await onCreateTray(thread.id);
     if (newTrayId) {
+      if (entryId) onMoveEntryToTray?.(thread.id, entryId, newTrayId);
       setActiveTrayFilter(newTrayId);
     }
   };
 
-  const handleMoveEntry = (entryId: string, trayId: string | undefined) => {
+  const handleMoveEntry = async (entryId: string, trayId: string | undefined) => {
     triggerHaptic('step');
-    onMoveEntryToTray?.(thread.id, entryId, trayId);
+    await onMoveEntryToTray?.(thread.id, entryId, trayId);
     setShowMoveMenuForEntryId(null);
     setShowRowActions(false);
+  };
+
+  const startSorting = async () => {
+    if (!onStartSorting) return;
+    await onStartSorting(thread.id);
+    setIsSorting(true);
+  };
+
+  const handleAnalyzePiles = async () => {
+    if (isAnalyzingPiles || !onSavePileAnalysis) return;
+    const piles = trays.map(tray => ({ id: tray.id, items: rawEntries.filter(entry => entry.trayId === tray.id).map(entry => entry.content) })).filter(pile => pile.items.length > 0);
+    if (piles.length < 2) {
+      setAnalysisMessage('需要至少兩堆都有內容，才能讀出它們之間的關係。');
+      return;
+    }
+    if (!GeminiProxyClient.isConfigured()) {
+      setAnalysisMessage('AI 目前沒有連上；先保留這些思緒在這裡。');
+      return;
+    }
+    setIsAnalyzingPiles(true);
+    setAnalysisMessage(null);
+    const analysis = await GeminiProxyClient.analyzePilesAsync(piles);
+    await onSavePileAnalysis(thread.id, analysis.labels, analysis.observations);
+    if (Object.keys(analysis.labels).length === 0 && analysis.observations.length === 0) {
+      setAnalysisMessage('這次沒有讀出合適的說法；原本的分堆仍留在這裡。');
+    }
+    setIsAnalyzingPiles(false);
   };
 
   const handleRowClick = () => {
@@ -138,6 +175,31 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   };
 
   const lastEntry = entries[totalEntries - 1];
+
+  if (isSorting) {
+    const unplacedEntries = rawEntries.filter(entry => !entry.trayId);
+    return (
+      <motion.div layout className="rounded-2xl p-3 sm:p-4 bg-surface border border-border-base shadow-sm space-y-3 select-none">
+        <div className="flex items-start justify-between gap-3">
+          <div><h3 className="text-sm text-ink font-medium">把念頭先放開</h3><p className="text-xs text-ink-muted font-light mt-1">拖到任何一格就好，不用先替它命名。</p></div>
+          <button type="button" onClick={() => setIsSorting(false)} className="text-xs text-ink-muted hover:text-ink px-2 py-1 rounded-full hover:bg-surface-hover">完成分流</button>
+        </div>
+        <div className="rounded-xl border border-dashed border-border-base bg-surface-subtle/60 p-2.5 min-h-14" onDragOver={(event) => event.preventDefault()} onDrop={() => draggingEntryId && void handleMoveEntry(draggingEntryId, undefined)}>
+          <p className="text-[11px] text-ink-muted mb-1.5">待放的念頭</p>
+          <div className="flex flex-wrap gap-1.5">{unplacedEntries.map(entry => <button key={entry.id} draggable onDragStart={() => setDraggingEntryId(entry.id)} onDragEnd={() => setDraggingEntryId(null)} className="text-left text-xs text-ink bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing">{entry.content}</button>)}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {trays.slice(0, 4).map((tray, index) => {
+            const trayEntries = rawEntries.filter(entry => entry.trayId === tray.id);
+            return <div key={tray.id} onDragOver={(event) => event.preventDefault()} onDrop={() => draggingEntryId && void handleMoveEntry(draggingEntryId, tray.id)} className="min-h-28 rounded-2xl border border-border-subtle bg-surface-subtle/45 p-2.5 transition-colors hover:border-accent/40">
+              <p className="text-[11px] text-ink-muted mb-2">{tray.aiLabel || `第 ${index + 1} 格`}</p>
+              <div className="space-y-1.5">{trayEntries.map(entry => <button key={entry.id} draggable onDragStart={() => setDraggingEntryId(entry.id)} onDragEnd={() => setDraggingEntryId(null)} className="w-full text-left text-xs text-ink bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing">{entry.content}</button>)}</div>
+            </div>;
+          })}
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <div className="relative group">
@@ -214,6 +276,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
             >
               全部 ({rawEntries.length})
             </button>
+            <button type="button" onClick={() => void startSorting()} className="px-2 py-0.5 text-xs text-ink-muted hover:text-ink hover:bg-surface-hover rounded-full transition-colors cursor-pointer flex items-center gap-1 shrink-0" title="重新分流">
+              <Layers size={11} strokeWidth={1.5} /><span>重新分流</span>
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -242,17 +307,21 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                     : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
                 }`}
               >
-                {tray.name || `第 ${tIdx + 1} 堆`} ({rawEntries.filter(e => e.trayId === tray.id).length})
+                {tray.aiLabel || tray.name || `第 ${tIdx + 1} 堆`} ({rawEntries.filter(e => e.trayId === tray.id).length})
               </button>
             ))}
-            <button
-              type="button"
-              onClick={handleCreateNewTray}
-              className="px-2 py-0.5 text-xs text-ink-muted hover:text-ink hover:bg-surface-hover rounded-full transition-colors cursor-pointer flex items-center gap-1 shrink-0 ml-auto"
-              title="再分一堆"
-            >
-              <Plus size={11} strokeWidth={1.5} />
-              <span>再放一堆</span>
+          </div>
+        )}
+
+        {trays.length >= 2 && (
+          <div className="flex items-start justify-between gap-3 pb-2 mb-2 border-b border-border-subtle/60 select-none">
+            <div className="min-w-0">
+              {thread.pileObservations?.map((observation, index) => <p key={`${observation}-${index}`} className="text-xs text-ink-secondary font-light leading-relaxed">{observation}</p>)}
+              {!thread.pileObservations?.length && <p className="text-xs text-ink-muted font-light">分好後，讓系統替這幾堆暫時說出它們在談什麼。</p>}
+              {analysisMessage && <p className="text-xs text-ink-muted font-light mt-1">{analysisMessage}</p>}
+            </div>
+            <button type="button" onClick={() => void handleAnalyzePiles()} disabled={isAnalyzingPiles} className="shrink-0 text-xs text-ink-secondary hover:text-ink disabled:opacity-50 py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover transition-colors cursor-pointer">
+              {isAnalyzingPiles ? '正在看…' : '幫我看看'}
             </button>
           </div>
         )}
@@ -574,12 +643,12 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                 {trays.length === 0 ? (
                                   <button
                                     type="button"
-                                    onClick={handleCreateNewTray}
+                                    onClick={() => void startSorting()}
                                     className="text-xs font-light text-ink-muted hover:text-ink transition-colors cursor-pointer select-none py-1 px-2.5 rounded-full border border-border-base bg-surface hover:bg-surface-hover shadow-xs flex items-center gap-1.5"
                                     title="將思緒分堆"
                                   >
                                     <Layers size={11} strokeWidth={1.5} className="text-ink-muted" />
-                                    <span>分一堆</span>
+                                    <span>開始分流</span>
                                   </button>
                                 ) : (
                                   <div className="relative">
@@ -612,20 +681,9 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
                                               entry.trayId === t.id ? 'bg-accent/15 text-ink font-medium' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
                                             }`}
                                           >
-                                            {t.name || `第 ${idx + 1} 堆`}
+                                            {t.aiLabel || t.name || `第 ${idx + 1} 堆`}
                                           </button>
                                         ))}
-                                        <button
-                                          type="button"
-                                          onClick={async () => {
-                                            const newId = await onCreateTray?.(thread.id);
-                                            if (newId) handleMoveEntry(entry.id, newId);
-                                          }}
-                                          className="w-full text-left px-2.5 py-1 text-xs text-accent hover:bg-accent/10 rounded-lg transition-colors flex items-center gap-1"
-                                        >
-                                          <Plus size={10} />
-                                          <span>新的一堆</span>
-                                        </button>
                                       </div>
                                     )}
                                   </div>

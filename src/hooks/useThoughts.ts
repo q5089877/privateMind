@@ -116,6 +116,16 @@ export function useThoughts() {
     fetch();
   }, [engine, fetch]);
 
+  const handleSavePileAnalysis = useCallback(async (threadId: string, labels: Record<string, string>, observations: string[]) => {
+    await engine.savePileAnalysis(threadId, labels, observations);
+    fetch();
+  }, [engine, fetch]);
+
+  const handleStartSorting = useCallback(async (threadId: string) => {
+    await engine.ensureTrays(threadId, 4);
+    fetch();
+  }, [engine, fetch]);
+
   return {
     activeThreads,
     archivedThreads,
@@ -129,6 +139,8 @@ export function useThoughts() {
     handleSetCurrentAction,
     handleCreateTray,
     handleMoveEntryToTray,
+    handleSavePileAnalysis,
+    handleStartSorting,
     refresh: fetch
   };
 }

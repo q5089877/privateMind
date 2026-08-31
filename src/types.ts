@@ -8,6 +8,7 @@ export type EntryType = 'thought' | 'action';
 export interface ThoughtTray {
   id: string;
   name?: string;
+  aiLabel?: string;
   createdAt: number;
 }
 
@@ -27,6 +28,7 @@ export interface ThoughtThread {
   isArchived?: boolean;
   currentActionId?: string | null;
   trays?: ThoughtTray[]; // 該 Thread 下的空間托盤清單
+  pileObservations?: string[];
   entries: DialogueEntry[];
 }
 
@@ -41,7 +43,8 @@ export interface IFlowActions {
   deleteThread(threadId: string): Promise<void>;
   createTray(threadId: string, name?: string): Promise<string>;
   moveEntryToTray(threadId: string, entryId: string, trayId: string | undefined): Promise<void>;
+  ensureTrays(threadId: string, count?: number): Promise<void>;
+  savePileAnalysis(threadId: string, labels: Record<string, string>, observations: string[]): Promise<void>;
   reset(): void;
   transition(newState: FlowState): void;
 }
-
