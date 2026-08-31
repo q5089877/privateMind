@@ -120,8 +120,8 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
     >
       {loading && (
         <div className="py-2 space-y-2 select-none" aria-busy="true">
-          <div className="text-[11px] text-ink-muted/70 font-light tracking-wider mb-1 flex items-center gap-1.5">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent/50 animate-pulse" />
+          <div className="text-sm text-ink-secondary mb-2 flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-accent/70 animate-pulse" />
             <span>{UI_TEXT.promptEngine.loading}</span>
           </div>
           <div className="grid grid-cols-1 gap-1.5">
@@ -156,7 +156,7 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
             transition={{ duration: 0.25 }}
             className="space-y-1.5 pt-0.5"
           >
-            {!compact && <div className="text-[11px] text-ink-muted/65 font-light tracking-wider mb-1">思維操作入口：</div>}
+            {!compact && <div className="text-sm text-ink-secondary mb-2">思維操作入口</div>}
             <div className="grid grid-cols-1 gap-1.5">
               {operations.map((op, idx) => (
                 <button
@@ -166,14 +166,14 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
                     onSelectOperation?.(op);
                     onSelectPrompt?.(op.actionPrompt);
                   }}
-                  className="w-full text-left p-2.5 rounded-xl border border-border-subtle bg-surface/70 hover:bg-surface hover:border-border-base transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-2xs flex flex-col gap-0.5"
+                  className="w-full text-left p-3.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-accent/35 transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-sm flex flex-col gap-1"
                   title="點擊帶入此操作視角"
                 >
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-ink group-hover:text-accent transition-colors">
+                  <div className="flex items-center gap-2 text-base font-semibold text-ink group-hover:text-accent transition-colors">
                     {getOperationIcon(op.type)}
                     <span>{op.label}</span>
                   </div>
-                  <div className="text-[12px] text-ink-muted group-hover:text-ink-secondary transition-colors font-light leading-relaxed pl-5">
+                  <div className="text-sm text-ink-secondary group-hover:text-ink transition-colors leading-relaxed pl-5">
                     {op.actionPrompt}
                   </div>
                 </button>

@@ -2,27 +2,27 @@
 
 :root {
   /* WCAG AA Compliant High-Contrast Calm Design Tokens (高對比沉靜無障礙色階) */
-  --canvas: #F8F9FA;
+  --canvas: #F5F7F4;
   --surface: #FFFFFF;
-  --surface-subtle: #F4F5F5;
-  --surface-muted: #E4E7E5;
-  --surface-hover: #E8ECE9;
+  --surface-subtle: #EEF2EE;
+  --surface-muted: #E1E8E2;
+  --surface-hover: #E5ECE6;
 
   --border-base: #E2E4E8;      /* 裝飾用邊框 (Slate-200) */
   --border-card: #E2E4E8;
   --border-subtle: #ECEEF1;
   --border-focus: #1F2937;
 
-  --ink-primary: #27272A;      /* 主要標題與正文 (11.8:1, WCAG AAA 柔和炭墨) */
-  --ink-heading: #27272A;      /* 結構標題 (11.8:1) */
-  --ink-body: #374151;         /* 內文選項 (9.5:1, Gray-700) */
-  --ink-stem: #4B5563;         /* 引導提示句 (7.0:1, Gray-600 通過 WCAG AAA) */
-  --ink-secondary: #4B5563;    /* 次標與輔助說明 (7.0:1) */
-  --ink-muted: #59636E;        /* 時間戳與輔助按鈕 (5.5:1, 嚴格符合 WCAG AA) */
-  --ink-placeholder: #6B7280;  /* 輸入框預設字 (4.8:1) */
+  --ink-primary: #202722;
+  --ink-heading: #202722;
+  --ink-body: #34423A;
+  --ink-stem: #4B5B51;
+  --ink-secondary: #4B5B51;
+  --ink-muted: #647168;
+  --ink-placeholder: #748078;
 
-  --accent: #4B5F55;           /* 「停靠」按鈕底色 (5.5:1 配白字, 深墨綠) */
-  --accent-hover: #3C4D45;     /* Hover 深色 */
+  --accent: #356A55;
+  --accent-hover: #285441;
   --accent-text: #FFFFFF;      /* 白字 */
 }
 
