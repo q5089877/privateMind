@@ -1,42 +1,62 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GeminiProxyClient } from '../logic/geminiProxyClient';
+import { GeminiProxyClient, ThoughtOperation } from '../logic/geminiProxyClient';
 import { generatePrompts } from '../logic/promptEngine';
 import { UI_TEXT } from '../config/textConfig';
+import { Eye, ArrowLeftRight, Clock, Target, Compass } from 'lucide-react';
 
 interface ThoughtPromptsProps {
   contextText?: string;
   onSelectPrompt?: (text: string) => void;
 }
 
+const getOperationIcon = (type: ThoughtOperation['type']) => {
+  switch (type) {
+    case 'isolate':
+      return <Eye size={13} strokeWidth={1.5} className="text-accent/80" />;
+    case 'contrast':
+      return <ArrowLeftRight size={13} strokeWidth={1.5} className="text-accent/80" />;
+    case 'zoom_out':
+      return <Clock size={13} strokeWidth={1.5} className="text-accent/80" />;
+    case 'landing':
+      return <Target size={13} strokeWidth={1.5} className="text-accent/80" />;
+    default:
+      return <Compass size={13} strokeWidth={1.5} className="text-accent/80" />;
+  }
+};
+
 export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
   contextText,
   onSelectPrompt
 }) => {
-  const [prompts, setPrompts] = useState<string[]>([]);
+  const [operations, setOperations] = useState<ThoughtOperation[]>([]);
   const [loading, setLoading] = useState(false);
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    // 規格鎖定：一旦 AI 回應成功生成，後續打字不再改變或干擾提示內容
     if (hasLoadedRef.current) return;
 
     let isMounted = true;
     const cleanText = (contextText || '').trim();
 
     if (!cleanText) {
-      setPrompts([]);
+      setOperations([]);
       setOfflineNotice(null);
       setLoading(false);
       return;
     }
 
-    const loadPrompts = async () => {
+    const loadOperations = async () => {
       if (!GeminiProxyClient.isConfigured()) {
         if (isMounted) {
           setLoading(false);
-          setPrompts(generatePrompts(cleanText).map(prompt => prompt.text));
+          const fallback = generatePrompts(cleanText).map((p, idx) => ({
+            type: (idx === 0 ? 'isolate' : idx === 1 ? 'contrast' : 'landing') as ThoughtOperation['type'],
+            label: p.focalLabel,
+            actionPrompt: p.text
+          }));
+          setOperations(fallback);
           hasLoadedRef.current = true;
         }
         return;
@@ -44,21 +64,31 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
 
       setLoading(true);
       try {
-        const stems = await GeminiProxyClient.getPerspectiveStemsAsync(cleanText);
+        const ops = await GeminiProxyClient.getThoughtOperationsAsync(cleanText);
         if (isMounted) {
-          if (stems && stems.length > 0) {
-            setPrompts(stems);
+          if (ops && ops.length > 0) {
+            setOperations(ops);
             setOfflineNotice(null);
-            hasLoadedRef.current = true; // 鎖定狀態，不再隨打字重新請求
+            hasLoadedRef.current = true;
           } else {
-            setPrompts(generatePrompts(cleanText).map(prompt => prompt.text));
+            const fallback = generatePrompts(cleanText).map((p, idx) => ({
+              type: (idx === 0 ? 'isolate' : idx === 1 ? 'contrast' : 'landing') as ThoughtOperation['type'],
+              label: p.focalLabel,
+              actionPrompt: p.text
+            }));
+            setOperations(fallback);
             hasLoadedRef.current = true;
           }
         }
       } catch (err) {
-        console.warn('[ThoughtPrompts] 連線或生成失敗:', err);
+        console.warn('[ThoughtPrompts] 思維操作生成異常:', err);
         if (isMounted) {
-          setPrompts(generatePrompts(cleanText).map(prompt => prompt.text));
+          const fallback = generatePrompts(cleanText).map((p, idx) => ({
+            type: (idx === 0 ? 'isolate' : idx === 1 ? 'contrast' : 'landing') as ThoughtOperation['type'],
+            label: p.focalLabel,
+            actionPrompt: p.text
+          }));
+          setOperations(fallback);
           hasLoadedRef.current = true;
         }
       } finally {
@@ -66,14 +96,14 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       }
     };
 
-    loadPrompts();
+    loadOperations();
 
     return () => {
       isMounted = false;
     };
   }, [contextText]);
 
-  if (prompts.length === 0 && !loading && !offlineNotice) {
+  if (operations.length === 0 && !loading && !offlineNotice) {
     return null;
   }
 
@@ -82,23 +112,22 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 4 }}
-      className="py-1 px-0.5 space-y-1.5 select-none"
+      className="py-1 px-0.5 space-y-2 select-none"
     >
       {loading && (
-        <div className="py-2 space-y-2.5 select-none" aria-busy="true">
-          <div className="text-[11px] text-ink-muted/70 font-light tracking-wider mb-1.5 flex items-center gap-1.5">
+        <div className="py-2 space-y-2 select-none" aria-busy="true">
+          <div className="text-[11px] text-ink-muted/70 font-light tracking-wider mb-1 flex items-center gap-1.5">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent/50 animate-pulse" />
             <span>{UI_TEXT.promptEngine.loading}</span>
           </div>
-          {[72, 86, 60].map((widthPct, idx) => (
-            <div key={`skeleton-${idx}`} className="flex items-center gap-2">
-              <span className="text-[#71717A] text-xs select-none shrink-0 w-2.5 text-center">·</span>
-              <div 
-                className="h-3.5 bg-surface-muted/50 rounded-md animate-pulse" 
-                style={{ width: `${widthPct}%` }} 
+          <div className="grid grid-cols-1 gap-1.5">
+            {[80, 65].map((widthPct, idx) => (
+              <div
+                key={`op-skeleton-${idx}`}
+                className="h-10 bg-surface-muted/40 rounded-xl animate-pulse border border-border-subtle/50"
               />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
@@ -113,30 +142,38 @@ export const ThoughtPrompts: React.FC<ThoughtPromptsProps> = ({
         </motion.div>
       )}
 
-      {prompts.length > 0 && !loading && (
+      {operations.length > 0 && !loading && (
         <AnimatePresence mode="wait">
           <motion.div
-            key={prompts.join('-')}
+            key={operations.map(o => o.label).join('-')}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="space-y-2 pt-0.5"
+            className="space-y-1.5 pt-0.5"
           >
-            {prompts.map((text, idx) => (
-              <div
-                key={`stem-${idx}`}
-                onClick={() => onSelectPrompt?.(text)}
-                className="flex items-baseline gap-2 text-[13px] sm:text-[13.5px] text-[#4B5563] font-normal leading-[1.7] tracking-wide cursor-pointer hover:text-ink transition-colors rounded-lg py-0.5"
-                title="點擊帶入輸入框"
-              >
-                {/* 獨立圓點容器，確保折行時第二行完美對齊首字（懸掛縮排 Hanging Indent） */}
-                <span className="text-[#71717A] text-xs select-none shrink-0 w-2.5 text-center">·</span>
-                <span className="flex-1 select-text">
-                  {text}
-                </span>
-              </div>
-            ))}
+            <div className="text-[11px] text-ink-muted/65 font-light tracking-wider mb-1">
+              思維操作入口：
+            </div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {operations.map((op, idx) => (
+                <button
+                  key={`op-card-${idx}`}
+                  type="button"
+                  onClick={() => onSelectPrompt?.(op.actionPrompt)}
+                  className="w-full text-left p-2.5 rounded-xl border border-border-subtle bg-surface/70 hover:bg-surface hover:border-border-base transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-2xs flex flex-col gap-0.5"
+                  title="點擊帶入此操作視角"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-ink group-hover:text-accent transition-colors">
+                    {getOperationIcon(op.type)}
+                    <span>{op.label}</span>
+                  </div>
+                  <div className="text-[12px] text-ink-muted group-hover:text-ink-secondary transition-colors font-light leading-relaxed pl-5">
+                    {op.actionPrompt}
+                  </div>
+                </button>
+              ))}
+            </div>
           </motion.div>
         </AnimatePresence>
       )}
