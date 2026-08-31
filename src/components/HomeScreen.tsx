@@ -1,19 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, MoreHorizontal, Sparkles, Waves, History } from 'lucide-react';
+import { ArrowDown, MoreHorizontal, Sparkles, Waves, History, Quote, RefreshCw, ArrowUpRight } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
+import { ThoughtThread } from '../types';
 
 interface HomeScreenProps {
   onStartInput: (text: string) => void;
   onSayNothing?: () => void;
   onReview: () => void;
+  getPastThoughts: () => Promise<ThoughtThread[]>;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothing, onReview }) => {
+interface RecalledThought { id: string; content: string; createdAt: number; }
+
+const formatRecallAge = (timestamp: number) => {
+  const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000));
+  if (days === 0) return '今天稍早';
+  if (days === 1) return '昨天';
+  return `${days} 天前`;
+};
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothing, onReview, getPastThoughts }) => {
   const [inputText, setInputText] = useState('');
   const [isSinking, setIsSinking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [recalledThoughts, setRecalledThoughts] = useState<RecalledThought[]>([]);
+  const [recallIndex, setRecallIndex] = useState(0);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -26,6 +39,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     const focusTimer = setTimeout(() => textareaRef.current?.focus(), 120);
     return () => { clearTimeout(focusTimer); if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    getPastThoughts().then((threads) => {
+      if (!active) return;
+      const thoughts = threads
+        .flatMap(thread => thread.entries.map(entry => ({ id: entry.id, content: entry.content, createdAt: entry.createdAt })))
+        .filter(entry => entry.content.trim().length > 0)
+        .sort((a, b) => a.createdAt - b.createdAt);
+      setRecalledThoughts(thoughts);
+      setRecallIndex(thoughts.length > 1 ? Math.floor(Math.random() * thoughts.length) : 0);
+    });
+    return () => { active = false; };
+  }, [getPastThoughts]);
 
   const handleQuickSelect = (text: string) => {
     if (isSinking) return;
@@ -82,6 +109,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
       </main>
 
       <div className={`space-y-3 pt-3 transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
+        {recalledThoughts.length > 0 && (() => {
+          const recalled = recalledThoughts[recallIndex];
+          if (!recalled) return null;
+          return <section className="relative overflow-hidden p-4 rounded-2xl bg-[#FFFDF8]/85 border border-[#ECE4D8] shadow-[0_10px_26px_rgba(95,75,38,0.07)] text-left">
+            <div className="absolute -right-3 -top-3 w-20 h-20 rounded-full bg-[#F2D9A8]/35" aria-hidden="true" />
+            <div className="relative flex items-center justify-between gap-3 mb-2"><span className="text-sm font-medium text-[#756246] flex items-center gap-1.5"><Quote size={15} />之前留在這裡</span><button type="button" onClick={() => setRecallIndex(index => (index + 1) % recalledThoughts.length)} className="p-1.5 text-[#8B795D] hover:text-[#5E4C33] rounded-lg hover:bg-[#F6EEE1]" title="換一句"><RefreshCw size={15} /></button></div>
+            <p className="relative text-[17px] leading-[1.65] text-ink pr-2">「{recalled.content}」</p>
+            <div className="relative mt-3 flex items-center justify-between"><span className="text-sm text-[#8B795D]">{formatRecallAge(recalled.createdAt)}</span><button type="button" onClick={onReview} className="text-sm font-medium text-[#6B5940] hover:text-[#3D3020] flex items-center gap-1">再看一眼 <ArrowUpRight size={15} /></button></div>
+          </section>;
+        })()}
         <button type="button" onClick={() => { triggerHaptic('unlatch'); onReview(); }} className="w-full flex items-center justify-between p-4 rounded-2xl bg-surface/70 border border-border-subtle hover:bg-surface hover:border-border-base transition-colors text-left"><span className="flex items-center gap-3"><span className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center"><History size={18} /></span><span><span className="block text-base font-medium text-ink">再次相遇</span><span className="block text-sm text-ink-muted mt-0.5">回來看看停靠過的思緒</span></span></span><span className="text-accent text-lg">→</span></button>
         <p className="text-sm text-ink-muted text-center leading-relaxed px-6">{UI_TEXT.home.footerPhilosophy}</p>
       </div>

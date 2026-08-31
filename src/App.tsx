@@ -17,6 +17,7 @@ const App: React.FC = () => {
             onStartInput={(text) => flow.submitText(text)} 
             onSayNothing={() => flow.submitSayNothing()}
             onReview={() => flow.transition('REVIEW')}
+            getPastThoughts={() => flow.getAllThreads()}
           />
         );
 
