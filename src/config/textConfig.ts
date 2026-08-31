@@ -6,17 +6,19 @@
 export const UI_TEXT = {
   // 【01｜首頁輸入與「停靠」】
   home: {
+    brandTitle: '思緒停靠 · MIND HARBOR',
     title: '現在腦中有什麼？',
-    subtitle: '想法、感覺，或只是突然想到的一件事，都可以。',
-    inputPlaceholder: '寫下此刻想留下的任何一句話……',
-    submit: '停靠',
-    reviewPast: '再次相遇',
+    subtitle: '不用想清楚，先放在這裡。',
+    inputPlaceholder: '想法、情緒，或只是一些說不上來的東西……',
+    submit: '放下',
+    reviewPast: '再次相遇 →',
     reviewBtn: '再次相遇',
+    footerPhilosophy: '寫下來可以停在這裡。要不要往前，由你決定。',
     quickOptions: [
-      '今天有點累',
-      '有件事讓我在意',
-      '今天有件事很開心',
-      '突然想到一件事'
+      '腦袋一直轉不停',
+      '單純覺得好累',
+      '胸口悶悶的',
+      '亂糟糟的'
     ],
     // 【08｜「我現在說不上來」】
     sayNothing: '我現在說不上來',

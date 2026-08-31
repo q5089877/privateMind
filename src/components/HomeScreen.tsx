@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Anchor, Cloud, Compass } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -22,7 +22,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 68)}px`;
+      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 80)}px`;
     }
   }, [inputText]);
 
@@ -51,40 +51,102 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
     };
   }, []);
 
-  // 0.0s 點擊「停靠」：脫扣震動、收起鍵盤、周遭環境 0.3s 散去，唯獨文字 2.0s 慢速縮小至 50% 下沉
-  const handleContinue = () => {
-    if (!inputText.trim() || isSinking) return;
-    textareaRef.current?.blur();
-    triggerHaptic('unlatch');
-    setIsSinking(true);
-    timerRef.current = setTimeout(() => {
-      triggerHaptic('docking');
-      onStartInput(inputText);
-    }, 2000);
-  };
-
-  const handleSayNothing = () => {
+  const handleSettle = () => {
     if (isSinking) return;
     textareaRef.current?.blur();
     triggerHaptic('unlatch');
     setIsSinking(true);
     timerRef.current = setTimeout(() => {
       triggerHaptic('docking');
-      onSayNothing?.();
-    }, 2000);
+      if (inputText.trim()) {
+        onStartInput(inputText);
+      } else {
+        onSayNothing?.();
+      }
+    }, 1800);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleContinue();
+      handleSettle();
     }
   };
 
   return (
-    <div className="w-full max-w-[690px] flex flex-col items-center">
-      {/* 頂部右上角：弱化次要入口「再次相遇」（沉降時 0.3s 率先散去） */}
-      <div className={`w-full flex justify-end pb-6 sm:pb-10 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
+    <div className="w-full max-w-[480px] flex flex-col items-center min-h-[calc(100vh-100px)] justify-between py-2">
+      {/* 頂部導航列：品牌標誌與選單 */}
+      <div className={`w-full flex justify-between items-center select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
+        <span className="text-xs sm:text-sm tracking-wider font-light text-ink-muted/90 uppercase">
+          {UI_TEXT.home.brandTitle}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('step');
+            onReview();
+          }}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-ink-muted/70 hover:text-ink hover:bg-surface/60 transition-colors cursor-pointer"
+          title="選單"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+      </div>
+
+      {/* 中間主工作區 */}
+      <div className="w-full flex flex-col items-center my-auto py-6 sm:py-8 space-y-6">
+        {/* 標題與副標題 */}
+        <div className={`w-full text-left space-y-1.5 px-1 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
+            {UI_TEXT.home.title}
+          </h1>
+          <p className="text-sm sm:text-base text-ink-muted/85 font-light">
+            {UI_TEXT.home.subtitle}
+          </p>
+        </div>
+
+        {/* 獨立白色浮起輸入卡片 */}
+        <div className={`w-full bg-surface rounded-[28px] p-5 sm:p-6 shadow-sm border border-border-subtle flex flex-col justify-between min-h-[220px] transition-all duration-500 ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
+          <textarea
+            ref={textareaRef}
+            rows={3}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isSinking ? '' : UI_TEXT.home.inputPlaceholder}
+            className="w-full bg-transparent text-ink placeholder:text-ink-muted/65 font-light text-sm sm:text-base leading-relaxed outline-none resize-none selection:bg-accent/15 border-none p-0"
+            autoFocus
+          />
+
+          {/* 卡片內部底端的「放下」主按鈕 */}
+          <div className="pt-4">
+            <button
+              type="button"
+              onClick={handleSettle}
+              className="w-full py-3.5 rounded-2xl bg-accent text-accent-text hover:bg-accent-hover text-base font-normal tracking-wider transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-xs flex justify-center items-center"
+            >
+              {UI_TEXT.home.submit}
+            </button>
+          </div>
+        </div>
+
+        {/* 快捷選項 Chips（排列成乾淨的自然網格） */}
+        <div className={`w-full flex flex-wrap gap-2 pt-1 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
+          {QUICK_OPTIONS.map((option, idx) => (
+            <button
+              key={`quick-opt-${idx}`}
+              type="button"
+              onClick={() => handleQuickSelect(option)}
+              className="py-2 px-4 rounded-full border border-border-subtle bg-surface/80 hover:bg-surface hover:border-border-base text-ink-secondary hover:text-ink text-xs sm:text-sm font-light transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-2xs"
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 底部區域：再次相遇 與 哲學宣言 */}
+      <div className={`w-full flex flex-col items-center space-y-4 pt-4 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
         <button
           type="button"
           onClick={() => {
@@ -92,92 +154,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onStartInput, onSayNothi
             triggerHaptic('unlatch');
             onReview();
           }}
-          className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-all cursor-pointer py-1.5 px-3 rounded-full hover:bg-surface-hover tracking-wider font-light flex items-center gap-1.5 border border-transparent hover:border-border-subtle"
+          className="text-sm text-ink-secondary hover:text-ink transition-colors cursor-pointer py-1.5 px-4 font-light tracking-wide flex items-center gap-1"
         >
-          <Compass size={14} strokeWidth={1.5} className="text-ink-muted/80" />
           <span>{UI_TEXT.home.reviewPast}</span>
         </button>
-      </div>
 
-      {/* 主工作區 */}
-      <div className="w-full flex flex-col items-center text-center space-y-5 sm:space-y-7 pt-2 sm:pt-4">
-        {/* 標題與核心免責許可副標（沉降時 0.3s 率先散去） */}
-        <div className={`space-y-1.5 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
-          <div className="harbor-mark" aria-hidden="true">
-            <Anchor size={16} strokeWidth={1.45} />
-            <span className="harbor-wave harbor-wave-first" />
-            <span className="harbor-wave harbor-wave-second" />
-          </div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink">
-            {UI_TEXT.home.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-ink-muted/80 font-light tracking-wide">
-            {UI_TEXT.home.subtitle}
-          </p>
-        </div>
-
-        {/* 無邊界多行輸入區：沉降時作為全畫面唯一焦點，2.0s 慢速縮小至 25% 沉落 */}
-        <div className={`w-full relative px-2 ${isSinking ? 'sink-animation pointer-events-none' : ''}`}>
-          <textarea
-            ref={textareaRef}
-            rows={2}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder=""
-            className="home-thought-input w-full bg-transparent text-ink placeholder:text-ink-muted placeholder:font-light font-light text-lg sm:text-xl leading-[1.8] outline-none resize-none text-center selection:bg-accent/15 border-0 border-b border-border-base transition-all duration-500"
-            autoFocus
-          />
-        </div>
-
-        {/* 輕盈流動標籤（沉降時 0.3s 率先散去） */}
-        <div className={`w-full flex flex-wrap justify-center gap-2 sm:gap-2.5 pt-1 select-none transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
-          {QUICK_OPTIONS.map((option, idx) => (
-            <button
-              key={`quick-opt-${idx}`}
-              type="button"
-              onClick={() => handleQuickSelect(option)}
-              className="py-1.5 px-3.5 rounded-full border border-border-base bg-surface-subtle hover:bg-surface hover:border-border-focus text-ink-secondary hover:text-ink text-xs sm:text-sm font-light transition-all duration-200 cursor-pointer active:scale-[0.98]"
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-
-        {/* 動作按鈕（沉降時 0.3s 率先散去） */}
-        <div className={`pt-3 h-12 flex justify-center items-center w-full transition-opacity duration-300 ${isSinking ? 'opacity-0 pointer-events-none' : ''}`}>
-          <AnimatePresence mode="wait">
-            {inputText.trim() ? (
-              <motion.button
-                key="submit-btn"
-                type="button"
-                initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                onClick={handleContinue}
-                className="px-6 py-2 bg-accent text-accent-text hover:bg-accent-hover rounded-full text-sm sm:text-base font-normal tracking-wide transition-colors cursor-pointer active:scale-98 shadow-xs inline-flex items-center gap-1.5"
-              >
-                <Anchor size={14} strokeWidth={1.7} />
-                {UI_TEXT.home.submit}
-              </motion.button>
-            ) : (
-              <motion.button
-                key="say-nothing-btn"
-                type="button"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.22 }}
-                onClick={handleSayNothing}
-                className="text-xs sm:text-sm text-ink-muted hover:text-ink transition-colors py-1.5 px-4 rounded-full hover:bg-surface-hover cursor-pointer font-light select-none inline-flex items-center gap-1.5"
-              >
-                <Cloud size={14} strokeWidth={1.4} className="text-ink-muted/80" />
-                {UI_TEXT.home.sayNothing}
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
+        <p className="text-[11px] sm:text-xs text-ink-muted/70 font-light text-center tracking-wider max-w-[340px] leading-relaxed">
+          {UI_TEXT.home.footerPhilosophy}
+        </p>
       </div>
     </div>
   );
