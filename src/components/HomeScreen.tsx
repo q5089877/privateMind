@@ -22,15 +22,15 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
 
     <main className="pt-14 sm:pt-20">
       <section className="px-1">
-        <p className="mb-5 text-sm font-medium text-accent flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>不必想清楚</p>
-        <h1 className="text-[34px] sm:text-[41px] font-semibold tracking-[-0.055em] leading-[1.12] text-ink">現在腦中有什麼？</h1>
-        <p className="mt-4 text-[17px] leading-relaxed text-ink-secondary">先放在這裡，等想再看時再看。</p>
+        <p className="mb-5 text-sm font-medium text-accent flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>不必現在想完</p>
+        <h1 className="text-[34px] sm:text-[41px] font-semibold tracking-[-0.055em] leading-[1.12] text-ink">留下還沒想完的事。</h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-ink-secondary">等時間過去，再看自己怎麼走到今天。</p>
       </section>
 
       <section className="relative mt-10 overflow-hidden rounded-[30px] border border-white bg-surface p-5 shadow-[0_20px_45px_rgba(53,82,66,0.11)] sm:p-6">
         <div aria-hidden="true" className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-accent/[0.06]" />
         <div className="relative">
-          <p className="mb-4 text-[15px] font-medium text-ink-secondary">此刻的念頭</p>
+          <p className="mb-4 text-[15px] font-medium text-ink-secondary">此刻的我，怎麼想</p>
           <textarea ref={ref} rows={4} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); save(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="min-h-[132px] w-full resize-none bg-transparent text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder outline-none" />
           <div className="mt-4 border-t border-border-subtle pt-4">
             <button type="button" disabled={!input.trim()} onClick={save} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-[17px] font-semibold text-accent-text shadow-[0_8px_16px_rgba(53,106,85,0.18)] transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-35">放下 <ArrowDown size={18} strokeWidth={2}/></button>
@@ -39,6 +39,6 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
       </section>
     </main>
 
-    <button type="button" onClick={onReview} className="mt-12 min-h-11 px-1 text-sm text-ink-muted transition-colors hover:text-ink flex items-center gap-1.5"><History size={15} strokeWidth={1.5}/>回頭看看留下的事</button>
+    <button type="button" onClick={onReview} className="mt-12 min-h-11 px-1 text-sm text-ink-muted transition-colors hover:text-ink flex items-center gap-1.5"><History size={15} strokeWidth={1.5}/>回頭看看自己怎麼走到這裡</button>
   </div>;
 };

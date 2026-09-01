@@ -7,8 +7,8 @@ export const UI_TEXT = {
   // 【01｜首頁輸入與「停靠」】
   home: {
     brandTitle: '思緒停靠 · MIND HARBOR',
-    title: '現在腦中有什麼？',
-    subtitle: '不用想清楚，先放在這裡。',
+    title: '留下還沒想完的事。',
+    subtitle: '等時間過去，再看自己怎麼走到今天。',
     inputPlaceholder: '想法、情緒，或只是一些說不上來的東西……',
     submit: '放下',
     reviewPast: '再次相遇 →',
@@ -155,7 +155,7 @@ export const UI_TEXT = {
 };
 
 export const CORE_PHILOSOPHY = {
-  motto: '腦中的事，不一定現在就要想清楚。',
+  motto: '留下還沒想完的事；等時間過去，再看自己怎麼走到今天。',
   principles: [
     '你可以寫。',
     '可以停靠。',
