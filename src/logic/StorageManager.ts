@@ -30,7 +30,8 @@ export class LocalStorageManager implements IStorageProvider {
           createdAt: entry.createdAt,
           intent: entry.intent || (entry === thread.entries?.[0] ? 'captured' : 'follow_up'),
           aiResponse: entry.aiResponse,
-          relatedEntryIds: entry.relatedEntryIds
+          relatedEntryIds: entry.relatedEntryIds,
+          dismissedRelatedEntryIds: entry.dismissedRelatedEntryIds
         }))
       }));
     } catch {

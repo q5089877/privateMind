@@ -77,6 +77,17 @@ export class FlowEngine {
     if (this.currentThread?.id === threadId) this.currentThread = thread;
     this.notify();
   }
+  public async dismissRelatedMemory(threadId: string, entryId: string, sourceId: string) {
+    const thread = await this.find(threadId); const entry = thread?.entries.find(item => item.id === entryId);
+    if (!thread || !entry) return;
+    entry.dismissedRelatedEntryIds = [...new Set([...(entry.dismissedRelatedEntryIds || []), sourceId])];
+    entry.relatedEntryIds = (entry.relatedEntryIds || []).filter(id => id !== sourceId);
+    entry.aiResponse = '我先把這一刻留在這裡。想接著說，或先放著都可以。';
+    thread.updatedAt = Date.now();
+    await this.storage.updateThread(thread);
+    if (this.currentThread?.id === threadId) this.currentThread = thread;
+    this.notify();
+  }
   public async archiveThread(threadId: string) { const thread = await this.find(threadId); if (!thread) return; thread.isArchived = true; thread.state = 'tucked_away'; thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify(); }
   public async restoreThread(threadId: string) { const thread = await this.find(threadId); if (!thread) return; thread.isArchived = false; thread.state = 'developing'; thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify(); }
   public async deleteThread(threadId: string) { await this.storage.deleteThread(threadId); if (this.currentThread?.id === threadId) this.currentThread = null; this.notify(); }

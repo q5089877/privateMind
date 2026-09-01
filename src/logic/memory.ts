@@ -10,11 +10,11 @@ const terms = (text: string) => {
 };
 
 /** A deliberately small retrieval layer: it retrieves evidence, it does not infer a diagnosis. */
-export const findRelatedMoments = (current: string, threads: ThoughtThread[], excludeId?: string): MemoryMatch[] => {
+export const findRelatedMoments = (current: string, threads: ThoughtThread[], excludeId?: string, dismissedIds: string[] = []): MemoryMatch[] => {
   const currentTerms = terms(current);
   if (currentTerms.size === 0) return [];
   return threads.flatMap(thread => thread.entries)
-    .filter(entry => entry.id !== excludeId)
+    .filter(entry => entry.id !== excludeId && !dismissedIds.includes(entry.id))
     .map(entry => ({ entry, score: [...terms(entry.content)].filter(term => currentTerms.has(term)).length }))
     .filter(match => match.score > 0)
     .sort((a, b) => b.score - a.score || b.entry.createdAt - a.entry.createdAt)

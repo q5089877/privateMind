@@ -12,6 +12,7 @@ export interface DialogueEntry {
   intent?: MomentIntent;
   aiResponse?: string;
   relatedEntryIds?: string[];
+  dismissedRelatedEntryIds?: string[];
 }
 
 /** A Storyline is a user-owned sequence of moments, not an AI conclusion. */

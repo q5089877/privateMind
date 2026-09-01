@@ -34,6 +34,7 @@ const App: React.FC = () => {
             onReset={() => flow.finish()} 
             getPastThoughts={() => flow.getAllThreads()}
             onSaveReflection={flow.saveReflection}
+            onDismissRelatedMemory={flow.dismissRelatedMemory}
           />
         );
 
