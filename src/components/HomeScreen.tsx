@@ -33,7 +33,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
           <p className="mb-4 text-[15px] font-medium text-ink-secondary">此刻的我，怎麼想</p>
           <textarea ref={ref} rows={4} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); save(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="min-h-[132px] w-full resize-none bg-transparent text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder outline-none" />
           <div className="mt-4 border-t border-border-subtle pt-4">
-            <button type="button" disabled={!input.trim()} onClick={save} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-[17px] font-semibold text-accent-text shadow-[0_8px_16px_rgba(53,106,85,0.18)] transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-35">放下 <ArrowDown size={18} strokeWidth={2}/></button>
+            <button type="button" disabled={!input.trim()} onClick={save} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-[17px] font-semibold text-accent-text shadow-[0_8px_16px_rgba(53,106,85,0.18)] transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-35">先留下 <ArrowDown size={18} strokeWidth={2}/></button>
           </div>
         </div>
       </section>

@@ -10,7 +10,7 @@ export const UI_TEXT = {
     title: '留下還沒想完的事。',
     subtitle: '等時間過去，再看自己怎麼走到今天。',
     inputPlaceholder: '想法、情緒，或只是一些說不上來的東西……',
-    submit: '放下',
+    submit: '先留下',
     reviewPast: '再次相遇 →',
     reviewBtn: '再次相遇',
     footerPhilosophy: '寫下來可以停在這裡。要不要往前，由你決定。',
@@ -29,8 +29,8 @@ export const UI_TEXT = {
   // 【03｜停靠完成狀態】
   completion: {
     ceremony: {
-      deposit: '放在這裡了。',
-      unspoken: '放在這裡了。'
+      deposit: '已經留下了。',
+      unspoken: '已經留下了。'
     },
     desk: {
       title: '思緒桌面',

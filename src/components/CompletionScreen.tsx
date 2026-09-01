@@ -36,7 +36,7 @@ export const CompletionScreen: React.FC<Props> = ({ thread, onReset, getPastThou
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] flex flex-col py-4">
     <div className="flex-1 pt-10 sm:pt-16">
       <div className="flex items-center gap-2 text-accent"><span className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center"><Check size={16} strokeWidth={2}/></span><span className="text-sm font-medium">已停靠</span></div>
-      <h1 className="mt-6 text-[30px] sm:text-[36px] font-medium tracking-[-0.045em] text-ink">先放在這裡。</h1>
+      <h1 className="mt-6 text-[30px] sm:text-[36px] font-medium tracking-[-0.045em] text-ink">已經留下了。</h1>
       <p className="mt-3 text-[15px] text-ink-secondary">不用現在想完。</p>
 
       <article className="mt-12 border-l-2 border-ink pl-5"><time className="text-xs text-ink-muted">剛剛</time><p className="mt-2 text-[22px] leading-[1.6] tracking-[-0.02em] text-ink whitespace-pre-wrap">{latest.content}</p></article>
