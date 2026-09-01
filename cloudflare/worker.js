@@ -56,6 +56,7 @@ export default {
           topP: reqData.generationConfig?.topP ?? reqData.topP,
           responseMimeType: reqData.generationConfig?.responseMimeType || reqData.responseMimeType || "application/json",
           responseSchema: reqData.generationConfig?.responseSchema || reqData.responseSchema || undefined,
+          thinkingConfig: reqData.generationConfig?.thinkingConfig || undefined,
         },
       };
 

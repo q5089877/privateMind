@@ -31,6 +31,16 @@ export const normalizeCompanionResponse = (value: string): string => {
 
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
+const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: number): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
+
 export class GeminiProxyClient {
   private static getProxyUrl(): string {
     try {
@@ -72,12 +82,10 @@ export class GeminiProxyClient {
     const payload = {
       model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: `最新內容：\n${current}\n\n可能相關的過去片段：\n${memoryText || '無'}\n\n請以繁體中文回覆一句至兩句、最多60字。像一個安靜但記得脈絡的人。若過去片段確實相關，可自然提起一個具體片段；若不確定，完全不要提過去。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道使用者真正的原因。結尾可以讓使用者選擇接著說或先放著。` }] }],
-      generationConfig: { temperature: 0.45, maxOutputTokens: 110, responseMimeType: 'text/plain' }
+      generationConfig: { temperature: 0.45, maxOutputTokens: 72, responseMimeType: 'text/plain', thinkingConfig: { thinkingLevel: 'minimal' } }
     };
     try {
-      const response = proxyUrl
-        ? await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 4_500);
       if (!response.ok) return fallback;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -98,12 +106,10 @@ export class GeminiProxyClient {
     const payload = {
       model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n你的任務不是摘要、重述時間順序、或把使用者剛看完的話換句話說。請找出原文中「被混在一起，因而讓人卡住」的 2 至 3 個不同問題、拉扯或層次。\n\n每個項目都必須：\n- 有一個 8 字內、具體的短標題\n- 說明它和另一個問題為何不同\n- 引用使用者一小段原文作為依據（12字內）\n\n最後只留一個問題：請使用者選擇目前最想先看哪一個項目。\n\n嚴格禁止：依日期重述、空泛的「你似乎／呈現出／正在經歷」、心理診斷、人格標籤、建議行動、替使用者判定真正原因、安慰語、或「這不是結論」等免責句。\n\n請直接輸出給使用者看的繁體中文文字；絕對不要輸出 JSON、物件欄位、Markdown 程式碼區塊，或在外層包裝 content／reading／response。\n\n格式固定如下，總長不超過 220 字：\n\n混在一起的事\n1. 【短標題】說明\n   依據：「原文」\n2. 【短標題】說明\n   依據：「原文」\n\n現在最想先看哪一個？` }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 180, responseMimeType: 'text/plain' }
+      generationConfig: { temperature: 0.25, maxOutputTokens: 120, responseMimeType: 'text/plain', thinkingConfig: { thinkingLevel: 'minimal' } }
     };
     try {
-      const response = proxyUrl
-        ? await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 5_000);
       if (!response.ok) return fallback;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
