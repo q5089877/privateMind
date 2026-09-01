@@ -43,7 +43,7 @@ export default {
 
     try {
       const reqData = await request.json();
-      const model = reqData.model || "gemini-3.6-flash";
+      const model = reqData.model || "gemini-3.5-flash-lite";
 
       // 4. 組合 Google Gemini API 請求 (使用 X-goog-api-key Header)
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;

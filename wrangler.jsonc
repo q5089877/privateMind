@@ -1,0 +1,5 @@
+{
+  "name": "raspy-bush-9ab5",
+  "compatibility_date": "2026-08-28",
+  "main": "cloudflare/worker.js"
+}
