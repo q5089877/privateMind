@@ -84,6 +84,30 @@ export class GeminiProxyClient {
     }
   }
 
+  /** User-invoked only: reads one visible storyline and returns a short evidence-led reflection. */
+  public static async getStorylineAnalysis(entries: Array<{ date: string; content: string }>): Promise<string> {
+    const fallback = '先把這幾個片段放在一起看。它們之間的意義，仍由你決定。';
+    const proxyUrl = this.getProxyUrl();
+    const apiKey = this.getApiKey();
+    if (!proxyUrl && !apiKey) return fallback;
+    const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
+    const payload = {
+      model: GEMINI_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n請以繁體中文產生一段不超過120字的暫時閱讀。只描述原文中可見的變化、重複或拉扯，必要時提及日期作為依據。禁止心理診斷、替使用者定義真正原因、指示行動、給建議、使用「你其實」或把推測寫成事實。語氣平靜，結尾提醒這不是結論。` }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 180, responseMimeType: 'text/plain' }
+    };
+    try {
+      const response = proxyUrl
+        ? await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!response.ok) return fallback;
+      const data = await response.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = typeof raw === 'string' ? normalizeCompanionResponse(raw) : '';
+      return text && text.length <= 260 ? text : fallback;
+    } catch { return fallback; }
+  }
+
   public static async analyzePilesAsync(piles: Array<{ id: string; items: string[] }>): Promise<PileAnalysis> {
     const usablePiles = piles.filter(pile => pile.items.length > 0);
     if (usablePiles.length < 2) return { labels: {}, observations: [] };
