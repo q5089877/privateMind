@@ -18,7 +18,19 @@ export class LocalStorageManager implements IStorageProvider {
     const data = localStorage.getItem(this.THREADS_KEY);
     if (!data) return [];
     try {
-      return JSON.parse(data);
+      // Older versions stored actions and tray metadata. Keep the user's words,
+      // and quietly reinterpret every entry as a moment in its existing storyline.
+      return JSON.parse(data).map((thread: ThoughtThread) => ({
+        ...thread,
+        state: thread.state || (thread.isArchived ? 'tucked_away' : 'developing'),
+        entries: (thread.entries || []).map((entry) => ({
+          id: entry.id,
+          threadId: thread.id,
+          content: entry.content,
+          createdAt: entry.createdAt,
+          intent: entry.intent || (entry === thread.entries?.[0] ? 'captured' : 'follow_up')
+        }))
+      }));
     } catch {
       console.error('[StorageManager] 資料解析失敗，清除損毀資料並重置');
       localStorage.removeItem(this.THREADS_KEY);

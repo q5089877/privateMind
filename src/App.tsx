@@ -15,7 +15,7 @@ const App: React.FC = () => {
         return (
           <HomeScreen 
             onStartInput={(text) => flow.submitText(text)} 
-            onSayNothing={() => flow.submitSayNothing()}
+            onAppend={flow.appendEntry}
             onReview={() => flow.transition('REVIEW')}
             getPastThoughts={() => flow.getAllThreads()}
           />
@@ -33,11 +33,8 @@ const App: React.FC = () => {
           <CompletionScreen 
             thread={flow.currentThread}
             onReset={() => flow.finish()} 
-            onAppendEntry={async (content, type) => {
-              if (flow.currentThread?.id) {
-                await flow.appendEntry(flow.currentThread.id, content, type);
-              }
-            }}
+            onAttach={flow.attachCurrentMoment}
+            getPastThoughts={() => flow.getAllThreads()}
           />
         );
 

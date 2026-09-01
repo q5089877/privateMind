@@ -1,84 +1,36 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Check, Plus, RotateCcw, Sparkles, Waves } from 'lucide-react';
-import { UI_TEXT } from '../config/textConfig';
+import React, { useEffect, useState } from 'react';
+import { Check, Link2, Sparkles } from 'lucide-react';
 import { ThoughtThread } from '../types';
-import { AdditionForm } from './AdditionForm';
 import { ThoughtPrompts } from './ThoughtPrompts';
-import { ThoughtOperation } from '../logic/geminiProxyClient';
 
-interface CompletionScreenProps {
-  thread: ThoughtThread | null;
-  onReset: () => void;
-  onAppendEntry?: (content: string, type?: import('../types').EntryType) => void | Promise<void>;
-}
+interface Props { thread: ThoughtThread | null; onReset: () => void; onAttach: (id: string) => Promise<void>; getPastThoughts: () => Promise<ThoughtThread[]>; }
 
-const formatTime = (timestamp: number) => {
-  const d = new Date(timestamp);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const words = (text: string) => {
+  const chunks = text.toLowerCase().split(/[\s，。！？、,.!?]+/).filter(Boolean);
+  return chunks.flatMap(chunk => {
+    const latin = chunk.match(/[a-z0-9]{2,}/g) || [];
+    const cjk = chunk.replace(/[^\u4e00-\u9fff]/g, '');
+    const pairs = Array.from({ length: Math.max(0, cjk.length - 1) }, (_, index) => cjk.slice(index, index + 2));
+    return [...latin, ...pairs];
+  });
+};
+const related = (current: ThoughtThread, all: ThoughtThread[]) => {
+  const source = new Set(words(current.entries[0]?.content || ''));
+  return all.filter(item => item.id !== current.id && !item.isArchived).map(item => ({ item, score: words(item.entries.map(entry => entry.content).join(' ')).filter(word => source.has(word)).length })).filter(item => item.score > 0).sort((a,b) => b.score-a.score).slice(0, 2).map(item => item.item);
 };
 
-export const CompletionScreen: React.FC<CompletionScreenProps> = ({ thread, onReset, onAppendEntry }) => {
-  const [isAdding, setIsAdding] = useState(false);
-  const [showNotice, setShowNotice] = useState(true);
-  const [showPerspectives, setShowPerspectives] = useState(false);
-  const [activeOperation, setActiveOperation] = useState<ThoughtOperation | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => setShowNotice(false), 3000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, []);
-
+export const CompletionScreen: React.FC<Props> = ({ thread, onReset, onAttach, getPastThoughts }) => {
+  const [showPrompts, setShowPrompts] = useState(false); const [candidates, setCandidates] = useState<ThoughtThread[]>([]); const [attached, setAttached] = useState(false);
+  useEffect(() => { if (thread) void getPastThoughts().then(items => setCandidates(related(thread, items))); }, [thread, getPastThoughts]);
   if (!thread) return null;
-  const entries = thread.entries;
-  const contextText = entries.map((entry) => entry.content).join('\n');
-  const lastEntryContent = entries[entries.length - 1]?.content || '';
-  const operationStyle = (index: number) => {
-    if (!activeOperation) return {};
-    const isLatest = index === entries.length - 1;
-    if (activeOperation.type === 'isolate') return isLatest ? {} : { opacity: 0.3, filter: 'blur(1px)' };
-    if (activeOperation.type === 'contrast') return { transform: index % 2 === 0 ? 'translateX(-7px)' : 'translateX(7px)' };
-    if (activeOperation.type === 'zoom_out') return { opacity: isLatest ? 1 : 0.55, transform: `scale(${0.94 + index * 0.02})` };
-    if (activeOperation.type === 'landing') return isLatest ? { transform: 'scale(1.025)', boxShadow: '0 8px 24px rgba(75,95,85,0.12)' } : { opacity: 0.42 };
-    return { opacity: isLatest ? 1 : 0.58 };
-  };
-  const startAdding = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setShowNotice(false);
-    setShowPerspectives(false);
-    setIsAdding(true);
-  };
-
-  return (
-    <div className="w-full max-w-xl space-y-4 sm:space-y-5 flex flex-col items-center text-center">
-      <div className={`flex items-center justify-center pt-2 select-none overflow-hidden transition-all duration-700 ${showNotice && !isAdding ? 'min-h-[40px] opacity-100' : 'min-h-0 opacity-0 pointer-events-none'}`}>
-        <AnimatePresence>{showNotice && !isAdding && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: 0.25, duration: 0.55 }} className="text-lg sm:text-xl font-light text-ink tracking-wide">{UI_TEXT.completion.ceremony.deposit}</motion.p>}</AnimatePresence>
-      </div>
-
-      <motion.section initial={{ opacity: 0, scale: 0.96, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full relative overflow-hidden p-4 sm:p-5 rounded-[28px] bg-surface-subtle border border-border-base text-left shadow-sm">
-        <Waves size={74} strokeWidth={1} className="absolute -right-3 -bottom-3 text-accent/[0.09] pointer-events-none" aria-hidden="true" />
-        <div className="relative flex items-start justify-between gap-4 mb-4 select-none">
-          <div><h2 className="text-lg font-semibold tracking-tight text-ink">{UI_TEXT.completion.desk.title}</h2><p className="text-sm text-ink-secondary mt-1.5 leading-relaxed">{activeOperation ? UI_TEXT.completion.desk.perspectiveActive : UI_TEXT.completion.desk.hint}</p></div>
-          {activeOperation && <button type="button" onClick={() => setActiveOperation(null)} className="shrink-0 text-sm text-ink-secondary hover:text-ink py-1.5 px-2.5 rounded-full hover:bg-surface transition-colors flex items-center gap-1"><RotateCcw size={14} />{UI_TEXT.completion.desk.resetPerspective}</button>}
-        </div>
-
-        <div className={`relative space-y-2.5 transition-all duration-500 ${activeOperation?.type === 'contrast' && entries.length > 1 ? 'grid grid-cols-2 gap-2 space-y-0' : ''}`}>
-          {entries.map((entry, index) => <motion.article key={entry.id} layout transition={{ duration: 0.35 }} style={operationStyle(index)} className="rounded-2xl bg-surface border border-border-subtle px-4 py-3.5 transition-all duration-500 shadow-[0_1px_2px_rgba(29,55,40,0.04)]"><time className="block text-sm text-ink-muted font-mono mb-2">{formatTime(entry.createdAt)}</time><p className="text-[17px] sm:text-lg leading-[1.7] whitespace-pre-wrap text-ink">{entry.content}</p></motion.article>)}
-        </div>
-
-        <div className="relative mt-4 pt-3 border-t border-border-subtle select-none">
-          {!isAdding && <button type="button" onClick={() => setShowPerspectives((value) => !value)} className="text-base font-medium text-ink-secondary hover:text-ink py-2 px-2.5 rounded-xl hover:bg-surface transition-colors flex items-center gap-2"><Sparkles size={17} className="text-accent" />{UI_TEXT.completion.desk.perspectiveBtn}</button>}
-          <AnimatePresence>{showPerspectives && !isAdding && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><p className="text-sm text-ink-secondary mt-2 mb-2">{UI_TEXT.completion.desk.operationHint}</p><ThoughtPrompts compact contextText={contextText} onSelectOperation={(operation) => { setActiveOperation(operation); setShowPerspectives(false); }} /></motion.div>}</AnimatePresence>
-          <AnimatePresence>{isAdding && onAppendEntry && <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="pt-2"><AdditionForm contextText={lastEntryContent} onSave={async (content, type) => { await onAppendEntry(content, type); setIsAdding(false); }} onCancel={() => setIsAdding(false)} /></motion.div>}</AnimatePresence>
-        </div>
-      </motion.section>
-
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="w-full flex flex-col items-center gap-1.5 pt-1 select-none">
-        {!showNotice && !isAdding && <p className="text-sm text-ink-secondary mb-1">{activeOperation ? UI_TEXT.completion.desk.writingHint : '已記下。可以繼續，也可以就這樣。'}</p>}
-        {!isAdding && onAppendEntry && <button type="button" onClick={startAdding} className="text-base font-medium text-ink hover:text-ink-primary py-2 px-4 rounded-full hover:bg-surface-hover transition-colors flex items-center gap-2"><Plus size={17} className="text-accent" /><span>{UI_TEXT.completion.exits.addAddition.replace('＋ ', '')}</span></button>}
-        <button type="button" onClick={onReset} className="text-base text-ink-secondary hover:text-ink py-2 px-3 rounded-full flex items-center gap-2"><Check size={15} className="text-accent" /><span>{UI_TEXT.completion.exits.backHome}</span></button>
-      </motion.div>
-    </div>
-  );
+  const latest = thread.entries[thread.entries.length - 1];
+  return <div className="w-full max-w-xl py-10 flex flex-col items-center text-center space-y-6">
+    <div className="w-12 h-12 rounded-full bg-accent/10 text-accent flex items-center justify-center"><Check size={24}/></div>
+    <div><p className="text-xl font-medium text-ink">停好了。</p><p className="text-sm text-ink-secondary mt-2">不用現在想完。</p></div>
+    <article className="w-full text-left rounded-3xl bg-surface border border-border-subtle px-5 py-4"><time className="text-xs text-ink-muted">剛剛</time><p className="text-lg leading-relaxed text-ink mt-2 whitespace-pre-wrap">{latest?.content}</p></article>
+    {!attached && candidates.length > 0 && <section className="w-full text-left rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3"><p className="text-sm text-ink">這好像和之前留下的一件事有關嗎？</p><div className="mt-3 space-y-2">{candidates.map(item => <button key={item.id} onClick={async()=>{await onAttach(item.id); setAttached(true);}} className="w-full text-left text-sm px-3 py-2 rounded-xl bg-surface hover:bg-surface-hover border border-border-subtle"><Link2 size={13} className="inline mr-2 text-accent"/>{item.entries[0]?.content}</button>)}</div><button onClick={()=>setCandidates([])} className="mt-3 text-xs text-ink-muted">沒有，這是新的事</button></section>}
+    {attached && <p className="text-sm text-ink-secondary">已接在原本的時間流裡。</p>}
+    <div className="w-full text-left"><button onClick={()=>setShowPrompts(value=>!value)} className="text-sm text-ink-secondary hover:text-ink flex items-center gap-2 mx-auto"><Sparkles size={15} className="text-accent"/>想多看一個角度？</button>{showPrompts && <div className="mt-3"><ThoughtPrompts contextText={latest?.content}/></div>}</div>
+    <button onClick={onReset} className="text-sm text-ink-secondary hover:text-ink py-2">到這裡就好</button>
+  </div>;
 };

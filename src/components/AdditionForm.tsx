@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
-import { EntryType } from '../types';
+import { MomentIntent } from '../types';
 import { ThoughtPrompts } from './ThoughtPrompts';
 import { Sparkles } from 'lucide-react';
 
 interface AdditionFormProps {
-  onSave: (content: string, type: EntryType) => void | Promise<void>;
+  onSave: (content: string, type: MomentIntent) => void | Promise<void>;
   onCancel: () => void;
   mode?: 'append';
   placeholder?: string;
@@ -34,7 +34,7 @@ export const AdditionForm: React.FC<AdditionFormProps> = ({
     setIsSaving(true);
     try {
       // 嚴格原則：只有使用者自己寫下的文字才會被存下，AI 提示直接退場不進 Entry
-      await onSave(content.trim(), 'thought');
+      await onSave(content.trim(), 'follow_up');
     } catch (error) {
       console.error('[AdditionForm] 儲存失敗：', error);
       setIsSaving(false);
