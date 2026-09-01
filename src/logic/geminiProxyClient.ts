@@ -39,6 +39,7 @@ export const normalizeCompanionResponse = (value: string): string => {
 // This interaction is deliberately lightweight. Flash-Lite keeps the UI responsive
 // while still returning a text reflection based only on the visible timeline.
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+const REFLECTION_MODEL = 'gemini-3.5-flash';
 const FAST_THINKING_CONFIG = { thinkingLevel: 'minimal' };
 
 const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: number): Promise<Response> => {
@@ -116,19 +117,19 @@ export class GeminiProxyClient {
     const responseSchema = {
       type: 'OBJECT',
       properties: {
-        insight: { type: 'STRING', description: '60 到 150 字的繁體中文新角度，指出兩段原文之間的問題轉折或關係' },
+        insight: { type: 'STRING', description: '60 到 130 字的繁體中文新角度，指出兩段原文之間的問題轉折或關係' },
         sourcePhrases: { type: 'ARRAY', items: { type: 'STRING' }, minItems: 2, maxItems: 2, description: '從不同原文片段逐字複製的兩段依據' },
         invitation: { type: 'STRING', description: '一句繁體中文的開放式續寫提問，不超過 55 字' }
       },
       required: ['insight', 'sourcePhrases', 'invitation']
     };
     const payload = {
-      model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是一件事情留下的時間流：\n${timeline}\n\n你不是文字分析員。請回應這段話對使用者可能打開了什麼新的觀看角度：先映照這些話之間如何讓同一件事有了不同意義，再留一個問題，讓使用者可以從那裡繼續想。\n\ninsight 必須是 2 句內、60 到 150 字。它必須指出兩段原文之間真正的轉折或關係，而不是逐句摘要、分類、或形容句子怎麼推進。它可以說「焦點從 A 走到 B」，但要讓人看見這個改變對這件事的意義。\n\ninvitation 必須是一句溫和的開放問題，只圍繞原文已出現的具體字詞；不可給行動建議、不可催促、不可假定答案。\n\n只根據原文。不可推測心理狀態、動機、人格或真正原因。\n\n嚴格禁止：心理診斷、標籤、建議、命令、安慰，及「第一句／第二句／客觀現況／時間稀缺性／推導／認知／邏輯／具體行動／你其實／你在／這顯示／這是／壓力／恐懼／焦慮／逃避／妥協／自我懷疑」。\n\n回傳 JSON。sourcePhrases 必須是從兩個不同原文片段逐字複製的文字。若沒有可靠的新角度，回傳 {"insight":"","sourcePhrases":[],"invitation":""}。` }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 160, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+      model: REFLECTION_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `時間流：\n${timeline}\n\n回傳一個「新的觀看角度」與一個可續寫的問題。\n- insight：2 句內、60～130 字。指出兩段原文之間焦點如何轉移，並說明這使同一件事有何不同；不可逐句摘要、分類或講文字邏輯。\n- invitation：一句開放問題，圍繞原文具體字詞；不可給建議、催促或假定答案。\n- sourcePhrases：從兩個不同原文逐字複製。\n\n只根據原文；不可猜測心理、動機、人格或真正原因。禁止「第一句、第二句、客觀現況、時間稀缺性、推導、認知、邏輯、具體行動、你其實、你在、這顯示、壓力、恐懼、焦慮、自我懷疑、建議」。原文出現的詞可以直接引用，不可把它變成標籤。\n\n沒有可靠角度時回傳 {"insight":"","sourcePhrases":[],"invitation":""}。` }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 130, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 10_000);
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${REFLECTION_MODEL}:generateContent?key=${apiKey}`, payload, 8_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -136,10 +137,10 @@ export class GeminiProxyClient {
       const sourcePhrases = Array.isArray(parsed?.sourcePhrases) ? parsed.sourcePhrases.map((value: unknown) => typeof value === 'string' ? value.trim() : '') : [];
       const insight = typeof parsed?.insight === 'string' ? parsed.insight.trim() : '';
       const invitation = typeof parsed?.invitation === 'string' ? parsed.invitation.trim() : '';
-      const forbidden = ['第一句', '第二句', '客觀現況', '時間稀缺性', '推導', '認知', '邏輯', '具體行動', '你其實', '你在', '這顯示', '這是', '壓力', '恐懼', '焦慮', '逃避', '妥協', '自我懷疑', '你應該', '建議你'];
+      const forbidden = ['第一句', '第二句', '客觀現況', '時間稀缺性', '推導', '認知', '邏輯', '具體行動', '你其實', '你在', '這顯示', '壓力', '恐懼', '焦慮', '自我懷疑', '你應該', '建議你', '無力感', '內心掙扎'];
       const sourceText = entries.map(item => item.content).join('\n');
       const combined = `${insight} ${invitation}`;
-      if (insight.length < 20 || insight.length > 180 || !invitation.endsWith('？') || invitation.length > 55 || sourcePhrases.length !== 2 || sourcePhrases.some((phrase: string) => phrase.length < 2 || !sourceText.includes(phrase)) || forbidden.some(word => combined.includes(word))) return null;
+      if (insight.length < 20 || insight.length > 180 || !/[？?]$/.test(invitation) || invitation.length > 70 || sourcePhrases.length !== 2 || sourcePhrases.some((phrase: string) => phrase.length < 2 || !sourceText.includes(phrase)) || forbidden.some(word => combined.includes(word))) return null;
       return { insight, sourcePhrases: [sourcePhrases[0], sourcePhrases[1]], invitation };
     } catch {
       return null;
