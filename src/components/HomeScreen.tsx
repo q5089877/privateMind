@@ -1,9 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, History, MoreHorizontal, Waves } from 'lucide-react';
+import { ArrowDown, Bookmark, History, MoreHorizontal, Waves } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
 interface Props { onStartInput: (text: string) => void; onReview: () => void; }
+
+const HarborSketch = () => <svg aria-hidden="true" viewBox="0 0 160 160" fill="none" className="h-full w-full text-accent/80" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M18 112c13-11 27-11 40 0 13 11 27 11 40 0 13-11 27-11 44 1" />
+  <path d="M18 126c13-11 27-11 40 0 13 11 27 11 40 0 13-11 27-11 44 1" />
+  <path d="M20 96c13-11 27-11 40 0 13 11 27 11 40 0 13-11 27-11 42 0" />
+  <path d="M72 96V45l37 33H72" /><path d="M72 56 48 77h24" />
+  <path d="m41 137 11-11m-5-5 10 10" /><path d="M47 131a12 12 0 1 0 17 17" />
+  <path d="M25 38c7-8 14-8 21 0" /><path d="M117 33c6-6 12-6 18 0" />
+  <path d="M126 68c8 0 13 6 13 13-8 0-13-6-13-13Z" /><path d="M139 81c-8 0-13 6-13 13 8 0 13-6 13-13Z" />
+</svg>;
 
 export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
   const [input, setInput] = useState('');
@@ -11,34 +21,34 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
   useEffect(() => { ref.current?.focus(); }, []);
   const save = () => { if (!input.trim()) return; triggerHaptic('docking'); onStartInput(input); setInput(''); };
 
-  return <div className="w-full max-w-[540px] min-h-[calc(100vh-104px)] py-5 sm:py-7">
+  return <div className="w-full max-w-[580px] min-h-[calc(100vh-104px)] py-6 sm:py-9">
     <header className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <span className="h-12 w-12 rounded-[17px] bg-accent text-accent-text shadow-[0_10px_22px_rgba(53,106,85,0.2)] flex items-center justify-center"><Waves size={23} strokeWidth={1.6}/></span>
-        <div><p className="text-[18px] font-semibold leading-none tracking-tight text-ink">思緒停靠</p><p className="mt-1.5 text-[11px] tracking-[0.16em] text-ink-muted">MIND HARBOR</p></div>
+        <span className="h-14 w-14 rounded-[20px] bg-accent text-accent-text shadow-[0_12px_24px_rgba(53,106,85,0.22)] flex items-center justify-center"><Waves size={27} strokeWidth={1.55}/></span>
+        <div><p className="text-[21px] font-semibold leading-none tracking-[-0.04em] text-ink">思緒停靠</p><p className="mt-2 text-[11px] tracking-[0.2em] text-ink-muted">MIND HARBOR</p></div>
       </div>
       <button type="button" onClick={onReview} aria-label="查看留下來的事" className="h-11 w-11 rounded-full text-ink-muted transition-colors hover:bg-surface hover:text-ink flex items-center justify-center"><MoreHorizontal size={22} strokeWidth={1.7}/></button>
     </header>
 
-    <main className="pt-14 sm:pt-20">
-      <section className="px-1">
-        <p className="mb-5 text-sm font-medium text-accent flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>不必現在想完</p>
-        <h1 className="text-[34px] sm:text-[41px] font-semibold tracking-[-0.055em] leading-[1.12] text-ink">留下還沒想完的事。</h1>
-        <p className="mt-4 text-[17px] leading-relaxed text-ink-secondary">等時間過去，再看自己怎麼走到今天。</p>
+    <main className="pt-20 sm:pt-28">
+      <section className="px-1 sm:px-2">
+        <p className="mb-6 text-[16px] font-medium text-accent flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-accent"/>不必現在想完</p>
+        <h1 className="text-[38px] sm:text-[48px] font-semibold tracking-[-0.07em] leading-[1.1] text-ink">留下還沒想完的事。</h1>
+        <p className="mt-6 text-[18px] leading-relaxed text-ink-secondary">等時間過去，再看自己怎麼走到今天。</p>
       </section>
 
-      <section className="relative mt-10 overflow-hidden rounded-[30px] border border-white bg-surface p-5 shadow-[0_20px_45px_rgba(53,82,66,0.11)] sm:p-6">
-        <div aria-hidden="true" className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-accent/[0.06]" />
+      <section className="relative mt-14 overflow-hidden rounded-[34px] border border-border-base/70 bg-[#fffdf8] p-5 shadow-[0_24px_52px_rgba(53,82,66,0.14)] sm:mt-16 sm:p-7">
+        <div aria-hidden="true" className="absolute -right-2 -top-5 h-40 w-40 opacity-80 sm:h-48 sm:w-48"><HarborSketch /></div>
         <div className="relative">
-          <p className="mb-4 text-[15px] font-medium text-ink-secondary">此刻的我，怎麼想</p>
-          <textarea ref={ref} rows={4} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); save(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="min-h-[132px] w-full resize-none bg-transparent text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder outline-none" />
-          <div className="mt-4 border-t border-border-subtle pt-4">
-            <button type="button" disabled={!input.trim()} onClick={save} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-[17px] font-semibold text-accent-text shadow-[0_8px_16px_rgba(53,106,85,0.18)] transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-35">先留下 <ArrowDown size={18} strokeWidth={2}/></button>
+          <p className="mb-5 text-[17px] font-semibold tracking-[-0.025em] text-ink">此刻的我，怎麼想</p>
+          <textarea ref={ref} rows={4} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); save(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="min-h-[168px] w-full resize-none rounded-[24px] bg-[#f8f7f1]/90 px-4 py-4 text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder outline-none sm:px-5" />
+          <div className="mt-5 border-t border-border-base/75 pt-5">
+            <button type="button" disabled={!input.trim()} onClick={save} className="flex min-h-[62px] w-full items-center justify-center gap-3 rounded-[22px] bg-accent text-[18px] font-semibold text-accent-text shadow-[0_10px_20px_rgba(53,106,85,0.18)] transition-all hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-35"><Bookmark size={20} strokeWidth={1.8}/>先留下這一刻 <ArrowDown size={18} strokeWidth={2}/></button>
           </div>
         </div>
       </section>
     </main>
 
-    <button type="button" onClick={onReview} className="mt-12 min-h-11 px-1 text-sm text-ink-muted transition-colors hover:text-ink flex items-center gap-1.5"><History size={15} strokeWidth={1.5}/>回頭看看自己怎麼走到這裡</button>
+    <button type="button" onClick={onReview} className="mt-14 min-h-11 px-1 text-[16px] text-ink-muted transition-colors hover:text-ink flex items-center gap-2"><History size={18} strokeWidth={1.5}/>回頭看看自己怎麼走到這裡</button>
   </div>;
 };
