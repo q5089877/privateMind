@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, Clock3 } from 'lucide-react';
+import { ArrowDown, History, MoreHorizontal, Waves } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -11,33 +11,34 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
   useEffect(() => { ref.current?.focus(); }, []);
   const save = () => { if (!input.trim()) return; triggerHaptic('docking'); onStartInput(input); setInput(''); };
 
-  return <div className="relative w-full min-h-[calc(100vh-104px)] -mx-4 sm:-mx-6 overflow-hidden bg-[#173A38] px-6 py-7 text-[#F7F7F2] sm:px-10 sm:py-9">
-    <div aria-hidden="true" className="absolute -right-32 -top-28 h-80 w-80 rounded-full bg-[#4E9185]/35 blur-3xl" />
-    <div aria-hidden="true" className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-[#0B2222]/45 blur-3xl" />
+  return <div className="w-full max-w-[540px] min-h-[calc(100vh-104px)] py-5 sm:py-7">
+    <header className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <span className="h-12 w-12 rounded-[17px] bg-accent text-accent-text shadow-[0_10px_22px_rgba(53,106,85,0.2)] flex items-center justify-center"><Waves size={23} strokeWidth={1.6}/></span>
+        <div><p className="text-[18px] font-semibold leading-none tracking-tight text-ink">思緒停靠</p><p className="mt-1.5 text-[11px] tracking-[0.16em] text-ink-muted">MIND HARBOR</p></div>
+      </div>
+      <button type="button" onClick={onReview} aria-label="查看留下來的事" className="h-11 w-11 rounded-full text-ink-muted transition-colors hover:bg-surface hover:text-ink flex items-center justify-center"><MoreHorizontal size={22} strokeWidth={1.7}/></button>
+    </header>
 
-    <div className="relative mx-auto flex min-h-[calc(100vh-160px)] max-w-[560px] flex-col">
-      <header className="flex h-10 items-center justify-between">
-        <p className="text-[15px] font-medium tracking-tight text-white/90">思緒停靠</p>
-        <button type="button" onClick={onReview} aria-label="查看留下來的事" className="flex h-10 w-10 items-center justify-center rounded-full text-white/65 transition-colors hover:bg-white/10 hover:text-white"><Clock3 size={19} strokeWidth={1.5}/></button>
-      </header>
+    <main className="pt-14 sm:pt-20">
+      <section className="px-1">
+        <p className="mb-5 text-sm font-medium text-accent flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>不必想清楚</p>
+        <h1 className="text-[34px] sm:text-[41px] font-semibold tracking-[-0.055em] leading-[1.12] text-ink">現在腦中有什麼？</h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-ink-secondary">先放在這裡，等想再看時再看。</p>
+      </section>
 
-      <main className="flex flex-1 flex-col justify-center pb-16">
-        <section>
-          <p className="mb-4 text-sm font-medium text-[#A8D5C8]">現在</p>
-          <h1 className="text-[31px] font-medium leading-[1.2] tracking-[-0.05em] sm:text-[38px]">有什麼想先放下？</h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-white/62">不用整理，也不用想清楚。</p>
-        </section>
-
-        <section className="mt-10 rounded-[24px] bg-[#F7F7F2] p-5 text-[#1C2D2B] shadow-[0_18px_45px_rgba(4,24,23,0.18)] sm:p-6">
-          <textarea ref={ref} rows={4} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); save(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="w-full resize-none bg-transparent text-[19px] leading-[1.7] text-[#1C2D2B] placeholder:text-[#82908B] outline-none" />
-          <div className="mt-5 flex items-center justify-between gap-4 border-t border-[#DCE3DE] pt-4">
-            <p className="text-xs leading-relaxed text-[#74817B]">寫下一句就好</p>
-            <button type="button" disabled={!input.trim()} onClick={save} className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-[#1E4D49] px-4 text-sm font-medium text-white transition-colors hover:bg-[#143A36] disabled:cursor-not-allowed disabled:opacity-30">停靠 <ArrowUpRight size={15} strokeWidth={1.8}/></button>
+      <section className="relative mt-10 overflow-hidden rounded-[30px] border border-white bg-surface p-5 shadow-[0_20px_45px_rgba(53,82,66,0.11)] sm:p-6">
+        <div aria-hidden="true" className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-accent/[0.06]" />
+        <div className="relative">
+          <p className="mb-4 text-[15px] font-medium text-ink-secondary">此刻的念頭</p>
+          <textarea ref={ref} rows={4} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); save(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="min-h-[132px] w-full resize-none bg-transparent text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder outline-none" />
+          <div className="mt-4 border-t border-border-subtle pt-4">
+            <button type="button" disabled={!input.trim()} onClick={save} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-[17px] font-semibold text-accent-text shadow-[0_8px_16px_rgba(53,106,85,0.18)] transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-35">放下 <ArrowDown size={18} strokeWidth={2}/></button>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+    </main>
 
-      <button type="button" onClick={onReview} className="self-start py-2 text-sm text-white/55 transition-colors hover:text-white">回頭看看留下的事</button>
-    </div>
+    <button type="button" onClick={onReview} className="mt-12 min-h-11 px-1 text-sm text-ink-muted transition-colors hover:text-ink flex items-center gap-1.5"><History size={15} strokeWidth={1.5}/>回頭看看留下的事</button>
   </div>;
 };
