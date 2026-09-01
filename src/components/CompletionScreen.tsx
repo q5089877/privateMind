@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Check, MessageCircle, Sparkles } from 'lucide-react';
 import { ThoughtThread } from '../types';
 import { ThoughtPrompts } from './ThoughtPrompts';
-import { GeminiProxyClient } from '../logic/geminiProxyClient';
+import { GeminiProxyClient, normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { findRelatedMoments } from '../logic/memory';
 
 interface Props { thread: ThoughtThread | null; onReset: () => void; getPastThoughts: () => Promise<ThoughtThread[]>; onSaveReflection: (threadId: string, entryId: string, response: string, relatedIds: string[]) => Promise<void>; }
@@ -13,7 +13,12 @@ export const CompletionScreen: React.FC<Props> = ({ thread, onReset, getPastThou
   const latest = thread?.entries[thread.entries.length - 1];
   useEffect(() => {
     if (!thread || !latest) return;
-    if (latest.aiResponse) { setResponse(latest.aiResponse); return; }
+    if (latest.aiResponse) {
+      const clean = normalizeCompanionResponse(latest.aiResponse);
+      setResponse(clean);
+      if (clean !== latest.aiResponse) void onSaveReflection(thread.id, latest.id, clean, latest.relatedEntryIds || []);
+      return;
+    }
     let alive = true;
     void getPastThoughts().then(async all => {
       const matches = findRelatedMoments(latest.content, all, latest.id);

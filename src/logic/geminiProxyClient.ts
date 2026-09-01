@@ -14,6 +14,17 @@ export interface PileAnalysis {
   observations: string[];
 }
 
+/** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
+export const normalizeCompanionResponse = (value: string): string => {
+  const text = value.trim();
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed?.response === 'string') return parsed.response.trim();
+    if (typeof parsed?.text === 'string') return parsed.text.trim();
+  } catch { /* Plain text is the expected shape. */ }
+  return text;
+};
+
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
 export class GeminiProxyClient {
@@ -57,7 +68,7 @@ export class GeminiProxyClient {
     const payload = {
       model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: `最新內容：\n${current}\n\n可能相關的過去片段：\n${memoryText || '無'}\n\n請以繁體中文回覆一句至兩句、最多60字。像一個安靜但記得脈絡的人。若過去片段確實相關，可自然提起一個具體片段；若不確定，完全不要提過去。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道使用者真正的原因。結尾可以讓使用者選擇接著說或先放著。` }] }],
-      generationConfig: { temperature: 0.45, maxOutputTokens: 110 }
+      generationConfig: { temperature: 0.45, maxOutputTokens: 110, responseMimeType: 'text/plain' }
     };
     try {
       const response = proxyUrl
@@ -65,7 +76,8 @@ export class GeminiProxyClient {
         : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!response.ok) return fallback;
       const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = typeof raw === 'string' ? normalizeCompanionResponse(raw) : '';
       return text && text.length <= 140 ? text : fallback;
     } catch {
       return fallback;
