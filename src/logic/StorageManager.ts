@@ -28,7 +28,9 @@ export class LocalStorageManager implements IStorageProvider {
           threadId: thread.id,
           content: entry.content,
           createdAt: entry.createdAt,
-          intent: entry.intent || (entry === thread.entries?.[0] ? 'captured' : 'follow_up')
+          intent: entry.intent || (entry === thread.entries?.[0] ? 'captured' : 'follow_up'),
+          aiResponse: entry.aiResponse,
+          relatedEntryIds: entry.relatedEntryIds
         }))
       }));
     } catch {

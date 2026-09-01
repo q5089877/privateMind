@@ -45,6 +45,33 @@ export class GeminiProxyClient {
     return !!(this.getProxyUrl().trim() || this.getApiKey().trim());
   }
 
+  /** A short, contextual reply for the Rosebud Lite experiment. No diagnosis or advice. */
+  public static async getCompanionResponse(current: string, memories: Array<{ date: string; content: string }>): Promise<string> {
+    const fallback = memories.length > 0
+      ? '我記得這件事曾以另一種方式出現過。想接著說，或先放在這裡都可以。'
+      : '我先記在這裡。想接著說，或先放在這裡都可以。';
+    const proxyUrl = this.getProxyUrl();
+    const apiKey = this.getApiKey();
+    if (!proxyUrl && !apiKey) return fallback;
+    const memoryText = memories.map(item => `${item.date}｜${item.content}`).join('\n');
+    const payload = {
+      model: GEMINI_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `最新內容：\n${current}\n\n可能相關的過去片段：\n${memoryText || '無'}\n\n請以繁體中文回覆一句至兩句、最多60字。像一個安靜但記得脈絡的人。若過去片段確實相關，可自然提起一個具體片段；若不確定，完全不要提過去。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道使用者真正的原因。結尾可以讓使用者選擇接著說或先放著。` }] }],
+      generationConfig: { temperature: 0.45, maxOutputTokens: 110 }
+    };
+    try {
+      const response = proxyUrl
+        ? await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!response.ok) return fallback;
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      return text && text.length <= 140 ? text : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   public static async analyzePilesAsync(piles: Array<{ id: string; items: string[] }>): Promise<PileAnalysis> {
     const usablePiles = piles.filter(pile => pile.items.length > 0);
     if (usablePiles.length < 2) return { labels: {}, observations: [] };

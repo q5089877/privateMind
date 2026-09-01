@@ -15,7 +15,6 @@ const App: React.FC = () => {
         return (
           <HomeScreen 
             onStartInput={(text) => flow.submitText(text)} 
-            onAppend={flow.appendEntry}
             onReview={() => flow.transition('REVIEW')}
             getPastThoughts={() => flow.getAllThreads()}
           />
@@ -33,8 +32,8 @@ const App: React.FC = () => {
           <CompletionScreen 
             thread={flow.currentThread}
             onReset={() => flow.finish()} 
-            onAttach={flow.attachCurrentMoment}
             getPastThoughts={() => flow.getAllThreads()}
+            onSaveReflection={flow.saveReflection}
           />
         );
 

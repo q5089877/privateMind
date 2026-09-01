@@ -67,6 +67,16 @@ export class FlowEngine {
     if (!thread || !entry || !content.trim()) return;
     entry.content = content.trim(); thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify();
   }
+  public async saveReflection(threadId: string, entryId: string, response: string, relatedEntryIds: string[]) {
+    const thread = await this.find(threadId); const entry = thread?.entries.find(item => item.id === entryId);
+    if (!thread || !entry) return;
+    entry.aiResponse = response.trim();
+    entry.relatedEntryIds = relatedEntryIds;
+    thread.updatedAt = Date.now();
+    await this.storage.updateThread(thread);
+    if (this.currentThread?.id === threadId) this.currentThread = thread;
+    this.notify();
+  }
   public async archiveThread(threadId: string) { const thread = await this.find(threadId); if (!thread) return; thread.isArchived = true; thread.state = 'tucked_away'; thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify(); }
   public async restoreThread(threadId: string) { const thread = await this.find(threadId); if (!thread) return; thread.isArchived = false; thread.state = 'developing'; thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify(); }
   public async deleteThread(threadId: string) { await this.storage.deleteThread(threadId); if (this.currentThread?.id === threadId) this.currentThread = null; this.notify(); }

@@ -13,6 +13,7 @@ export function useFlow() {
     submitText: (text: string) => engine.submitText(text), submitSayNothing: () => engine.submitSayNothing(),
     appendEntry: (id: string, text: string, intent?: MomentIntent) => engine.appendEntry(id, text, intent),
     attachCurrentMoment: (id: string) => engine.attachCurrentMoment(id),
+    saveReflection: (threadId: string, entryId: string, response: string, relatedIds: string[]) => engine.saveReflection(threadId, entryId, response, relatedIds),
     finish: () => engine.reset(), transition: (next: FlowState) => engine.transition(next),
     getAllThreads: () => engine.getAllThreads()
   };
