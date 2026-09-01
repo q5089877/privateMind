@@ -16,12 +16,15 @@ export interface PileAnalysis {
 
 /** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
 export const normalizeCompanionResponse = (value: string): string => {
-  const text = value.trim();
+  const text = value.trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
   try {
     const parsed = JSON.parse(text);
     if (typeof parsed?.response === 'string') return parsed.response.trim();
     if (typeof parsed?.text === 'string') return parsed.text.trim();
     if (typeof parsed?.reading === 'string') return parsed.reading.trim();
+    // Some Gemini responses still wrap plain text even when text/plain is requested.
+    if (typeof parsed?.content === 'string') return parsed.content.trim();
+    if (typeof parsed?.message === 'string') return parsed.message.trim();
   } catch { /* Plain text is the expected shape. */ }
   return text;
 };
@@ -94,7 +97,7 @@ export class GeminiProxyClient {
     const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
     const payload = {
       model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n你的任務不是摘要、重述時間順序、或把使用者剛看完的話換句話說。請找出原文中「被混在一起，因而讓人卡住」的 2 至 3 個不同問題、拉扯或層次。\n\n每個項目都必須：\n- 有一個 8 字內、具體的短標題\n- 說明它和另一個問題為何不同\n- 引用使用者一小段原文作為依據（12字內）\n\n最後只留一個問題：請使用者選擇目前最想先看哪一個項目。\n\n嚴格禁止：依日期重述、空泛的「你似乎／呈現出／正在經歷」、心理診斷、人格標籤、建議行動、替使用者判定真正原因、安慰語、或「這不是結論」等免責句。\n\n格式固定如下，總長不超過 220 字：\n\n混在一起的事\n1. 【短標題】說明\n   依據：「原文」\n2. 【短標題】說明\n   依據：「原文」\n\n現在最想先看哪一個？` }] }],
+      contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n你的任務不是摘要、重述時間順序、或把使用者剛看完的話換句話說。請找出原文中「被混在一起，因而讓人卡住」的 2 至 3 個不同問題、拉扯或層次。\n\n每個項目都必須：\n- 有一個 8 字內、具體的短標題\n- 說明它和另一個問題為何不同\n- 引用使用者一小段原文作為依據（12字內）\n\n最後只留一個問題：請使用者選擇目前最想先看哪一個項目。\n\n嚴格禁止：依日期重述、空泛的「你似乎／呈現出／正在經歷」、心理診斷、人格標籤、建議行動、替使用者判定真正原因、安慰語、或「這不是結論」等免責句。\n\n請直接輸出給使用者看的繁體中文文字；絕對不要輸出 JSON、物件欄位、Markdown 程式碼區塊，或在外層包裝 content／reading／response。\n\n格式固定如下，總長不超過 220 字：\n\n混在一起的事\n1. 【短標題】說明\n   依據：「原文」\n2. 【短標題】說明\n   依據：「原文」\n\n現在最想先看哪一個？` }] }],
       generationConfig: { temperature: 0.3, maxOutputTokens: 180, responseMimeType: 'text/plain' }
     };
     try {
