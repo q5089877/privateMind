@@ -4,9 +4,10 @@
  */
 
 export interface ThoughtOperation {
-  type: 'isolate' | 'contrast' | 'zoom_out' | 'landing' | 'reframe';
-  label: string;         // 操作卡片標題/摘要 (例如: "🔍 隔離看：關於『身體很累』")
+  type: 'isolate' | 'contrast' | 'zoom_out' | 'landing';
+  label: string;         // 操作卡片標題/摘要 (例如: "先只看『身體很累』")
   actionPrompt: string;  // 點擊後帶入輸入框的起手文字 (例如: "如果先不看工作，我身體真正的感覺是……")
+  sourcePhrases: string[]; // 必須逐字出現在使用者原文，作為卡片的落點
 }
 
 export interface PileAnalysis {
@@ -99,28 +100,6 @@ export class GeminiProxyClient {
     }
   }
 
-  /** User-invoked only: reads one visible storyline and returns a short evidence-led reflection. */
-  public static async getStorylineAnalysis(entries: Array<{ date: string; content: string }>): Promise<string> {
-    const fallback = '這次還沒等到回應。先把這段留在時間流裡。';
-    const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return fallback;
-    const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
-    const payload = {
-      model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n你的任務不是摘要、重述時間順序、或把使用者剛看完的話換句話說。請找出原文中「被混在一起，因而讓人卡住」的 2 至 3 個不同問題、拉扯或層次。\n\n每個項目都必須：\n- 有一個 8 字內、具體的短標題\n- 說明它和另一個問題為何不同\n- 引用使用者一小段原文作為依據（12字內）\n\n最後只留一個問題：請使用者選擇目前最想先看哪一個項目。\n\n嚴格禁止：依日期重述、空泛的「你似乎／呈現出／正在經歷」、心理診斷、人格標籤、建議行動、替使用者判定真正原因、安慰語、或「這不是結論」等免責句。\n\n請直接輸出給使用者看的繁體中文文字；絕對不要輸出 JSON、物件欄位、Markdown 程式碼區塊，或在外層包裝 content／reading／response。\n\n格式固定如下，總長不超過 220 字：\n\n混在一起的事\n1. 【短標題】說明\n   依據：「原文」\n2. 【短標題】說明\n   依據：「原文」\n\n現在最想先看哪一個？` }] }],
-      generationConfig: { temperature: 0.25, maxOutputTokens: 120, responseMimeType: 'text/plain', thinkingConfig: FAST_THINKING_CONFIG }
-    };
-    try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 12_000);
-      if (!response.ok) return fallback;
-      const data = await response.json();
-      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      const text = typeof raw === 'string' ? normalizeCompanionResponse(raw) : '';
-      return text && text.length <= 260 ? text : fallback;
-    } catch { return fallback; }
-  }
-
   public static async analyzePilesAsync(piles: Array<{ id: string; items: string[] }>): Promise<PileAnalysis> {
     const usablePiles = piles.filter(pile => pile.items.length > 0);
     if (usablePiles.length < 2) return { labels: {}, observations: [] };
@@ -185,21 +164,20 @@ export class GeminiProxyClient {
           text: `你是「思緒停靠 (Mind Harbor)」的思維操作引擎（Cognitive Scaffold Engine）。
 
 【任務】
-根據使用者當前寫下的思緒或分堆內容，進行最小必要結構理解（識別張力點、混雜層次、未解節點），生成 2～4 個具體的「思維操作卡片（Thought Operations）」。
+根據使用者當前寫下的思緒，生成 2～4 個具體的「思維操作卡片（Thought Operations）」。你提供的是觀看角度，不是對使用者的理解或結論。
 
 【操作類型 (Type)】
 1. isolate (隔離)：將某個具體焦點單獨拆開看，降低認知負荷。
 2. contrast (對照)：將兩個看似拉扯/矛盾的具體事項並排看，促使價值排序。
 3. zoom_out (抽離)：將時間軸拉長至三個月或一年後，淡化當下情緒摩擦。
-4. landing (著陸)：聚焦在今天或此刻最微小、可直接放下的一步。
-5. reframe (重構)：抽離外界標準與自我評判，回歸純粹個人感受。
+4. landing (著陸)：只邀請使用者選擇現在想先碰的一句。
 
 【嚴格約束】
-1. 【嚴禁心理診斷與解釋】：絕對禁止出現「你在焦慮…」、「這代表你…」、「這顯示出…」、「你可能…」。
-2. 【嚴禁說教與問句】：卡片標籤 (label) 必須是「動作指令/角度提示」，禁止問號（？）。
-3. 【緊扣原文關鍵詞】：操作必須直接引用使用者寫下的核心字詞，禁止空泛套話。
-4. 【起手文字 (actionPrompt)】：點選後帶入的句子骨架，句末必須以「……」結尾，留給使用者自行書寫。
-5. 【真實自然】：若內容極短或無可操作點，允許回傳空陣列。`.trim()
+1. 【絕不解釋】：禁止心理診斷、動機推測或結論。禁止「這是」、「你其實」、「你在」、「這顯示」、「壓力」、「恐懼」、「焦慮」、「逃避」、「妥協」、「自我懷疑」。
+2. 【只給操作】：label 必須是可做的觀看動作，不能有標題式分類、不能解釋、不能有問號。
+3. 【逐字落在原文】：每張卡都要在 sourcePhrases 放入 1～2 段從原文逐字複製的片段；片段各為 2～16 字。label 或 actionPrompt 也必須包含至少一段該片段。
+4. 【起手文字】：actionPrompt 是點選後的續寫骨架，句末必須是「……」，留白給使用者自行寫。
+5. 【真實自然】：若內容太短或沒有自然的操作入口，回傳空陣列。`.trim()
         }
       ]
     };
@@ -214,7 +192,7 @@ export class GeminiProxyClient {
             properties: {
               type: {
                 type: 'STRING',
-                enum: ['isolate', 'contrast', 'zoom_out', 'landing', 'reframe']
+                enum: ['isolate', 'contrast', 'zoom_out', 'landing']
               },
               label: {
                 type: 'STRING',
@@ -223,9 +201,14 @@ export class GeminiProxyClient {
               actionPrompt: {
                 type: 'STRING',
                 description: '帶入輸入框的起手文字，如「如果先不考慮工作，我身體最直接的感覺是……」'
+              },
+              sourcePhrases: {
+                type: 'ARRAY',
+                items: { type: 'STRING' },
+                description: '從使用者原文逐字複製的 1～2 段片段'
               }
             },
-            required: ['type', 'label', 'actionPrompt']
+            required: ['type', 'label', 'actionPrompt', 'sourcePhrases']
           },
           description: '生成 2～4 個結構化思維操作卡片'
         }
@@ -285,20 +268,25 @@ export class GeminiProxyClient {
       const parsed = JSON.parse(text);
       if (!parsed?.operations || !Array.isArray(parsed.operations)) return [];
 
-      // 本地嚴格過濾（消除解釋性字眼與問號）
-      const forbiddenKeywords = ['你在焦慮', '這顯示', '心理學', '你可能', '建議你', '請試著', '？', '?'];
+      // 本地嚴格過濾：不接受解釋式文字，並確認每張卡真的落在原文。
+      const forbiddenKeywords = ['這是', '你其實', '你在', '這顯示', '心理學', '你可能', '建議你', '請試著', '壓力', '恐懼', '焦慮', '逃避', '妥協', '自我懷疑', '？', '?'];
       return parsed.operations
         .filter((op: any) => {
-          if (!op.label || !op.actionPrompt) return false;
+          if (!op.label || !op.actionPrompt || !Array.isArray(op.sourcePhrases)) return false;
           const combined = `${op.label} ${op.actionPrompt}`;
-          return !forbiddenKeywords.some((kw) => combined.includes(kw));
+          const sourcePhrases = op.sourcePhrases
+            .filter((phrase: unknown) => typeof phrase === 'string' && phrase.trim().length >= 2 && phrase.trim().length <= 16)
+            .map((phrase: string) => phrase.trim());
+          const usesSourcePhrase = sourcePhrases.some((phrase: string) => cleanText.includes(phrase) && combined.includes(phrase));
+          return usesSourcePhrase && !forbiddenKeywords.some((kw) => combined.includes(kw));
         })
         .map((op: any) => ({
           type: op.type,
           label: op.label.trim(),
           actionPrompt: op.actionPrompt.trim().endsWith('……')
             ? op.actionPrompt.trim()
-            : `${op.actionPrompt.trim()}……`
+            : `${op.actionPrompt.trim()}……`,
+          sourcePhrases: op.sourcePhrases.map((phrase: string) => phrase.trim())
         }));
     } catch (err) {
       console.warn('[GeminiProxyClient] 思維操作生成失敗:', err);
