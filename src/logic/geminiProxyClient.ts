@@ -21,6 +21,7 @@ export const normalizeCompanionResponse = (value: string): string => {
     const parsed = JSON.parse(text);
     if (typeof parsed?.response === 'string') return parsed.response.trim();
     if (typeof parsed?.text === 'string') return parsed.text.trim();
+    if (typeof parsed?.reading === 'string') return parsed.reading.trim();
   } catch { /* Plain text is the expected shape. */ }
   return text;
 };
@@ -86,14 +87,14 @@ export class GeminiProxyClient {
 
   /** User-invoked only: reads one visible storyline and returns a short evidence-led reflection. */
   public static async getStorylineAnalysis(entries: Array<{ date: string; content: string }>): Promise<string> {
-    const fallback = '先把這幾個片段放在一起看。它們之間的意義，仍由你決定。';
+    const fallback = '這段內容還在發展。先把它留在時間流裡，也許之後會更看得清楚。';
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
     if (!proxyUrl && !apiKey) return fallback;
     const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
     const payload = {
       model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n請以繁體中文產生一段不超過120字的暫時閱讀。只描述原文中可見的變化、重複或拉扯，必要時提及日期作為依據。禁止心理診斷、替使用者定義真正原因、指示行動、給建議、使用「你其實」或把推測寫成事實。語氣平靜，結尾提醒這不是結論。` }] }],
+      contents: [{ role: 'user', parts: [{ text: `以下是使用者主動選擇要一起看的時間流：\n${timeline}\n\n你的任務不是摘要、重述時間順序、或把使用者剛看完的話換句話說。請找出原文中「被混在一起，因而讓人卡住」的 2 至 3 個不同問題、拉扯或層次。\n\n每個項目都必須：\n- 有一個 8 字內、具體的短標題\n- 說明它和另一個問題為何不同\n- 引用使用者一小段原文作為依據（12字內）\n\n最後只留一個問題：請使用者選擇目前最想先看哪一個項目。\n\n嚴格禁止：依日期重述、空泛的「你似乎／呈現出／正在經歷」、心理診斷、人格標籤、建議行動、替使用者判定真正原因、安慰語、或「這不是結論」等免責句。\n\n格式固定如下，總長不超過 220 字：\n\n混在一起的事\n1. 【短標題】說明\n   依據：「原文」\n2. 【短標題】說明\n   依據：「原文」\n\n現在最想先看哪一個？` }] }],
       generationConfig: { temperature: 0.3, maxOutputTokens: 180, responseMimeType: 'text/plain' }
     };
     try {
