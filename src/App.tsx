@@ -16,7 +16,6 @@ const App: React.FC = () => {
           <HomeScreen 
             onStartInput={(text) => flow.submitText(text)} 
             onReview={() => flow.transition('REVIEW')}
-            getPastThoughts={() => flow.getAllThreads()}
           />
         );
 
