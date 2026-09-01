@@ -15,6 +15,11 @@ export interface PileAnalysis {
   observations: string[];
 }
 
+export interface ThreadReflection {
+  insight: string;
+  sourcePhrases: [string, string];
+}
+
 /** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
 export const normalizeCompanionResponse = (value: string): string => {
   const text = value.trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
@@ -97,6 +102,43 @@ export class GeminiProxyClient {
       return text && text.length <= 140 ? text : fallback;
     } catch {
       return fallback;
+    }
+  }
+
+  /** User-invoked only: finds one evidence-led change or relationship across a whole timeline. */
+  public static async getThreadReflection(entries: Array<{ date: string; content: string }>): Promise<ThreadReflection | null> {
+    if (entries.length < 2) return null;
+    const proxyUrl = this.getProxyUrl();
+    const apiKey = this.getApiKey();
+    if (!proxyUrl && !apiKey) return null;
+    const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
+    const responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        insight: { type: 'STRING', description: '60 到 150 字的繁體中文新角度，指出兩段原文之間的問題轉折或關係' },
+        sourcePhrases: { type: 'ARRAY', items: { type: 'STRING' }, minItems: 2, maxItems: 2, description: '從不同原文片段逐字複製的兩段依據' }
+      },
+      required: ['insight', 'sourcePhrases']
+    };
+    const payload = {
+      model: GEMINI_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `以下是一件事情留下的時間流：\n${timeline}\n\n請只找出一個真正能增加觀看角度的關係或轉折。好的回覆必須讓使用者看見「問題怎麼變了」或「兩句原本看似無關的話怎麼連起來」，而不是依日期摘要、把句子換句話說、列分類或重述所有內容。\n\n只根據原文。可以描述文字焦點如何轉移，例如從一個問題轉到另一個問題；不可推測心理狀態、動機、人格或真正原因。\n\n嚴格禁止：心理診斷、標籤、建議、命令、安慰、或「你其實／你在／這顯示／這是／壓力／恐懼／焦慮／逃避／妥協／自我懷疑」。\n\n回傳 JSON。sourcePhrases 必須是從兩個不同原文片段逐字複製的文字。若沒有可靠的新角度，回傳 {"insight":"","sourcePhrases":[]}。` }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 160, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+    };
+    try {
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 10_000);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : null;
+      const sourcePhrases = Array.isArray(parsed?.sourcePhrases) ? parsed.sourcePhrases.map((value: unknown) => typeof value === 'string' ? value.trim() : '') : [];
+      const insight = typeof parsed?.insight === 'string' ? parsed.insight.trim() : '';
+      const forbidden = ['你其實', '你在', '這顯示', '這是', '壓力', '恐懼', '焦慮', '逃避', '妥協', '自我懷疑'];
+      const sourceText = entries.map(item => item.content).join('\n');
+      if (insight.length < 20 || insight.length > 180 || sourcePhrases.length !== 2 || sourcePhrases.some((phrase: string) => phrase.length < 2 || !sourceText.includes(phrase)) || forbidden.some(word => insight.includes(word))) return null;
+      return { insight, sourcePhrases: [sourcePhrases[0], sourcePhrases[1]] };
+    } catch {
+      return null;
     }
   }
 
