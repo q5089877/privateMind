@@ -30,10 +30,6 @@ export interface TimelineInsight {
   question: string;
 }
 
-export interface DiscoveryInsight extends TimelineInsight {
-  momentIds: string[];
-}
-
 /** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
 export const normalizeCompanionResponse = (value: string): string => {
   const text = value.trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
@@ -199,7 +195,7 @@ export class GeminiProxyClient {
     };
     const payload = {
       model: REFLECTION_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是同一條由使用者確認、且跨時間累積的原文：\n${timeline}\n\n請提供一個「使用者分開寫時不容易看見」的新角度。它只能指出原文可驗證的缺口、轉折、重複或不對稱，不能推論原因、心理狀態或給建議。\n\n回傳 JSON：\n- evidence：至少兩則日期與原文逐字片段，phrase 必須從該日期的內容逐字複製。\n- angle：40 到 90 字的具體觀察；必須建立在 evidence 上，不能只是按日期重述。\n- question：一個 16 到 42 字、讓人自己判斷的問題；不可要求行動、不可給二選一答案。\n\n禁止：你其實、你在、這顯示、因為、所以、心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因。` }] }],
+      contents: [{ role: 'user', parts: [{ text: `以下是同一條跨時間累積的原文：\n${timeline}\n\n請提供一個「分開寫時不容易看見」的新角度。它只能指出原文可驗證的缺口、轉折、重複或不對稱，不能推論原因、心理狀態或給建議。請以「這幾段裡」、「前面」或「後面」描述，不要評論使用者這個人。\n\n回傳 JSON：\n- evidence：至少兩則日期與原文逐字片段，phrase 必須從該日期的內容逐字複製。\n- angle：20 到 120 字的具體觀察；必須建立在 evidence 上，不能只是按日期重述。\n- question：一個 8 到 64 字、讓人自己判斷的問題；不可要求行動、不可給二選一答案。\n\n禁止：你其實、你在、這顯示、心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因。` }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 260, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
@@ -215,7 +211,7 @@ export class GeminiProxyClient {
       const angle = typeof parsed?.angle === 'string' ? parsed.angle.trim() : '';
       const question = typeof parsed?.question === 'string' ? parsed.question.trim() : '';
       const byDate = new Map(entries.map(entry => [entry.date, entry.content]));
-      const forbidden = ['你其實', '你在', '這顯示', '因為', '所以', '心理', '壓力', '恐懼', '焦慮', '逃避', '人格', '診斷', '建議', '應該', '一定', '真正原因'];
+      const forbidden = ['你其實', '你在', '這顯示', '心理', '壓力', '恐懼', '焦慮', '逃避', '人格', '診斷', '建議', '應該', '一定', '真正原因'];
       const bad = (value: string) => forbidden.some(word => value.includes(word));
       if (evidence.length < 2 || evidence.some(item => !item.date || !item.phrase || !byDate.get(item.date)?.includes(item.phrase)) || angle.length < 20 || angle.length > 120 || question.length < 8 || question.length > 64 || bad(angle) || bad(question)) return null;
       return { evidence, angle, question };
@@ -224,51 +220,37 @@ export class GeminiProxyClient {
     }
   }
 
-  /** User-invoked only: find one evidence-backed line inside a recent master timeline. */
-  public static async findDiscoveryInsight(entries: Array<{ id: string; createdAt: number; date: string; content: string }>): Promise<DiscoveryInsight | null> {
+  /** First stage of homepage discovery: select evidence only, with no interpretation. */
+  public static async findRelevantMoments(entries: Array<{ id: string; createdAt: number; date: string; content: string }>): Promise<string[] | null> {
     if (entries.length < 3) return null;
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
     if (!proxyUrl && !apiKey) return null;
     const timeline = entries.map(item => `[${item.id}] ${item.date}｜${item.content}`).join('\n');
-    const responseSchema = {
-      type: 'OBJECT',
-      properties: {
-        momentIds: { type: 'ARRAY', maxItems: 5, items: { type: 'STRING' } },
-        evidence: { type: 'ARRAY', maxItems: 4, items: { type: 'OBJECT', properties: { id: { type: 'STRING' }, phrase: { type: 'STRING' } }, required: ['id', 'phrase'] } },
-        angle: { type: 'STRING' },
-        question: { type: 'STRING' }
-      },
-      required: ['momentIds', 'evidence', 'angle', 'question']
-    };
     const payload = {
-      model: REFLECTION_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是使用者近期、跨時間留下的原文。請找出一組最值得回看的 3 到 5 段，並直接提供一個新角度。\n\n${timeline}\n\n規則：\n1. 只能選跨至少兩個自然日、且第一筆與最後一筆相隔至少 24 小時的片段。\n2. 只指出原文可驗證的缺口、轉折、重複或不對稱；不要做摘要。\n3. 不推論原因、心理狀態或人格，不給建議。\n4. evidence 的 phrase 必須從該 id 的原文逐字複製。\n5. angle 為 40 到 90 字；question 為一個讓人自行判斷的問題。\n6. 禁止：你其實、你在、這顯示、因為、所以、心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因。\n若沒有可靠角度，回傳 momentIds: []、evidence: []、angle: ""、question: ""。` }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 320, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+      model: GEMINI_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `以下是使用者近期留下的原文：\n${timeline}\n\n請優先挑出一組最值得回看的 3 到 5 段原文 id。它們必須跨至少兩個自然日、第一筆與最後一筆至少相隔 24 小時，而且能從原文看見具體的重複、轉折、缺口或拉扯。只負責選 id：不要解釋、不要命名、不要下結論。只在完全沒有可驗證共同脈絡時回傳 {"momentIds":[]}。` }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 96,
+        responseMimeType: 'application/json',
+        responseSchema: { type: 'OBJECT', properties: { momentIds: { type: 'ARRAY', maxItems: 5, items: { type: 'STRING' } } }, required: ['momentIds'] },
+        thinkingConfig: FAST_THINKING_CONFIG
+      }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${REFLECTION_MODEL}:generateContent?key=${apiKey}`, payload, 12_000);
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 8_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : null;
-      const momentIds: string[] = Array.isArray(parsed?.momentIds) ? [...new Set<string>(parsed.momentIds.filter((id: unknown): id is string => typeof id === 'string'))] : [];
+      const ids: string[] = Array.isArray(parsed?.momentIds) ? [...new Set<string>(parsed.momentIds.filter((id: unknown): id is string => typeof id === 'string'))] : [];
       const byId = new Map(entries.map(entry => [entry.id, entry]));
-      const evidence: Array<{ id: string; date: string; phrase: string }> = Array.isArray(parsed?.evidence) ? parsed.evidence.map((item: unknown) => {
-        const value = item as { id?: unknown; phrase?: unknown };
-        const id = typeof value.id === 'string' ? value.id : '';
-        return { id, date: byId.get(id)?.date || '', phrase: typeof value.phrase === 'string' ? value.phrase.trim() : '' };
-      }) : [];
-      const angle = typeof parsed?.angle === 'string' ? parsed.angle.trim() : '';
-      const question = typeof parsed?.question === 'string' ? parsed.question.trim() : '';
-      const selected = momentIds.map(id => byId.get(id)).filter((entry): entry is { id: string; createdAt: number; date: string; content: string } => Boolean(entry));
+      const selected = ids.map(id => byId.get(id)).filter((entry): entry is { id: string; createdAt: number; date: string; content: string } => Boolean(entry));
       const dates = new Set(selected.map(entry => new Date(entry.createdAt).toDateString()));
-      const timestamps = selected.map(entry => entry.createdAt).filter(Number.isFinite);
+      const timestamps = selected.map(entry => entry.createdAt);
       const span = timestamps.length ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
-      const forbidden = ['你其實', '你在', '這顯示', '因為', '所以', '心理', '壓力', '恐懼', '焦慮', '逃避', '人格', '診斷', '建議', '應該', '一定', '真正原因'];
-      const bad = (value: string) => forbidden.some(word => value.includes(word));
-      if (selected.length < 3 || dates.size < 2 || span < 24 * 60 * 60 * 1000 || evidence.length < 2 || evidence.some(item => !momentIds.includes(item.id) || !item.phrase || !byId.get(item.id)?.content.includes(item.phrase)) || angle.length < 20 || angle.length > 120 || question.length < 8 || question.length > 64 || bad(angle) || bad(question)) return null;
-      return { momentIds, evidence: evidence.map(({ date, phrase }) => ({ date, phrase })), angle, question };
+      return selected.length >= 3 && dates.size >= 2 && span >= 24 * 60 * 60 * 1000 ? ids : null;
     } catch {
       return null;
     }
