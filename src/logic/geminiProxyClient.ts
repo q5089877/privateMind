@@ -91,25 +91,24 @@ export class GeminiProxyClient {
   }
 
   /** A present-tense reply. It must never retrieve or mention past Moments. */
-  public static async getCompanionResponse(current: string): Promise<string> {
-    const fallback = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
+  public static async getCompanionResponse(current: string): Promise<string | null> {
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return fallback;
+    if (!proxyUrl && !apiKey) return null;
     const payload = {
       model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: `使用者剛留下這一句：\n${current}\n\n請以繁體中文回覆兩到三句、最多72字。只根據這一句話，提供被接住的感覺與一個溫和、可選的新觀看角度。不得提及過去紀錄、記憶、模式、重複或任何你未看見的內容。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道真正原因。最後保留「不用現在想完」的餘地。` }] }],
       generationConfig: { temperature: 0.45, maxOutputTokens: 72, responseMimeType: 'text/plain', thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 8_000);
-      if (!response.ok) return fallback;
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 20_000);
+      if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       const text = typeof raw === 'string' ? normalizeCompanionResponse(raw) : '';
-      return text && text.length <= 140 ? text : fallback;
+      return text && text.length <= 180 ? text : null;
     } catch {
-      return fallback;
+      return null;
     }
   }
 

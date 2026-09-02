@@ -19,6 +19,10 @@ const angles = [
   { id: 'exception', label: '找個例外', text: '也有不一樣的時候，例如……', icon: CircleDashed }
 ];
 
+// Older builds persisted this generic fallback as if it were an AI reply.
+// Treat it as retryable so those moments can receive a real reply after the fix.
+const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
+
 const backupLabel = (status: BackupStatus) => status.lastExportedAt
   ? `已建立備份 · ${new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(status.lastExportedAt))}`
   : '已留在這台裝置';
@@ -29,8 +33,9 @@ export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue,
   const [continuation, setContinuation] = useState('');
   const [showAngles, setShowAngles] = useState(false);
   const [backup, setBackup] = useState<BackupStatus | null>(null);
+  const [replyUnavailable, setReplyUnavailable] = useState(false);
+  const [replyAttempt, setReplyAttempt] = useState(0);
   const continuationRef = useRef<HTMLTextAreaElement>(null);
-  const requestedFor = useRef<string | null>(null);
 
   useEffect(() => {
     void getBackupStatus().then(setBackup);
@@ -41,26 +46,32 @@ export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue,
     setContinuing(false);
     setContinuation('');
     setShowAngles(false);
-    setReply(moment?.immediateReply ? normalizeCompanionResponse(moment.immediateReply) : '');
+    setReplyUnavailable(false);
+    setReplyAttempt(0);
+    setReply(moment?.immediateReply && normalizeCompanionResponse(moment.immediateReply) !== legacyFallbackReply ? normalizeCompanionResponse(moment.immediateReply) : '');
   }, [moment?.id]);
 
   useEffect(() => {
     if (!moment) return;
-    if (moment.immediateReply) {
+    if (moment.immediateReply && normalizeCompanionResponse(moment.immediateReply) !== legacyFallbackReply) {
       setReply(normalizeCompanionResponse(moment.immediateReply));
       return;
     }
-    if (requestedFor.current === moment.id) return;
-    requestedFor.current = moment.id;
     let alive = true;
+    setReply('');
+    setReplyUnavailable(false);
     void GeminiProxyClient.getCompanionResponse(moment.content).then(async value => {
       if (!alive) return;
+      if (!value) {
+        setReplyUnavailable(true);
+        return;
+      }
       const clean = normalizeCompanionResponse(value);
       setReply(clean);
       await onSaveReply(moment.id, clean);
     });
     return () => { alive = false; };
-  }, [moment, onSaveReply]);
+  }, [moment?.id, replyAttempt, onSaveReply]);
 
   if (!moment) return null;
 
@@ -86,7 +97,7 @@ export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue,
 
       <section className="mt-10 pt-5 border-t border-border-base">
         <div className="flex items-center gap-2 text-sm text-accent"><MessageCircle size={16} strokeWidth={1.6}/><span className="font-medium">這一刻</span></div>
-        {reply ? <p className="mt-3 max-w-[480px] text-[16px] leading-[1.8] text-ink-secondary">{reply}</p> : <p className="mt-3 text-sm text-ink-muted">正在回應這一刻…</p>}
+        {reply ? <p className="mt-3 max-w-[480px] text-[16px] leading-[1.8] text-ink-secondary">{reply}</p> : replyUnavailable ? <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1"><p className="text-sm leading-relaxed text-ink-secondary">這一刻已經留下；回應暫時沒有連上。</p><button onClick={() => setReplyAttempt(value => value + 1)} className="text-sm font-medium text-accent hover:text-ink">再試一次</button></div> : <p className="mt-3 text-sm text-ink-muted">正在回應這一刻…</p>}
       </section>
 
       <section className="mt-8">

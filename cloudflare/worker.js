@@ -54,6 +54,7 @@ export default {
         generationConfig: {
           temperature: reqData.generationConfig?.temperature ?? reqData.temperature ?? 0.2,
           topP: reqData.generationConfig?.topP ?? reqData.topP,
+          maxOutputTokens: reqData.generationConfig?.maxOutputTokens ?? reqData.maxOutputTokens,
           responseMimeType: reqData.generationConfig?.responseMimeType || reqData.responseMimeType || "application/json",
           responseSchema: reqData.generationConfig?.responseSchema || reqData.responseSchema || undefined,
           thinkingConfig: reqData.generationConfig?.thinkingConfig || undefined,
