@@ -7,6 +7,7 @@ export function useFlow() {
   const [state, setState] = useState<FlowState>(engine.getState());
   const [currentMoment, setCurrentMoment] = useState(engine.getCurrentMoment());
   const [candidate, setCandidate] = useState(engine.getCandidate());
+  const [canDiscover, setCanDiscover] = useState(engine.canOpenDiscovery());
   const [activeCollection, setActiveCollection] = useState(engine.getActiveCollection());
   const [ready, setReady] = useState(engine.isReady());
 
@@ -14,6 +15,7 @@ export function useFlow() {
     setState(engine.getState());
     setCurrentMoment(engine.getCurrentMoment());
     setCandidate(engine.getCandidate());
+    setCanDiscover(engine.canOpenDiscovery());
     setActiveCollection(engine.getActiveCollection());
     setReady(engine.isReady());
   }, [engine]);
@@ -24,6 +26,7 @@ export function useFlow() {
     state,
     currentMoment,
     candidate,
+    canDiscover,
     activeCollection,
     ready,
     submitText: (text: string, intent?: MomentIntent) => engine.submitText(text, intent),
@@ -32,6 +35,7 @@ export function useFlow() {
     getLines: () => engine.getLines(),
     getBackupStatus: () => engine.getBackupStatus(),
     openCandidate: () => engine.openCandidate(),
+    openDiscovery: () => engine.openDiscovery(),
     openLine: (lineId: string) => engine.openLine(lineId),
     createManualLine: (momentIds: string[]) => engine.createManualLine(momentIds),
     confirmCandidate: () => engine.confirmCandidate(),

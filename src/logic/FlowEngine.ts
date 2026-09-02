@@ -1,6 +1,6 @@
 import { ActiveCollection, BackupStatus, FlowState, LinkCandidate, MindHarborData, Moment, MomentIntent, ThreadLine } from '../types';
 import { makeBackupText, parseBackupText } from './backup';
-import { findCandidate, fingerprint } from './connectionCandidates';
+import { findCandidate, fingerprint, hasInsightEligibility } from './connectionCandidates';
 import { MindHarborRepository } from './MindHarborRepository';
 
 /**
@@ -12,6 +12,7 @@ export class FlowEngine {
   private currentMoment: Moment | null = null;
   private activeCollection: ActiveCollection | null = null;
   private candidate: LinkCandidate | null = null;
+  private canDiscover = false;
   private storage = new MindHarborRepository();
   private listeners: (() => void)[] = [];
   private ready = false;
@@ -28,12 +29,14 @@ export class FlowEngine {
   public getCurrentMoment() { return this.currentMoment; }
   public getActiveCollection() { return this.activeCollection; }
   public getCandidate() { return this.candidate; }
+  public canOpenDiscovery() { return this.canDiscover; }
   public isReady() { return this.ready; }
 
   private async initialise() {
     const data = await this.storage.getData();
     // Candidates are discovered only when a new app session begins, never after submitText.
     this.candidate = findCandidate(data.moments, data.linkDecisions);
+    this.canDiscover = hasInsightEligibility(data.moments);
     this.ready = true;
     this.notify();
   }
@@ -44,6 +47,8 @@ export class FlowEngine {
     const moment: Moment = { id: this.id('moment'), content: clean, createdAt: Date.now(), intent };
     await this.storage.saveMoment(moment);
     this.currentMoment = moment;
+    // A newly captured thought should not be followed by a prompt to inspect the past in this session.
+    this.canDiscover = false;
     this.setState('PRESENT_SETTLED');
   }
 
@@ -62,6 +67,11 @@ export class FlowEngine {
     if (!this.candidate) return;
     this.activeCollection = { kind: 'candidate', id: this.candidate.id, momentIds: this.candidate.momentIds };
     this.setState('PARALLEL');
+  }
+
+  public openDiscovery() {
+    if (!this.canDiscover) return;
+    this.setState('DISCOVERY');
   }
 
   public openLine(lineId: string) {

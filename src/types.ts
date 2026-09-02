@@ -1,4 +1,4 @@
-export type FlowState = 'HOME' | 'PRESENT_SETTLED' | 'REVIEW' | 'PARALLEL' | 'BACKUP';
+export type FlowState = 'HOME' | 'PRESENT_SETTLED' | 'REVIEW' | 'PARALLEL' | 'DISCOVERY' | 'BACKUP';
 
 /** Why a moment was written. It is inferred from the entry point, never requested as a field. */
 export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_added';

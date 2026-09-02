@@ -5,6 +5,7 @@ import { ReviewScreen } from './components/ReviewScreen';
 import { CompletionScreen } from './components/CompletionScreen';
 import { ParallelMomentsScreen } from './components/ParallelMomentsScreen';
 import { BackupScreen } from './components/BackupScreen';
+import { DiscoveryScreen } from './components/DiscoveryScreen';
 import { useFlow } from './hooks/useFlow';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -15,13 +16,15 @@ const App: React.FC = () => {
     if (!flow.ready) return <div className="min-h-[60vh] w-full max-w-[560px] pt-24 text-sm text-ink-muted">正在整理停靠過的片段…</div>;
     switch (flow.state) {
       case 'HOME':
-        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} hasCandidate={Boolean(flow.candidate)} onOpenCandidate={flow.openCandidate} onOpenBackup={flow.openBackup} />;
+        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} canDiscover={flow.canDiscover} onOpenDiscovery={flow.openDiscovery} onOpenBackup={flow.openBackup} />;
       case 'PRESENT_SETTLED':
         return <CompletionScreen moment={flow.currentMoment} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} onSaveReply={flow.saveImmediateReply} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
       case 'REVIEW':
         return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getLines={flow.getLines} onOpenLine={flow.openLine} onCreateManualLine={flow.createManualLine} onOpenBackup={flow.openBackup} />;
       case 'PARALLEL':
         return <ParallelMomentsScreen collection={flow.activeCollection} getMoments={flow.getMoments} onClose={flow.closeParallel} onConfirm={flow.confirmCandidate} onDecide={flow.decideCandidate} />;
+      case 'DISCOVERY':
+        return <DiscoveryScreen getMoments={flow.getMoments} onClose={flow.finish} onKeepLine={flow.createManualLine} />;
       case 'BACKUP':
         return <BackupScreen getStatus={flow.getBackupStatus} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
       default:
