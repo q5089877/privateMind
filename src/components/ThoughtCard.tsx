@@ -13,7 +13,7 @@ interface Props {
   onEdit: (threadId: string, entryId: string, content: string) => Promise<void>;
 }
 
-const intentLabel: Record<MomentIntent, string> = { captured: '', reappeared: '又想到', follow_up: '有後續', context_added: '補充' };
+const intentLabel: Record<MomentIntent, string> = { captured: '', reappeared: '又想到', follow_up: '', context_added: '補充' };
 const date = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(stamp));
 const time = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(stamp));
 
