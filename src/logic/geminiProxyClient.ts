@@ -15,10 +15,13 @@ export interface PileAnalysis {
   observations: string[];
 }
 
+export interface ThreadReflectionLens {
+  title: string;
+  sourcePhrase: string;
+}
+
 export interface ThreadReflection {
-  insight: string;
-  sourcePhrases: [string, string];
-  invitation: string;
+  lenses: [ThreadReflectionLens, ThreadReflectionLens];
 }
 
 /** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
@@ -107,7 +110,7 @@ export class GeminiProxyClient {
     }
   }
 
-  /** User-invoked only: finds one evidence-led change or relationship across a whole timeline. */
+  /** User-invoked only: separates two visible directions without interpreting the person. */
   public static async getThreadReflection(entries: Array<{ date: string; content: string }>): Promise<ThreadReflection | null> {
     if (entries.length < 2) return null;
     const proxyUrl = this.getProxyUrl();
@@ -117,15 +120,25 @@ export class GeminiProxyClient {
     const responseSchema = {
       type: 'OBJECT',
       properties: {
-        insight: { type: 'STRING', description: '60 到 130 字的繁體中文新角度，指出兩段原文之間的問題轉折或關係' },
-        sourcePhrases: { type: 'ARRAY', items: { type: 'STRING' }, minItems: 2, maxItems: 2, description: '從不同原文片段逐字複製的兩段依據' },
-        invitation: { type: 'STRING', description: '一句繁體中文的開放式續寫提問，不超過 55 字' }
+        lenses: {
+          type: 'ARRAY',
+          minItems: 2,
+          maxItems: 2,
+          items: {
+            type: 'OBJECT',
+            properties: {
+              title: { type: 'STRING', description: '2 到 8 字，只命名原文的一個具體方向' },
+              sourcePhrase: { type: 'STRING', description: '從不同原文片段逐字複製的 2 到 16 字依據' }
+            },
+            required: ['title', 'sourcePhrase']
+          }
+        }
       },
-      required: ['insight', 'sourcePhrases', 'invitation']
+      required: ['lenses']
     };
     const payload = {
       model: REFLECTION_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `時間流：\n${timeline}\n\n回傳一個「新的觀看角度」與一個可續寫的問題。\n- insight：2 句內、60～130 字。指出兩段原文之間焦點如何轉移，並說明這使同一件事有何不同；不可逐句摘要、分類或講文字邏輯。\n- invitation：一句開放問題，圍繞原文具體字詞；不可給建議、催促或假定答案。\n- sourcePhrases：從兩個不同原文逐字複製。\n\n只根據原文；不可猜測心理、動機、人格或真正原因。禁止「第一句、第二句、客觀現況、時間稀缺性、推導、認知、邏輯、具體行動、你其實、你在、這顯示、壓力、恐懼、焦慮、自我懷疑、建議」。原文出現的詞可以直接引用，不可把它變成標籤。\n\n沒有可靠角度時回傳 {"insight":"","sourcePhrases":[],"invitation":""}。` }] }],
+      contents: [{ role: 'user', parts: [{ text: `時間流：\n${timeline}\n\n請只做一件事：從這些原文裡挑出兩個「不是同一件事」的具體方向，讓使用者自己選想先談哪個。\n\n每個方向只回傳：\n- title：2 到 8 字，使用日常語言命名，不可抽象、不可以是心理或人格標籤。\n- sourcePhrase：從不同原文片段逐字複製 2 到 16 字。\n\n不要解釋、摘要、下結論、給建議、提出問題，或補上原文沒有的背景。禁止使用：你、心理、系統性、生命歷程、壓力、恐懼、焦慮、逃避、動機、人格、原因、年紀、社會、時代、應該、建議、第一句、第二句。\n\n若無法穩妥地找出兩個不同方向，回傳 {"lenses":[]}。` }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 130, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
@@ -134,14 +147,17 @@ export class GeminiProxyClient {
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : null;
-      const sourcePhrases = Array.isArray(parsed?.sourcePhrases) ? parsed.sourcePhrases.map((value: unknown) => typeof value === 'string' ? value.trim() : '') : [];
-      const insight = typeof parsed?.insight === 'string' ? parsed.insight.trim() : '';
-      const invitation = typeof parsed?.invitation === 'string' ? parsed.invitation.trim() : '';
-      const forbidden = ['第一句', '第二句', '客觀現況', '時間稀缺性', '推導', '認知', '邏輯', '具體行動', '你其實', '你在', '這顯示', '壓力', '恐懼', '焦慮', '自我懷疑', '你應該', '建議你', '無力感', '內心掙扎'];
+      const lenses = Array.isArray(parsed?.lenses) ? parsed.lenses.map((lens: unknown) => {
+        const item = lens as { title?: unknown; sourcePhrase?: unknown };
+        return {
+          title: typeof item?.title === 'string' ? item.title.trim() : '',
+          sourcePhrase: typeof item?.sourcePhrase === 'string' ? item.sourcePhrase.trim() : ''
+        };
+      }) : [];
+      const forbidden = ['你', '心理', '系統性', '生命歷程', '壓力', '恐懼', '焦慮', '逃避', '動機', '人格', '原因', '年紀', '社會', '時代', '應該', '建議', '第一句', '第二句'];
       const sourceText = entries.map(item => item.content).join('\n');
-      const combined = `${insight} ${invitation}`;
-      if (insight.length < 20 || insight.length > 180 || !/[？?]$/.test(invitation) || invitation.length > 70 || sourcePhrases.length !== 2 || sourcePhrases.some((phrase: string) => phrase.length < 2 || !sourceText.includes(phrase)) || forbidden.some(word => combined.includes(word))) return null;
-      return { insight, sourcePhrases: [sourcePhrases[0], sourcePhrases[1]], invitation };
+      if (lenses.length !== 2 || lenses.some(lens => lens.title.length < 2 || lens.title.length > 8 || lens.sourcePhrase.length < 2 || lens.sourcePhrase.length > 16 || !sourceText.includes(lens.sourcePhrase) || forbidden.some(word => lens.title.includes(word)))) return null;
+      return { lenses: [lenses[0], lenses[1]] };
     } catch {
       return null;
     }
