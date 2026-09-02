@@ -1,47 +1,79 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Check, History, MessageCircle } from 'lucide-react';
-import { ThoughtThread } from '../types';
+import { ArrowUp, Check, CircleDashed, Compass, Focus, MessageCircle, ShieldCheck, Split } from 'lucide-react';
+import { BackupStatus, Moment } from '../types';
 import { GeminiProxyClient, normalizeCompanionResponse } from '../logic/geminiProxyClient';
-import { findRelatedMoments } from '../logic/memory';
 
-interface RelatedMemory { id: string; createdAt: number; content: string; }
-interface Props { thread: ThoughtThread | null; onReset: () => void; onReview: () => void; onContinue: (threadId: string, content: string) => Promise<void>; getPastThoughts: () => Promise<ThoughtThread[]>; onSaveReflection: (threadId: string, entryId: string, response: string, relatedIds: string[]) => Promise<void>; onDismissRelatedMemory: (threadId: string, entryId: string, sourceId: string) => Promise<void>; }
-const formatDate = (time: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(time));
+interface Props {
+  moment: Moment | null;
+  onReset: () => void;
+  onContinue: (content: string) => Promise<void>;
+  onSaveReply: (momentId: string, reply: string) => Promise<void>;
+  getBackupStatus: () => Promise<BackupStatus>;
+  onOpenBackup: () => void;
+}
 
-export const CompletionScreen: React.FC<Props> = ({ thread, onReset, onReview, onContinue, getPastThoughts, onSaveReflection, onDismissRelatedMemory }) => {
-  const [response, setResponse] = useState(''); const [related, setRelated] = useState<RelatedMemory[]>([]); const [continuing, setContinuing] = useState(false); const [continuation, setContinuation] = useState(''); const continuationRef = useRef<HTMLTextAreaElement>(null);
-  const latest = thread?.entries[thread.entries.length - 1];
+const angles = [
+  { id: 'focus', label: '聚焦一幕', text: '最先浮出來的一段是……', icon: Focus },
+  { id: 'words', label: '換個說法', text: '如果換成更貼近的字，我想說的是……', icon: MessageCircle },
+  { id: 'separate', label: '分開看', text: '把混在一起的部分分開，眼前最在意的是……', icon: Split },
+  { id: 'exception', label: '找個例外', text: '也有不一樣的時候，例如……', icon: CircleDashed }
+];
+
+const backupLabel = (status: BackupStatus) => status.lastExportedAt
+  ? `已建立備份 · ${new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(status.lastExportedAt))}`
+  : '已留在這台裝置';
+
+export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue, onSaveReply, getBackupStatus, onOpenBackup }) => {
+  const [reply, setReply] = useState('');
+  const [continuing, setContinuing] = useState(false);
+  const [continuation, setContinuation] = useState('');
+  const [showAngles, setShowAngles] = useState(false);
+  const [backup, setBackup] = useState<BackupStatus | null>(null);
+  const continuationRef = useRef<HTMLTextAreaElement>(null);
+  const requestedFor = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!thread || !latest) return;
-    if (latest.aiResponse) {
-      const clean = normalizeCompanionResponse(latest.aiResponse); setResponse(clean);
-      if (clean !== latest.aiResponse) void onSaveReflection(thread.id, latest.id, clean, latest.relatedEntryIds || []);
-      if (latest.relatedEntryIds?.length) void getPastThoughts().then(all => { const source = new Map(all.flatMap(item => item.entries).map(entry => [entry.id, entry])); setRelated(latest.relatedEntryIds!.map(id => source.get(id)).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)).map(entry => ({ id: entry.id, createdAt: entry.createdAt, content: entry.content }))); });
+    void getBackupStatus().then(setBackup);
+  }, [getBackupStatus]);
+
+  // A follow-up is a fresh Moment. Reset the completion controls without pulling old content forward.
+  useEffect(() => {
+    setContinuing(false);
+    setContinuation('');
+    setShowAngles(false);
+    setReply(moment?.immediateReply ? normalizeCompanionResponse(moment.immediateReply) : '');
+  }, [moment?.id]);
+
+  useEffect(() => {
+    if (!moment) return;
+    if (moment.immediateReply) {
+      setReply(normalizeCompanionResponse(moment.immediateReply));
       return;
     }
+    if (requestedFor.current === moment.id) return;
+    requestedFor.current = moment.id;
     let alive = true;
-    void getPastThoughts().then(async all => {
-      const matches = findRelatedMoments(latest.content, all, latest.id, latest.dismissedRelatedEntryIds);
-      const memories = matches.map(match => ({ date: formatDate(match.entry.createdAt), content: match.entry.content }));
-      const reply = await GeminiProxyClient.getCompanionResponse(latest.content, memories);
+    void GeminiProxyClient.getCompanionResponse(moment.content).then(async value => {
       if (!alive) return;
-      setResponse(reply); setRelated(matches.map(match => ({ id: match.entry.id, createdAt: match.entry.createdAt, content: match.entry.content })));
-      await onSaveReflection(thread.id, latest.id, reply, matches.map(match => match.entry.id));
+      const clean = normalizeCompanionResponse(value);
+      setReply(clean);
+      await onSaveReply(moment.id, clean);
     });
     return () => { alive = false; };
-  }, [thread, latest?.id, getPastThoughts, onSaveReflection]);
-  if (!thread || !latest) return null;
+  }, [moment, onSaveReply]);
 
-  const openContinuation = () => {
+  if (!moment) return null;
+
+  const openContinuation = (initial = '') => {
+    setContinuation(initial);
     setContinuing(true);
     window.setTimeout(() => continuationRef.current?.focus(), 0);
   };
+
   const saveContinuation = async () => {
     const text = continuation.trim();
     if (!text) return;
-    await onContinue(thread.id, text);
-    setContinuation('');
-    setContinuing(false);
+    await onContinue(text);
   };
 
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] flex flex-col py-4">
@@ -50,19 +82,20 @@ export const CompletionScreen: React.FC<Props> = ({ thread, onReset, onReview, o
       <h1 className="mt-6 text-[30px] sm:text-[36px] font-medium tracking-[-0.045em] text-ink">已經留下了。</h1>
       <p className="mt-3 text-[15px] text-ink-secondary">不用現在想完。</p>
 
-      <article className="mt-12 border-l-2 border-ink pl-5"><time className="text-xs text-ink-muted">剛剛</time><p className="mt-2 text-[22px] leading-[1.6] tracking-[-0.02em] text-ink whitespace-pre-wrap">{latest.content}</p></article>
+      <article className="mt-12 border-l-2 border-ink pl-5"><time className="text-xs text-ink-muted">剛剛</time><p className="mt-2 text-[22px] leading-[1.6] tracking-[-0.02em] text-ink whitespace-pre-wrap">{moment.content}</p></article>
 
       <section className="mt-10 pt-5 border-t border-border-base">
-        <div className="flex items-center gap-2 text-sm text-accent"><MessageCircle size={16} strokeWidth={1.6}/><span className="font-medium">它記得</span></div>
-        {response ? <p className="mt-3 max-w-[480px] text-[16px] leading-[1.75] text-ink-secondary">{response}</p> : <p className="mt-3 text-sm text-ink-muted">正在整理這一刻的脈絡…</p>}
-        {related[0] && <div className="mt-5 pl-4 border-l border-accent/30"><p className="text-xs text-ink-muted">想起 {formatDate(related[0].createdAt)} 的一句話</p><p className="mt-1.5 text-[15px] leading-relaxed text-ink">「{related[0].content}」</p><button onClick={async()=>{await onDismissRelatedMemory(thread.id, latest.id, related[0].id); setRelated([]); setResponse('我先把這一刻留在這裡。想接著說，或先放著都可以。');}} className="mt-3 text-xs text-ink-muted underline underline-offset-4 hover:text-ink">不是同一件事</button></div>}
+        <div className="flex items-center gap-2 text-sm text-accent"><MessageCircle size={16} strokeWidth={1.6}/><span className="font-medium">這一刻</span></div>
+        {reply ? <p className="mt-3 max-w-[480px] text-[16px] leading-[1.8] text-ink-secondary">{reply}</p> : <p className="mt-3 text-sm text-ink-muted">正在回應這一刻…</p>}
       </section>
 
       <section className="mt-8">
-        {continuing ? <div className="rounded-2xl border border-border-base bg-surface p-4 shadow-sm"><label htmlFor="continue-thought" className="text-sm font-medium text-ink">接著說</label><textarea ref={continuationRef} id="continue-thought" value={continuation} onChange={event=>setContinuation(event.target.value)} onKeyDown={event=>{if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void saveContinuation(); }}} placeholder="還想留下什麼？" rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/><div className="mt-3 flex items-center justify-between border-t border-border-base pt-3"><button onClick={()=>{setContinuing(false);setContinuation('');}} className="text-sm text-ink-muted hover:text-ink">先不說了</button><button onClick={()=>void saveContinuation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">留下 <ArrowUp size={15}/></button></div></div> : <div className="flex items-center gap-3"><button onClick={openContinuation} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform active:scale-[0.98]"><MessageCircle size={16}/>接著說</button><button onClick={onReset} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink-secondary hover:bg-surface-subtle hover:text-ink">先放著</button></div>}
+        {continuing ? <div className="rounded-2xl border border-border-base bg-surface p-4 shadow-sm"><label htmlFor="continue-thought" className="text-sm font-medium text-ink">接著說</label><textarea ref={continuationRef} id="continue-thought" value={continuation} onChange={event=>setContinuation(event.target.value)} onKeyDown={event=>{if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void saveContinuation(); }}} placeholder="還想留下什麼？" rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/><div className="mt-3 flex items-center justify-between border-t border-border-base pt-3"><button onClick={()=>{setContinuing(false);setContinuation('');}} className="text-sm text-ink-muted hover:text-ink">先不說了</button><button onClick={()=>void saveContinuation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">留下 <ArrowUp size={15}/></button></div></div> : <div className="flex flex-wrap items-center gap-x-4 gap-y-2"><button onClick={() => openContinuation()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform active:scale-[0.98]"><MessageCircle size={16}/>接著說</button><button onClick={() => setShowAngles(value => !value)} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm font-medium text-ink-secondary hover:text-ink"><Compass size={16}/>換個角度</button><button onClick={onReset} className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink-secondary hover:text-ink">就停在這裡</button></div>}
+
+        {showAngles && !continuing && <div className="mt-5 rounded-3xl border border-border-base bg-surface-subtle p-4"><p className="text-sm text-ink-secondary">選一個入口就好，不必全部回答。</p><div className="mt-3 grid grid-cols-2 gap-2">{angles.map(angle => { const Icon = angle.icon; return <button key={angle.id} onClick={() => openContinuation(angle.text)} className="rounded-2xl border border-border-base bg-surface px-3 py-3 text-left transition-colors hover:border-accent/40"><span className="flex items-center gap-1.5 text-sm font-medium text-ink"><Icon size={15} className="text-accent"/>{angle.label}</span><span className="mt-2 block text-xs leading-relaxed text-ink-muted">{angle.text}</span></button>; })}</div></div>}
       </section>
 
-      <button onClick={onReview} className="mt-8 inline-flex min-h-11 items-center gap-2 text-sm text-ink-secondary hover:text-ink"><History size={16} />回頭看看以前留下的事</button>
+      <button onClick={onOpenBackup} className="mt-10 inline-flex min-h-10 items-center gap-2 text-xs text-ink-muted hover:text-ink"><ShieldCheck size={15} className="text-accent"/>{backup ? backupLabel(backup) : '正在確認保存狀態…'}</button>
     </div>
   </div>;
 };

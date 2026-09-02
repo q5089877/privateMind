@@ -24,6 +24,12 @@ export interface ThreadReflection {
   lenses: [ThreadReflectionLens, ThreadReflectionLens];
 }
 
+export interface TimelineInsight {
+  evidence: Array<{ date: string; phrase: string }>;
+  angle: string;
+  question: string;
+}
+
 /** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
 export const normalizeCompanionResponse = (value: string): string => {
   const text = value.trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
@@ -84,18 +90,15 @@ export class GeminiProxyClient {
     return !!(this.getProxyUrl().trim() || this.getApiKey().trim());
   }
 
-  /** A short, contextual reply for the Rosebud Lite experiment. No diagnosis or advice. */
-  public static async getCompanionResponse(current: string, memories: Array<{ date: string; content: string }>): Promise<string> {
-    const fallback = memories.length > 0
-      ? '我記得這件事曾以另一種方式出現過。想接著說，或先放在這裡都可以。'
-      : '我先記在這裡。想接著說，或先放在這裡都可以。';
+  /** A present-tense reply. It must never retrieve or mention past Moments. */
+  public static async getCompanionResponse(current: string): Promise<string> {
+    const fallback = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
     if (!proxyUrl && !apiKey) return fallback;
-    const memoryText = memories.map(item => `${item.date}｜${item.content}`).join('\n');
     const payload = {
       model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `最新內容：\n${current}\n\n可能相關的過去片段：\n${memoryText || '無'}\n\n請以繁體中文回覆一句至兩句、最多60字。像一個安靜但記得脈絡的人。若過去片段確實相關，可自然提起一個具體片段；若不確定，完全不要提過去。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道使用者真正的原因。結尾可以讓使用者選擇接著說或先放著。` }] }],
+      contents: [{ role: 'user', parts: [{ text: `使用者剛留下這一句：\n${current}\n\n請以繁體中文回覆兩到三句、最多72字。只根據這一句話，提供被接住的感覺與一個溫和、可選的新觀看角度。不得提及過去紀錄、記憶、模式、重複或任何你未看見的內容。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道真正原因。最後保留「不用現在想完」的餘地。` }] }],
       generationConfig: { temperature: 0.45, maxOutputTokens: 72, responseMimeType: 'text/plain', thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
@@ -158,6 +161,60 @@ export class GeminiProxyClient {
       const sourceText = entries.map(item => item.content).join('\n');
       if (lenses.length !== 2 || lenses.some(lens => lens.title.length < 2 || lens.title.length > 8 || lens.sourcePhrase.length < 2 || lens.sourcePhrase.length > 16 || !sourceText.includes(lens.sourcePhrase) || forbidden.some(word => lens.title.includes(word)))) return null;
       return { lenses: [lenses[0], lenses[1]] };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A time-earned reading. The caller must first check count and date-span eligibility.
+   * This returns one evidence-backed angle, not a diagnosis or a recommendation.
+   */
+  public static async getTimelineInsight(entries: Array<{ date: string; content: string }>): Promise<TimelineInsight | null> {
+    if (entries.length < 3) return null;
+    const proxyUrl = this.getProxyUrl();
+    const apiKey = this.getApiKey();
+    if (!proxyUrl && !apiKey) return null;
+    const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
+    const responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        evidence: {
+          type: 'ARRAY', minItems: 2, maxItems: 4,
+          items: {
+            type: 'OBJECT', properties: {
+              date: { type: 'STRING' },
+              phrase: { type: 'STRING' }
+            }, required: ['date', 'phrase']
+          }
+        },
+        angle: { type: 'STRING' },
+        question: { type: 'STRING' }
+      },
+      required: ['evidence', 'angle', 'question']
+    };
+    const payload = {
+      model: REFLECTION_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `以下是同一條由使用者確認、且跨時間累積的原文：\n${timeline}\n\n請提供一個「使用者分開寫時不容易看見」的新角度。它只能指出原文可驗證的缺口、轉折、重複或不對稱，不能推論原因、心理狀態或給建議。\n\n回傳 JSON：\n- evidence：至少兩則日期與原文逐字片段，phrase 必須從該日期的內容逐字複製。\n- angle：40 到 90 字的具體觀察；必須建立在 evidence 上，不能只是按日期重述。\n- question：一個 16 到 42 字、讓人自己判斷的問題；不可要求行動、不可給二選一答案。\n\n禁止：你其實、你在、這顯示、因為、所以、心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因。` }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 260, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+    };
+    try {
+      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${REFLECTION_MODEL}:generateContent?key=${apiKey}`, payload, 8_000);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : null;
+      const evidence = Array.isArray(parsed?.evidence) ? parsed.evidence.map((item: unknown) => {
+        const value = item as { date?: unknown; phrase?: unknown };
+        return { date: typeof value.date === 'string' ? value.date.trim() : '', phrase: typeof value.phrase === 'string' ? value.phrase.trim() : '' };
+      }) : [];
+      const angle = typeof parsed?.angle === 'string' ? parsed.angle.trim() : '';
+      const question = typeof parsed?.question === 'string' ? parsed.question.trim() : '';
+      const byDate = new Map(entries.map(entry => [entry.date, entry.content]));
+      const forbidden = ['你其實', '你在', '這顯示', '因為', '所以', '心理', '壓力', '恐懼', '焦慮', '逃避', '人格', '診斷', '建議', '應該', '一定', '真正原因'];
+      const bad = (value: string) => forbidden.some(word => value.includes(word));
+      if (evidence.length < 2 || evidence.some(item => !item.date || !item.phrase || !byDate.get(item.date)?.includes(item.phrase)) || angle.length < 20 || angle.length > 120 || question.length < 8 || question.length > 64 || bad(angle) || bad(question)) return null;
+      return { evidence, angle, question };
     } catch {
       return null;
     }

@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, Bookmark, History, Waves } from 'lucide-react';
+import { ArrowDown, Bookmark, History, Link2, ShieldCheck, Waves } from 'lucide-react';
 import harborSailboat from '../assets/harbor-sailboat.png';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
-interface Props { onStartInput: (text: string) => void; onReview: () => void; }
+interface Props { onStartInput: (text: string) => void; onReview: () => void; hasCandidate: boolean; onOpenCandidate: () => void; onOpenBackup: () => void; }
 
-export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
+export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, hasCandidate, onOpenCandidate, onOpenBackup }) => {
   const [input, setInput] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -47,6 +47,10 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
       </div>
     </main>
 
-    <button type="button" onClick={onReview} className="mt-10 flex min-h-11 items-center gap-3 px-1 text-[16px] text-ink-secondary transition-colors hover:text-ink sm:mt-14 sm:text-[20px]"><History size={22} strokeWidth={1.5} />回頭看看自己怎麼走到這裡</button>
+    <div className="mt-10 space-y-3 px-1 sm:mt-14">
+      {hasCandidate && <button type="button" onClick={onOpenCandidate} className="flex min-h-10 items-center gap-2 text-[14px] text-ink-secondary transition-colors hover:text-ink"><Link2 size={16} className="text-accent"/>有一段記錄暫放在這裡</button>}
+      <button type="button" onClick={onReview} className="flex min-h-11 items-center gap-3 text-[16px] text-ink-secondary transition-colors hover:text-ink sm:text-[20px]"><History size={22} strokeWidth={1.5} />回頭看看自己怎麼走到這裡</button>
+      <button type="button" onClick={onOpenBackup} className="flex min-h-9 items-center gap-2 text-[13px] text-ink-muted transition-colors hover:text-ink"><ShieldCheck size={15} className="text-accent"/>資料保存在這台裝置</button>
+    </div>
   </div>;
 };

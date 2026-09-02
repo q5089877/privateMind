@@ -1,21 +1,46 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, ThoughtThread, MomentIntent } from '../types';
+import { FlowState, MomentIntent } from '../types';
 
 export function useFlow() {
   const engine = useFlowEngine();
   const [state, setState] = useState<FlowState>(engine.getState());
-  const [currentThread, setCurrentThread] = useState<ThoughtThread | null>(engine.getCurrentThread());
-  const sync = useCallback(() => { setState(engine.getState()); setCurrentThread(engine.getCurrentThread()); }, [engine]);
+  const [currentMoment, setCurrentMoment] = useState(engine.getCurrentMoment());
+  const [candidate, setCandidate] = useState(engine.getCandidate());
+  const [activeCollection, setActiveCollection] = useState(engine.getActiveCollection());
+  const [ready, setReady] = useState(engine.isReady());
+
+  const sync = useCallback(() => {
+    setState(engine.getState());
+    setCurrentMoment(engine.getCurrentMoment());
+    setCandidate(engine.getCandidate());
+    setActiveCollection(engine.getActiveCollection());
+    setReady(engine.isReady());
+  }, [engine]);
+
   useEffect(() => engine.subscribe(sync), [engine, sync]);
+
   return {
-    state, currentThread,
-    submitText: (text: string) => engine.submitText(text), submitSayNothing: () => engine.submitSayNothing(),
-    appendEntry: (id: string, text: string, intent?: MomentIntent) => engine.appendEntry(id, text, intent),
-    attachCurrentMoment: (id: string) => engine.attachCurrentMoment(id),
-    saveReflection: (threadId: string, entryId: string, response: string, relatedIds: string[]) => engine.saveReflection(threadId, entryId, response, relatedIds),
-    dismissRelatedMemory: (threadId: string, entryId: string, sourceId: string) => engine.dismissRelatedMemory(threadId, entryId, sourceId),
-    finish: () => engine.reset(), transition: (next: FlowState) => engine.transition(next),
-    getAllThreads: () => engine.getAllThreads()
+    state,
+    currentMoment,
+    candidate,
+    activeCollection,
+    ready,
+    submitText: (text: string, intent?: MomentIntent) => engine.submitText(text, intent),
+    saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
+    getMoments: () => engine.getMoments(),
+    getLines: () => engine.getLines(),
+    getBackupStatus: () => engine.getBackupStatus(),
+    openCandidate: () => engine.openCandidate(),
+    openLine: (lineId: string) => engine.openLine(lineId),
+    createManualLine: (momentIds: string[]) => engine.createManualLine(momentIds),
+    confirmCandidate: () => engine.confirmCandidate(),
+    decideCandidate: (decision: 'dismissed' | 'deferred') => engine.decideCandidate(decision),
+    closeParallel: () => engine.closeParallel(),
+    exportBackup: () => engine.exportBackup(),
+    importBackup: (text: string) => engine.importBackup(text),
+    openBackup: () => engine.openBackup(),
+    finish: () => engine.reset(),
+    transition: (next: FlowState) => engine.transition(next)
   };
 }

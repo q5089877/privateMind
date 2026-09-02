@@ -1,100 +1,142 @@
-import { FlowState, ThoughtThread, DialogueEntry, MomentIntent } from '../types';
-import { IStorageProvider } from './interfaces/IStorageProvider';
-import { LocalStorageManager } from './StorageManager';
-import { UI_TEXT } from '../config/textConfig';
+import { ActiveCollection, BackupStatus, FlowState, LinkCandidate, MindHarborData, Moment, MomentIntent, ThreadLine } from '../types';
+import { makeBackupText, parseBackupText } from './backup';
+import { findCandidate, fingerprint } from './connectionCandidates';
+import { MindHarborRepository } from './MindHarborRepository';
 
-/** Keeps the user's words and their order. It never decides what their story means. */
+/**
+ * Coordinates user-owned state. It never asks AI to decide where a Moment belongs.
+ * Every write is durable before the UI says the Moment has been left here.
+ */
 export class FlowEngine {
-  private _state: FlowState = 'HOME';
-  private currentThread: ThoughtThread | null = null;
-  private storage: IStorageProvider;
+  private state: FlowState = 'HOME';
+  private currentMoment: Moment | null = null;
+  private activeCollection: ActiveCollection | null = null;
+  private candidate: LinkCandidate | null = null;
+  private storage = new MindHarborRepository();
   private listeners: (() => void)[] = [];
+  private ready = false;
 
-  constructor(storage?: IStorageProvider) { this.storage = storage || new LocalStorageManager(); }
-  public subscribe(listener: () => void) { this.listeners.push(listener); return () => { this.listeners = this.listeners.filter(l => l !== listener); }; }
+  constructor() { void this.initialise(); }
+
+  public subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => { this.listeners = this.listeners.filter(item => item !== listener); };
+  }
+
   private notify() { this.listeners.forEach(listener => listener()); }
-  getState() { return this._state; }
-  getCurrentThread() { return this.currentThread; }
+  public getState() { return this.state; }
+  public getCurrentMoment() { return this.currentMoment; }
+  public getActiveCollection() { return this.activeCollection; }
+  public getCandidate() { return this.candidate; }
+  public isReady() { return this.ready; }
 
-  public async submitText(content: string) {
-    if (!content.trim()) return;
-    const now = Date.now();
-    const id = this.id('storyline');
-    const thread: ThoughtThread = { id, createdAt: now, updatedAt: now, state: 'developing', entries: [{ id: this.id('moment'), threadId: id, content: content.trim(), createdAt: now, intent: 'captured' }] };
-    await this.storage.saveThread(thread);
-    this.currentThread = thread;
+  private async initialise() {
+    const data = await this.storage.getData();
+    // Candidates are discovered only when a new app session begins, never after submitText.
+    this.candidate = findCandidate(data.moments, data.linkDecisions);
+    this.ready = true;
+    this.notify();
+  }
+
+  public async submitText(content: string, intent: MomentIntent = 'captured') {
+    const clean = content.trim();
+    if (!clean) return;
+    const moment: Moment = { id: this.id('moment'), content: clean, createdAt: Date.now(), intent };
+    await this.storage.saveMoment(moment);
+    this.currentMoment = moment;
     this.setState('PRESENT_SETTLED');
   }
 
-  public async submitSayNothing() { await this.submitText(UI_TEXT.review.ineffableText); }
+  public async saveImmediateReply(momentId: string, reply: string) {
+    const data = await this.storage.updateMoment(momentId, moment => ({ ...moment, immediateReply: reply.trim() }));
+    this.currentMoment = data.moments.find(moment => moment.id === momentId) || this.currentMoment;
+    this.notify();
+  }
 
-  public async appendEntry(threadId: string, content: string, intent: MomentIntent = 'follow_up') {
-    if (!content.trim()) return;
-    const thread = await this.find(threadId);
-    if (!thread) return;
+  public async getData(): Promise<MindHarborData> { return this.storage.getData(); }
+  public async getMoments(): Promise<Moment[]> { return (await this.storage.getData()).moments.sort((a, b) => b.createdAt - a.createdAt); }
+  public async getLines(): Promise<ThreadLine[]> { return (await this.storage.getData()).lines.sort((a, b) => b.updatedAt - a.updatedAt); }
+  public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
+
+  public openCandidate() {
+    if (!this.candidate) return;
+    this.activeCollection = { kind: 'candidate', id: this.candidate.id, momentIds: this.candidate.momentIds };
+    this.setState('PARALLEL');
+  }
+
+  public openLine(lineId: string) {
+    void this.storage.getData().then(data => {
+      const line = data.lines.find(item => item.id === lineId);
+      if (!line) return;
+      this.activeCollection = { kind: 'line', id: line.id, momentIds: line.momentIds };
+      this.setState('PARALLEL');
+    });
+  }
+
+  public async createManualLine(momentIds: string[]) {
+    const uniqueIds = [...new Set(momentIds)];
+    if (uniqueIds.length < 2) return;
     const now = Date.now();
-    const entry: DialogueEntry = { id: this.id('moment'), threadId, content: content.trim(), createdAt: now, intent };
-    thread.entries.push(entry);
-    thread.updatedAt = now;
-    thread.isArchived = false;
-    thread.state = 'developing';
-    await this.storage.updateThread(thread);
-    this.currentThread = thread;
+    const data = await this.storage.getData();
+    const existing = data.lines.find(line => line.momentIds.some(id => uniqueIds.includes(id)));
+    const line: ThreadLine = existing
+      ? { ...existing, momentIds: [...new Set([...existing.momentIds, ...uniqueIds])], updatedAt: now }
+      : { id: this.id('line'), momentIds: uniqueIds, createdAt: now, updatedAt: now, origin: 'manual' };
+    await this.storage.saveLine(line);
+    this.activeCollection = { kind: 'line', id: line.id, momentIds: line.momentIds };
+    this.setState('PARALLEL');
+  }
+
+  public async confirmCandidate() {
+    if (!this.candidate) return;
+    const now = Date.now();
+    const data = await this.storage.getData();
+    const existing = data.lines.find(line => line.momentIds.some(id => this.candidate!.momentIds.includes(id)));
+    const line: ThreadLine = existing
+      ? { ...existing, momentIds: [...new Set([...existing.momentIds, ...this.candidate.momentIds])], updatedAt: now }
+      : { id: this.id('line'), momentIds: this.candidate.momentIds, createdAt: now, updatedAt: now, origin: 'confirmed_suggestion' };
+    await this.storage.saveLine(line);
+    await this.storage.saveDecision({ fingerprint: fingerprint(this.candidate.momentIds), decision: 'confirmed', decidedAt: now });
+    this.activeCollection = { kind: 'line', id: line.id, momentIds: line.momentIds };
+    this.candidate = null;
     this.notify();
   }
 
-  /** Turns a just-captured standalone moment into a continuation of a user-confirmed storyline. */
-  public async attachCurrentMoment(targetId: string) {
-    if (!this.currentThread || this.currentThread.id === targetId) return;
-    const target = await this.find(targetId);
-    if (!target) return;
-    const moment = this.currentThread.entries[0];
-    if (!moment) return;
-    moment.threadId = target.id;
-    moment.intent = 'follow_up';
-    target.entries.push(moment);
-    target.entries.sort((a, b) => a.createdAt - b.createdAt);
-    target.updatedAt = moment.createdAt;
-    target.state = 'developing';
-    await this.storage.updateThread(target);
-    await this.storage.deleteThread(this.currentThread.id);
-    this.currentThread = target;
+  public async decideCandidate(decision: 'dismissed' | 'deferred') {
+    if (!this.candidate) return;
+    await this.storage.saveDecision({ fingerprint: fingerprint(this.candidate.momentIds), decision, decidedAt: Date.now() });
+    this.candidate = null;
+    this.activeCollection = null;
+    this.setState('HOME');
+  }
+
+  public closeParallel() { this.activeCollection = null; this.setState('REVIEW'); }
+
+  public openBackup() { this.setState('BACKUP'); }
+
+  public async exportBackup() {
+    const data = await this.storage.getData();
+    const text = makeBackupText(data);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const anchor = document.createElement('a');
+    const date = new Intl.DateTimeFormat('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).replaceAll('/', '-');
+    anchor.href = url;
+    anchor.download = `mind-harbor-${date}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    await this.storage.markExported();
     this.notify();
   }
 
-  public async updateEntry(threadId: string, entryId: string, content: string) {
-    const thread = await this.find(threadId); const entry = thread?.entries.find(item => item.id === entryId);
-    if (!thread || !entry || !content.trim()) return;
-    entry.content = content.trim(); thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify();
-  }
-  public async saveReflection(threadId: string, entryId: string, response: string, relatedEntryIds: string[]) {
-    const thread = await this.find(threadId); const entry = thread?.entries.find(item => item.id === entryId);
-    if (!thread || !entry) return;
-    entry.aiResponse = response.trim();
-    entry.relatedEntryIds = relatedEntryIds;
-    thread.updatedAt = Date.now();
-    await this.storage.updateThread(thread);
-    if (this.currentThread?.id === threadId) this.currentThread = thread;
+  public async importBackup(text: string) {
+    const incoming = parseBackupText(text);
+    await this.storage.mergeImported(incoming);
+    this.candidate = findCandidate((await this.storage.getData()).moments, (await this.storage.getData()).linkDecisions);
     this.notify();
   }
-  public async dismissRelatedMemory(threadId: string, entryId: string, sourceId: string) {
-    const thread = await this.find(threadId); const entry = thread?.entries.find(item => item.id === entryId);
-    if (!thread || !entry) return;
-    entry.dismissedRelatedEntryIds = [...new Set([...(entry.dismissedRelatedEntryIds || []), sourceId])];
-    entry.relatedEntryIds = (entry.relatedEntryIds || []).filter(id => id !== sourceId);
-    entry.aiResponse = '我先把這一刻留在這裡。想接著說，或先放著都可以。';
-    thread.updatedAt = Date.now();
-    await this.storage.updateThread(thread);
-    if (this.currentThread?.id === threadId) this.currentThread = thread;
-    this.notify();
-  }
-  public async archiveThread(threadId: string) { const thread = await this.find(threadId); if (!thread) return; thread.isArchived = true; thread.state = 'tucked_away'; thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify(); }
-  public async restoreThread(threadId: string) { const thread = await this.find(threadId); if (!thread) return; thread.isArchived = false; thread.state = 'developing'; thread.updatedAt = Date.now(); await this.storage.updateThread(thread); this.notify(); }
-  public async deleteThread(threadId: string) { await this.storage.deleteThread(threadId); if (this.currentThread?.id === threadId) this.currentThread = null; this.notify(); }
-  public async getAllThreads() { return this.storage.getThreads(); }
-  public reset() { this.currentThread = null; this.setState('HOME'); }
-  public transition(state: FlowState) { this.setState(state); }
-  private setState(state: FlowState) { this._state = state; this.notify(); }
-  private async find(id: string) { return (await this.storage.getThreads()).find(item => item.id === id); }
+
+  public reset() { this.currentMoment = null; this.setState('HOME'); }
+  public transition(next: FlowState) { this.setState(next); }
+  private setState(next: FlowState) { this.state = next; this.notify(); }
   private id(prefix: string) { return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`; }
 }
