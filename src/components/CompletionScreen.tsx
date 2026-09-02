@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, Check, MessageCircle, Sparkles } from 'lucide-react';
+import { ArrowUp, Check, History, MessageCircle, Sparkles } from 'lucide-react';
 import { ThoughtThread } from '../types';
 import { ThoughtPrompts } from './ThoughtPrompts';
 import { GeminiProxyClient, normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { findRelatedMoments } from '../logic/memory';
 
 interface RelatedMemory { id: string; createdAt: number; content: string; }
-interface Props { thread: ThoughtThread | null; onReset: () => void; onContinue: (threadId: string, content: string) => Promise<void>; getPastThoughts: () => Promise<ThoughtThread[]>; onSaveReflection: (threadId: string, entryId: string, response: string, relatedIds: string[]) => Promise<void>; onDismissRelatedMemory: (threadId: string, entryId: string, sourceId: string) => Promise<void>; }
+interface Props { thread: ThoughtThread | null; onReset: () => void; onReview: () => void; onContinue: (threadId: string, content: string) => Promise<void>; getPastThoughts: () => Promise<ThoughtThread[]>; onSaveReflection: (threadId: string, entryId: string, response: string, relatedIds: string[]) => Promise<void>; onDismissRelatedMemory: (threadId: string, entryId: string, sourceId: string) => Promise<void>; }
 const formatDate = (time: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(time));
 
-export const CompletionScreen: React.FC<Props> = ({ thread, onReset, onContinue, getPastThoughts, onSaveReflection, onDismissRelatedMemory }) => {
+export const CompletionScreen: React.FC<Props> = ({ thread, onReset, onReview, onContinue, getPastThoughts, onSaveReflection, onDismissRelatedMemory }) => {
   const [response, setResponse] = useState(''); const [related, setRelated] = useState<RelatedMemory[]>([]); const [showPrompts, setShowPrompts] = useState(false); const [continuing, setContinuing] = useState(false); const [continuation, setContinuation] = useState(''); const continuationRef = useRef<HTMLTextAreaElement>(null);
   const latest = thread?.entries[thread.entries.length - 1];
   useEffect(() => {
@@ -60,11 +60,11 @@ export const CompletionScreen: React.FC<Props> = ({ thread, onReset, onContinue,
       </section>
 
       <section className="mt-8">
-        {continuing ? <div className="rounded-2xl border border-border-base bg-surface p-4 shadow-sm"><label htmlFor="continue-thought" className="text-sm font-medium text-ink">接著說</label><textarea ref={continuationRef} id="continue-thought" value={continuation} onChange={event=>setContinuation(event.target.value)} onKeyDown={event=>{if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void saveContinuation(); }}} placeholder="還想留下什麼？" rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/><div className="mt-3 flex items-center justify-between border-t border-border-base pt-3"><button onClick={()=>{setContinuing(false);setContinuation('');}} className="text-sm text-ink-muted hover:text-ink">先不說了</button><button onClick={()=>void saveContinuation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">留下 <ArrowUp size={15}/></button></div></div> : <button onClick={openContinuation} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform active:scale-[0.98]"><MessageCircle size={16}/>接著說</button>}
+        {continuing ? <div className="rounded-2xl border border-border-base bg-surface p-4 shadow-sm"><label htmlFor="continue-thought" className="text-sm font-medium text-ink">接著說</label><textarea ref={continuationRef} id="continue-thought" value={continuation} onChange={event=>setContinuation(event.target.value)} onKeyDown={event=>{if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void saveContinuation(); }}} placeholder="還想留下什麼？" rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/><div className="mt-3 flex items-center justify-between border-t border-border-base pt-3"><button onClick={()=>{setContinuing(false);setContinuation('');}} className="text-sm text-ink-muted hover:text-ink">先不說了</button><button onClick={()=>void saveContinuation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">留下 <ArrowUp size={15}/></button></div></div> : <div className="flex items-center gap-3"><button onClick={openContinuation} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform active:scale-[0.98]"><MessageCircle size={16}/>接著說</button><button onClick={onReset} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink-secondary hover:bg-surface-subtle hover:text-ink">先放著</button></div>}
       </section>
 
       <section className="mt-9"><button onClick={()=>setShowPrompts(value=>!value)} className="text-sm text-ink-secondary hover:text-ink transition-colors flex items-center gap-2"><Sparkles size={15} className="text-accent"/>想多看一個角度</button>{showPrompts && <div className="mt-4"><ThoughtPrompts contextText={latest.content}/></div>}</section>
+      <button onClick={onReview} className="mt-8 inline-flex min-h-11 items-center gap-2 text-sm text-ink-secondary hover:text-ink"><History size={16} />回頭看看以前留下的事</button>
     </div>
-    <button onClick={onReset} className="self-start min-h-11 text-sm text-ink-secondary hover:text-ink flex items-center gap-1.5"><ArrowLeft size={16}/>回到現在</button>
   </div>;
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, Bookmark, History, MoreHorizontal, Waves } from 'lucide-react';
+import { ArrowDown, Bookmark, History, Waves } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -22,12 +22,11 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview }) => {
   const save = () => { if (!input.trim()) return; triggerHaptic('docking'); onStartInput(input); setInput(''); };
 
   return <div className="w-full max-w-[580px] min-h-[calc(100vh-104px)] py-4 sm:py-9">
-    <header className="flex items-center justify-between">
+    <header className="flex items-center">
       <div className="flex items-center gap-3">
         <span className="h-12 w-12 rounded-[17px] border border-white/20 bg-accent text-accent-text shadow-[0_3px_0_rgba(29,76,57,0.3),0_12px_20px_rgba(53,106,85,0.16)] flex items-center justify-center sm:h-14 sm:w-14 sm:rounded-[20px]"><Waves size={24} strokeWidth={1.55}/></span>
         <div><p className="text-[18px] font-semibold leading-none tracking-[-0.04em] text-ink sm:text-[21px]">思緒停靠</p><p className="mt-1.5 text-[10px] tracking-[0.2em] text-ink-muted sm:mt-2 sm:text-[11px]">MIND HARBOR</p></div>
       </div>
-      <button type="button" onClick={onReview} aria-label="查看留下來的事" className="h-11 w-11 rounded-full text-ink-muted transition-colors hover:bg-surface hover:text-ink flex items-center justify-center"><MoreHorizontal size={22} strokeWidth={1.7}/></button>
     </header>
 
     <main className="pt-11 sm:pt-28">

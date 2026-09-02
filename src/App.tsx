@@ -31,6 +31,7 @@ const App: React.FC = () => {
           <CompletionScreen 
             thread={flow.currentThread}
             onReset={() => flow.finish()} 
+            onReview={() => flow.transition('REVIEW')}
             onContinue={(threadId, content) => flow.appendEntry(threadId, content, 'follow_up')}
             getPastThoughts={() => flow.getAllThreads()}
             onSaveReflection={flow.saveReflection}
