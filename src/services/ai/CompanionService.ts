@@ -1,4 +1,4 @@
-import { HarborSession, Moment, SessionClosureDraft } from '../../domain/harbor';
+import { ExplorePerspective, HarborSession, Moment, SessionClosureDraft } from '../../domain/harbor';
 import { GeminiProxyClient } from '../../logic/geminiProxyClient';
 
 /**
@@ -13,5 +13,10 @@ export class CompanionService {
   /** A closing reflection may see only this explicit conversation, never the wider history. */
   public closeSession(session: HarborSession): Promise<SessionClosureDraft | null> {
     return GeminiProxyClient.getSessionClosure(session.turns);
+  }
+
+  /** Exploration is explicit and sees only the person's own words from this session. */
+  public exploreSession(session: HarborSession): Promise<ExplorePerspective[] | null> {
+    return GeminiProxyClient.getExplorePerspectives(session.turns);
   }
 }

@@ -39,6 +39,14 @@ export interface SessionClosureDraft {
   resumeAnchor?: string;
 }
 
+/** A user-invoked writing entrance grounded in this session's own user turns. */
+export interface ExplorePerspective {
+  id: 'focus' | 'contrast' | 'reframe' | 'open';
+  label: string;
+  prompt: string;
+  sourcePhrases: string[];
+}
+
 export interface TimelineEvidence {
   date: string;
   phrase: string;

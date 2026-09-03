@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { ActiveCollection, BackupStatus, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
+import { ActiveCollection, BackupStatus, ExplorePerspective, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
 import { fingerprint } from '../logic/connectionCandidates';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
@@ -104,6 +104,14 @@ export class HarborFlowEngine {
       createdAt: Date.now(),
       sourceTurnIds: session.turns.filter(turn => turn.role === 'user').map(turn => turn.id)
     } : null;
+  }
+
+  /** Exploration is always user-invoked and scoped to the currently open session. */
+  public async requestExploration(session: HarborSession): Promise<ExplorePerspective[] | null> {
+    this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
+    const perspectives = await this.companion.exploreSession(session);
+    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(perspectives ? {} : { error: '暫時找不到可用的新角度。' }) });
+    return perspectives;
   }
 
   /** Explicit review effect: the complete recent timeline is read only after this call. */

@@ -18,7 +18,7 @@ const App: React.FC = () => {
       case 'HOME':
         return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} canDiscover={flow.canDiscover} onOpenDiscovery={flow.openDiscovery} onOpenBackup={flow.openBackup} />;
       case 'PRESENT_SETTLED':
-        return <CompletionScreen moment={flow.currentMoment} session={flow.currentSession} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} onSaveReply={flow.saveImmediateReply} getSessionClosure={flow.requestSessionClosure} onSaveClosure={flow.saveClosure} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
+        return <CompletionScreen moment={flow.currentMoment} session={flow.currentSession} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} getSessionClosure={flow.requestSessionClosure} onSaveClosure={flow.saveClosure} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
       case 'REVIEW':
         return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getSessions={flow.getSessions} getLines={flow.getLines} onOpenSession={flow.openSession} onOpenLine={flow.openLine} onCreateManualLine={flow.createManualLine} onOpenBackup={flow.openBackup} />;
       case 'PARALLEL':

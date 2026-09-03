@@ -15,6 +15,7 @@ export function useFlow() {
   const submitText = useCallback((text: string, intent?: MomentIntent) => engine.submitText(text, intent), [engine]);
   const requestPresentReply = useCallback((moment: Moment) => engine.requestPresentReply(moment), [engine]);
   const requestSessionClosure = useCallback((session: HarborSession) => engine.requestSessionClosure(session), [engine]);
+  const requestExploration = useCallback((session: HarborSession) => engine.requestExploration(session), [engine]);
   const saveImmediateReply = useCallback((momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply), [engine]);
   const getMoments = useCallback(() => engine.getMoments(), [engine]);
   const getSessions = useCallback(() => engine.getSessions(), [engine]);
@@ -36,6 +37,7 @@ export function useFlow() {
     submitText,
     requestPresentReply,
     requestSessionClosure,
+    requestExploration,
     saveImmediateReply,
     saveClosure: engine.saveClosure.bind(engine),
     recordRecalledMoments: engine.recordRecalledMoments.bind(engine),
