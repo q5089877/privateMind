@@ -33,6 +33,17 @@ const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: num
   }
 };
 
+const sourceFragments = (value: string) => {
+  const clean = value.replace(/\s+/g, ' ').trim();
+  if (clean.length <= 28) return [clean];
+  return [clean.slice(0, 28), clean.slice(-20)];
+};
+
+const presentFallback = (value: string) => {
+  const excerpt = sourceFragments(value)[0] || '這句話';
+  return `「${excerpt}」先留在這裡。這句裡，最想先補上的一段是什麼？`;
+};
+
 export class GeminiProxyClient {
   private static getProxyUrl(): string {
     try {
@@ -66,10 +77,10 @@ export class GeminiProxyClient {
   public static async getCompanionResponse(current: string): Promise<string | null> {
     const proxyUrl = this.getProxyUrl();
     const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return null;
+    if (!proxyUrl && !apiKey) return presentFallback(current);
     const payload = {
       model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `使用者剛留下這一句：\n${current}\n\n請以繁體中文回覆兩到三句、最多72字。只根據這一句話，提供被接住的感覺與一個溫和、可選的新觀看角度。不得提及過去紀錄、記憶、模式、重複或任何你未看見的內容。禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道真正原因。最後保留「不用現在想完」的餘地。` }] }],
+      contents: [{ role: 'user', parts: [{ text: `使用者剛留下這一句：\n${current}\n\n請以繁體中文回覆剛好兩句、最多88字。只根據這一句話。第一句必須直接引用或重複其中一段 2 到 28 字的具體用語，讓人知道你讀到的是哪一句；第二句提供一個貼著那段用語的開放提問或續寫入口。不得提及過去紀錄、記憶、模式、重複或任何你未看見的內容。\n\n禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道真正原因，也禁止使用「辛苦了」「這很正常」「真實的一刻」「一切正在運作」「允許自己」「先停下來」「休息一下」。不要替使用者下結論；保留今天不必想完的餘地。` }] }],
       generationConfig: { temperature: 0.45, maxOutputTokens: 72, responseMimeType: 'text/plain', thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
@@ -78,9 +89,11 @@ export class GeminiProxyClient {
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       const text = typeof raw === 'string' ? normalizeCompanionResponse(raw) : '';
-      return text && text.length <= 180 ? text : null;
+      const grounded = sourceFragments(current).some(fragment => fragment.length >= 2 && text.includes(fragment));
+      const generic = ['辛苦了', '這很正常', '真實的一刻', '一切正在運作', '允許自己', '先停下來', '休息一下'];
+      return text && text.length <= 88 && grounded && !generic.some(phrase => text.includes(phrase)) ? text : presentFallback(current);
     } catch {
-      return null;
+      return presentFallback(current);
     }
   }
 

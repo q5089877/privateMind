@@ -78,8 +78,8 @@ session 的開始、續談與收束是獨立責任。目前可由 `HarborFlowEng
 
 AI 依任務分角色，而不是由 UI 任意拼 prompt：
 
-- `Present Companion`：只讀取當前 Moment，回應當下。
-- `Explore Companion`：只讀取使用者明確打開的當次 session，協助探索與換角度。
+- `Present Companion`：只讀取當前 Moment，回應當下，且必須落在其中的具體用語；無法可靠生成時，以引用原句的安全續寫入口降級。
+- `Explore Companion`：只讀取使用者明確打開的當次 session，協助探索與換角度；若短句不足以產生可靠 AI 角度，提供引用原句的四個結構入口，不假裝是洞見。
 - `Landing Companion`：只讀取本次 session 的使用者 turn；AI 自己先前的話不能當成收束證據。
 - `Memory Retriever`：只有使用者主動要求時，才在符合跨日門檻的歷史中尋找候選原文。
 - `Timeline Reader`：只讀取使用者已確認或手動建立的 ThreadLine，產生附原文日期的跨時間洞見。
