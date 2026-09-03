@@ -167,6 +167,24 @@ export class HarborFlowEngine {
   public async getLines(): Promise<ThreadLine[]> { return (await this.storage.getData()).lines.sort((a, b) => b.updatedAt - a.updatedAt); }
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 
+  /**
+   * Re-entering an old harbor is explicit. A landing is temporary, so reopening
+   * it makes the same session active again instead of starting an unrelated one.
+   * Its last closure remains visible as context until the person chooses a new one.
+   */
+  public async openSession(sessionId: string) {
+    const data = await this.storage.getData();
+    const current = data.sessions.find(session => session.id === sessionId);
+    if (!current) return;
+    const origin = data.moments.find(moment => moment.id === current.originMomentId);
+    if (!origin) return;
+    const session = current.status === 'active'
+      ? current
+      : { ...current, status: 'active' as const, updatedAt: Date.now() };
+    if (session !== current) await this.storage.saveSession(session);
+    this.dispatch({ type: 'SESSION_OPENED', moment: origin, session });
+  }
+
   public openCandidate() {
     const candidate = this.snapshot.candidate;
     if (!candidate) return;

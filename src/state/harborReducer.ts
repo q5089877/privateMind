@@ -14,6 +14,8 @@ export const harborReducer = (state: HarborAppState, intent: HarborIntent): Harb
       return { ...state, screen: 'PRESENT_SETTLED', request: 'idle', currentMoment: intent.moment, currentSession: intent.session, activeCollection: null, canDiscover: intent.canDiscover };
     case 'MOMENT_REPLY_SAVED':
       return { ...state, request: 'idle', currentMoment: intent.moment || state.currentMoment, currentSession: intent.session || state.currentSession };
+    case 'SESSION_OPENED':
+      return { ...state, screen: 'PRESENT_SETTLED', request: 'idle', currentMoment: intent.moment, currentSession: intent.session, activeCollection: null };
     case 'SESSION_UPDATED':
       return { ...state, request: 'idle', currentSession: intent.session || state.currentSession };
     case 'COLLECTION_OPENED':

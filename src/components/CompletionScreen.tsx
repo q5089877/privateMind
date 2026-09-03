@@ -119,7 +119,7 @@ export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, on
       takeaway: `「${excerpt}${lastUserTurn && lastUserTurn.content.length > 28 ? '…' : ''}」先留在這裡。`,
       unresolved: '今天還不用把它想完。',
       createdAt: Date.now(),
-      sourceTurnIds: session?.turns.map(turn => turn.id) || []
+      sourceTurnIds: session?.turns.filter(turn => turn.role === 'user').map(turn => turn.id) || []
     };
   };
 
@@ -133,6 +133,8 @@ export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, on
       <div className="flex items-center gap-2 text-accent"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10"><Waves size={16} strokeWidth={1.8}/></span><span className="text-sm font-medium">正在停靠</span></div>
       <h1 className="mt-5 text-[30px] sm:text-[36px] font-medium tracking-[-0.045em] text-ink">我們先在這裡說說。</h1>
       <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-secondary">不用一次想清楚。這件事可以慢慢談開。</p>
+
+      {session?.closure && !landing && <div className="mt-6 rounded-2xl border border-accent/15 bg-surface-subtle px-4 py-3"><p className="text-xs font-medium text-accent">上次先停在這裡</p><p className="mt-1.5 text-sm leading-relaxed text-ink-secondary">{session.closure.resumeAnchor || session.closure.unresolved}</p></div>}
 
       <section aria-label="這次停靠的對話" className="mt-10 space-y-5 sm:mt-12">
         {turns.map(turn => turn.role === 'user'

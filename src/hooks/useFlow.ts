@@ -45,6 +45,7 @@ export function useFlow() {
     getBackupStatus,
     requestMemoryReading,
     requestTimelineInsight,
+    openSession: (sessionId: string) => engine.openSession(sessionId),
     openCandidate: () => engine.openCandidate(),
     openDiscovery: () => engine.openDiscovery(),
     openLine: (lineId: string) => engine.openLine(lineId),

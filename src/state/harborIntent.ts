@@ -21,6 +21,7 @@ export type HarborIntent =
   | { type: 'SET_REQUEST'; request: 'idle' | 'saving' | 'thinking' | 'restoring'; error?: string }
   | { type: 'MOMENT_CAPTURED'; moment: Moment; session: HarborSession; canDiscover: boolean }
   | { type: 'MOMENT_REPLY_SAVED'; moment: Moment | null; session: HarborSession | null }
+  | { type: 'SESSION_OPENED'; moment: Moment; session: HarborSession }
   | { type: 'SESSION_UPDATED'; session: HarborSession | null }
   | { type: 'COLLECTION_OPENED'; collection: ActiveCollection }
   | { type: 'COLLECTION_CLOSED' }

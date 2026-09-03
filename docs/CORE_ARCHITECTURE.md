@@ -128,6 +128,6 @@ Cloudflare Worker 只做安全轉送。Gemini API key 只能存在 Worker Secret
 
 ## 五、目前實作與下一步
 
-目前已具備：Moment／session／turn／closure／line 資料模型、MVI Flow Engine、IndexedDB 與 JSON 備份、當下回應、使用者原文為依據的收束、session 時間流、跨時間回看、Cloudflare Worker proxy。
+目前已具備：Moment／session／turn／closure／line 資料模型、MVI Flow Engine、IndexedDB 與 JSON 備份、當下回應、使用者原文為依據的收束、可從回看重新開啟同一個 session 的續談、session 時間流、跨時間回看、Cloudflare Worker proxy。
 
 下一步應依序補足：獨立的 Explore Companion、可測試的 Prompt Roles 與 Response Validator 模組、session／備份／洞見門檻的自動化測試，以及最終才是使用者同意下的加密雲端同步。
