@@ -24,7 +24,7 @@ const App: React.FC = () => {
       case 'PARALLEL':
         return <ParallelMomentsScreen collection={flow.activeCollection} getMoments={flow.getMoments} getInsight={flow.requestTimelineInsight} onClose={flow.closeParallel} onConfirm={flow.confirmCandidate} onDecide={flow.decideCandidate} />;
       case 'DISCOVERY':
-        return <DiscoveryScreen getInsight={flow.requestMemoryReading} onClose={flow.finish} onKeepLine={flow.createManualLine} />;
+        return <DiscoveryScreen getCandidate={flow.requestMemoryCandidate} onClose={flow.finish} onOpenCandidate={flow.openCandidate} />;
       case 'BACKUP':
         return <BackupScreen getOverview={flow.getBackupOverview} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
       default:

@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { ActiveCollection, BackupOverview, BackupStatus, ExplorePerspective, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
+import { ActiveCollection, BackupOverview, BackupStatus, ExplorePerspective, HarborSession, LinkCandidate, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
 import { fingerprint } from '../logic/connectionCandidates';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
@@ -114,12 +114,14 @@ export class HarborFlowEngine {
     return perspectives;
   }
 
-  /** Explicit review effect: the complete recent timeline is read only after this call. */
-  public async requestMemoryReading(): Promise<MemoryReading | null> {
+  /** Explicit review effect: search returns originals only, never an unconfirmed reading. */
+  public async requestMemoryCandidate(): Promise<LinkCandidate | null> {
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const reading = await this.memory.findEvidenceBackedReading((await this.storage.getData()).moments);
-    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(reading ? {} : { error: undefined }) });
-    return reading;
+    const data = await this.storage.getData();
+    const candidate = await this.memory.findExplicitCandidate(data.moments, data.linkDecisions);
+    this.dispatch({ type: 'CANDIDATE_UPDATED', candidate });
+    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(candidate ? {} : { error: undefined }) });
+    return candidate;
   }
 
   /** Reads only the moment ids in a confirmed/manual line, never the whole history. */

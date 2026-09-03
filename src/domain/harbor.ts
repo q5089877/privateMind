@@ -59,10 +59,6 @@ export interface TimelineInsight {
   unresolved: string;
 }
 
-export interface MemoryReading extends TimelineInsight {
-  momentIds: string[];
-}
-
 export type HarborSessionStatus = 'active' | 'landed';
 
 /** The conversation that grows from one Moment and may continue across several turns. */
