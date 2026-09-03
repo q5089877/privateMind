@@ -182,6 +182,7 @@ export class HarborFlowEngine {
       status: data.backup,
       moments: data.moments.length,
       sessions: data.sessions.length,
+      turns: data.sessions.reduce((total, session) => total + session.turns.length, 0),
       closures: data.sessions.filter(session => Boolean(session.closure)).length,
       lines: data.lines.length,
       decisions: data.linkDecisions.length

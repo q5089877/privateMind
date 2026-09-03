@@ -110,6 +110,7 @@ export interface BackupOverview {
   status: BackupStatus;
   moments: number;
   sessions: number;
+  turns: number;
   closures: number;
   lines: number;
   decisions: number;
