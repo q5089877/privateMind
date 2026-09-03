@@ -4,6 +4,7 @@ import { ActiveCollection, HarborSession, LinkCandidate, Moment, MomentIntent, S
 export type HarborUserIntent =
   | { type: 'CAPTURE_MOMENT'; content: string; intent?: MomentIntent }
   | { type: 'REQUEST_PRESENT_REPLY'; moment: Moment }
+  | { type: 'REQUEST_SESSION_CLOSURE'; session: HarborSession }
   | { type: 'SAVE_PRESENT_REPLY'; momentId: string; reply: string }
   | { type: 'SAVE_CLOSURE'; sessionId: string; closure: SessionClosure }
   | { type: 'OPEN_DISCOVERY' }

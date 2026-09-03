@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUp, CircleDashed, Compass, Focus, MessageCircle, ShieldCheck, Split, Waves } from 'lucide-react';
-import { BackupStatus, ConversationTurn, HarborSession, Moment } from '../types';
+import { BackupStatus, ConversationTurn, HarborSession, Moment, SessionClosure } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 
 interface Props {
@@ -10,6 +10,8 @@ interface Props {
   onContinue: (content: string) => Promise<void>;
   getPresentReply: (moment: Moment) => Promise<string | null>;
   onSaveReply: (momentId: string, reply: string) => Promise<void>;
+  getSessionClosure: (session: HarborSession) => Promise<SessionClosure | null>;
+  onSaveClosure: (sessionId: string, closure: SessionClosure) => Promise<void>;
   getBackupStatus: () => Promise<BackupStatus>;
   onOpenBackup: () => void;
 }
@@ -28,7 +30,7 @@ const backupLabel = (status: BackupStatus) => status.lastExportedAt
   : '已留在這台裝置';
 
 /** First UI step: a HarborSession is visibly a conversation, not a completed card. */
-export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, onContinue, getPresentReply, onSaveReply, getBackupStatus, onOpenBackup }) => {
+export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, onContinue, getPresentReply, onSaveReply, getSessionClosure, onSaveClosure, getBackupStatus, onOpenBackup }) => {
   const [reply, setReply] = useState('');
   const [continuing, setContinuing] = useState(false);
   const [continuation, setContinuation] = useState('');
@@ -36,6 +38,9 @@ export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, on
   const [backup, setBackup] = useState<BackupStatus | null>(null);
   const [replyUnavailable, setReplyUnavailable] = useState(false);
   const [replyAttempt, setReplyAttempt] = useState(0);
+  const [landing, setLanding] = useState(false);
+  const [closure, setClosure] = useState<SessionClosure | null>(null);
+  const [closureUnavailable, setClosureUnavailable] = useState(false);
   const continuationRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { void getBackupStatus().then(setBackup); }, [getBackupStatus]);
@@ -46,6 +51,9 @@ export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, on
     setShowAngles(false);
     setReplyUnavailable(false);
     setReplyAttempt(0);
+    setLanding(false);
+    setClosure(null);
+    setClosureUnavailable(false);
     setReply(moment?.immediateReply && normalizeCompanionResponse(moment.immediateReply) !== legacyFallbackReply ? normalizeCompanionResponse(moment.immediateReply) : '');
   }, [moment?.id]);
 
@@ -91,6 +99,35 @@ export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, on
     await onContinue(text);
   };
 
+  const beginLanding = async () => {
+    if (!session) {
+      onReset();
+      return;
+    }
+    setLanding(true);
+    setClosure(null);
+    setClosureUnavailable(false);
+    const draft = await getSessionClosure(session);
+    if (draft) setClosure(draft);
+    else setClosureUnavailable(true);
+  };
+
+  const localClosure = (): SessionClosure => {
+    const lastUserTurn = [...turns].reverse().find(turn => turn.role === 'user');
+    const excerpt = lastUserTurn?.content.replace(/\s+/g, ' ').slice(0, 28) || '這次談到的事';
+    return {
+      takeaway: `「${excerpt}${lastUserTurn && lastUserTurn.content.length > 28 ? '…' : ''}」先留在這裡。`,
+      unresolved: '今天還不用把它想完。',
+      createdAt: Date.now(),
+      sourceTurnIds: session?.turns.map(turn => turn.id) || []
+    };
+  };
+
+  const saveLandingAndReturn = async () => {
+    if (session) await onSaveClosure(session.id, closure || localClosure());
+    onReset();
+  };
+
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] flex flex-col py-4">
     <div className="flex-1 pt-8 sm:pt-14">
       <div className="flex items-center gap-2 text-accent"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10"><Waves size={16} strokeWidth={1.8}/></span><span className="text-sm font-medium">正在停靠</span></div>
@@ -107,9 +144,19 @@ export const CompletionScreen: React.FC<Props> = ({ moment, session, onReset, on
       </section>
 
       <section className="mt-9 border-t border-border-base pt-6 sm:mt-11">
-        {continuing ? <div className="rounded-[24px] border border-accent/20 bg-surface p-4 shadow-[0_5px_16px_rgba(47,70,54,0.07)]"><label htmlFor="continue-thought" className="text-sm font-medium text-ink">還想說一點什麼？</label><textarea ref={continuationRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event=>{if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void saveContinuation(); }}} placeholder="把剛才還沒說完的，接下來……" rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/><div className="mt-3 flex items-center justify-between border-t border-border-base pt-3"><button onClick={()=>{setContinuing(false);setContinuation('');}} className="text-sm text-ink-muted hover:text-ink">先不說了</button><button onClick={()=>void saveContinuation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">說下去 <ArrowUp size={15}/></button></div></div> : <div className="flex flex-wrap items-center gap-x-4 gap-y-2"><button onClick={() => openContinuation()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform active:scale-[0.98]"><MessageCircle size={16}/>接著說</button><button onClick={() => setShowAngles(value => !value)} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm font-medium text-ink-secondary hover:text-ink"><Compass size={16}/>換個角度</button><button onClick={onReset} className="inline-flex min-h-11 items-center px-2 text-sm text-ink-muted hover:text-ink">今天先到這裡</button></div>}
+        {landing ? <div className="rounded-[28px] border border-accent/20 bg-surface-subtle p-5 shadow-[0_8px_24px_rgba(47,70,54,0.07)]">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-accent"><Waves size={16} strokeWidth={1.8}/>今天先收在這裡</p>
+          <h2 className="mt-3 text-[21px] font-medium tracking-[-0.025em] text-ink">把今天談到的，先留在這裡。</h2>
+          {closure ? <div className="mt-5 space-y-4">
+            <div className="rounded-2xl bg-surface px-4 py-4"><p className="text-xs font-medium text-accent">這次先帶走</p><p className="mt-2 text-[16px] leading-[1.75] text-ink-secondary">{closure.takeaway}</p></div>
+            <div className="border-l-2 border-accent/40 pl-4"><p className="text-xs font-medium text-accent">還可以先放著</p><p className="mt-2 text-[15px] leading-[1.7] text-ink-secondary">{closure.unresolved}</p>{closure.resumeAnchor && <p className="mt-3 text-sm text-ink-muted">下次若想回來：{closure.resumeAnchor}</p>}</div>
+          </div> : closureUnavailable ? <p className="mt-4 text-[15px] leading-[1.75] text-ink-secondary">這次先照原樣留在這裡；今天不用再把它想完。</p> : <p className="mt-4 text-sm text-ink-muted">正在把這段對話收好…</p>}
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2"><button onClick={() => void saveLandingAndReturn()} disabled={!closure && !closureUnavailable} className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm disabled:opacity-40">回到現在</button><button onClick={() => { setLanding(false); openContinuation(); }} className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink-secondary hover:text-ink">還想說一點</button></div>
+        </div> : <>
+          {continuing ? <div className="rounded-[24px] border border-accent/20 bg-surface p-4 shadow-[0_5px_16px_rgba(47,70,54,0.07)]"><label htmlFor="continue-thought" className="text-sm font-medium text-ink">還想說一點什麼？</label><textarea ref={continuationRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event=>{if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void saveContinuation(); }}} placeholder="把剛才還沒說完的，接下來……" rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/><div className="mt-3 flex items-center justify-between border-t border-border-base pt-3"><button onClick={()=>{setContinuing(false);setContinuation('');}} className="text-sm text-ink-muted hover:text-ink">先不說了</button><button onClick={()=>void saveContinuation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">說下去 <ArrowUp size={15}/></button></div></div> : <div className="flex flex-wrap items-center gap-x-4 gap-y-2"><button onClick={() => openContinuation()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform active:scale-[0.98]"><MessageCircle size={16}/>接著說</button><button onClick={() => setShowAngles(value => !value)} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm font-medium text-ink-secondary hover:text-ink"><Compass size={16}/>換個角度</button><button onClick={() => void beginLanding()} className="inline-flex min-h-11 items-center px-2 text-sm text-ink-muted hover:text-ink">今天先到這裡</button></div>}
 
-        {showAngles && !continuing && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4"><p className="text-sm text-ink-secondary">選一個入口就好，不必全部回答。</p><div className="mt-3 grid grid-cols-2 gap-2">{angles.map(angle => { const Icon = angle.icon; return <button key={angle.id} onClick={() => openContinuation(angle.text)} className="rounded-2xl border border-border-base bg-surface px-3 py-3 text-left transition-colors hover:border-accent/40"><span className="flex items-center gap-1.5 text-sm font-medium text-ink"><Icon size={15} className="text-accent"/>{angle.label}</span><span className="mt-2 block text-xs leading-relaxed text-ink-muted">{angle.text}</span></button>; })}</div></div>}
+          {showAngles && !continuing && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4"><p className="text-sm text-ink-secondary">選一個入口就好，不必全部回答。</p><div className="mt-3 grid grid-cols-2 gap-2">{angles.map(angle => { const Icon = angle.icon; return <button key={angle.id} onClick={() => openContinuation(angle.text)} className="rounded-2xl border border-border-base bg-surface px-3 py-3 text-left transition-colors hover:border-accent/40"><span className="flex items-center gap-1.5 text-sm font-medium text-ink"><Icon size={15} className="text-accent"/>{angle.label}</span><span className="mt-2 block text-xs leading-relaxed text-ink-muted">{angle.text}</span></button>; })}</div></div>}
+        </>}
       </section>
 
       <button onClick={onOpenBackup} className="mt-10 inline-flex min-h-10 items-center gap-2 text-xs text-ink-muted hover:text-ink"><ShieldCheck size={15} className="text-accent"/>{backup ? backupLabel(backup) : '正在確認保存狀態…'}</button>

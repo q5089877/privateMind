@@ -32,6 +32,13 @@ export interface SessionClosure {
   sourceTurnIds: string[];
 }
 
+/** A closure before the person chooses to keep it with the session. */
+export interface SessionClosureDraft {
+  takeaway: string;
+  unresolved: string;
+  resumeAnchor?: string;
+}
+
 export interface TimelineEvidence {
   date: string;
   phrase: string;

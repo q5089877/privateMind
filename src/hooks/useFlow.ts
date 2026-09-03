@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, Moment, MomentIntent } from '../types';
+import { FlowState, HarborSession, Moment, MomentIntent } from '../types';
 
 export function useFlow() {
   const engine = useFlowEngine();
@@ -14,6 +14,7 @@ export function useFlow() {
 
   const submitText = useCallback((text: string, intent?: MomentIntent) => engine.submitText(text, intent), [engine]);
   const requestPresentReply = useCallback((moment: Moment) => engine.requestPresentReply(moment), [engine]);
+  const requestSessionClosure = useCallback((session: HarborSession) => engine.requestSessionClosure(session), [engine]);
   const saveImmediateReply = useCallback((momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply), [engine]);
   const getMoments = useCallback(() => engine.getMoments(), [engine]);
   const getSessions = useCallback(() => engine.getSessions(), [engine]);
@@ -34,6 +35,7 @@ export function useFlow() {
     error: snapshot.error,
     submitText,
     requestPresentReply,
+    requestSessionClosure,
     saveImmediateReply,
     saveClosure: engine.saveClosure.bind(engine),
     recordRecalledMoments: engine.recordRecalledMoments.bind(engine),

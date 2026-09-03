@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { ActiveCollection, BackupStatus, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, ThreadLine, TimelineInsight } from '../domain/harbor';
+import { ActiveCollection, BackupStatus, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
 import { fingerprint } from '../logic/connectionCandidates';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
@@ -44,10 +44,11 @@ export class HarborFlowEngine {
   }
 
   /** Stable MVI entry point for the next UI iteration. Compatibility methods remain below. */
-  public async handle(intent: HarborUserIntent): Promise<string | null | void> {
+  public async handle(intent: HarborUserIntent): Promise<string | SessionClosure | null | void> {
     switch (intent.type) {
       case 'CAPTURE_MOMENT': return this.submitText(intent.content, intent.intent);
       case 'REQUEST_PRESENT_REPLY': return this.requestPresentReply(intent.moment);
+      case 'REQUEST_SESSION_CLOSURE': return this.requestSessionClosure(intent.session);
       case 'SAVE_PRESENT_REPLY': return this.saveImmediateReply(intent.momentId, intent.reply);
       case 'SAVE_CLOSURE': return this.saveClosure(intent.sessionId, intent.closure);
       case 'OPEN_DISCOVERY': return this.openDiscovery();
@@ -91,6 +92,18 @@ export class HarborFlowEngine {
     }).finally(() => this.presentReplyRequests.delete(moment.id));
     this.presentReplyRequests.set(moment.id, request);
     return request;
+  }
+
+  /** The user explicitly asks to pause this session; only its visible turns are shared. */
+  public async requestSessionClosure(session: HarborSession): Promise<SessionClosure | null> {
+    this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
+    const draft: SessionClosureDraft | null = await this.companion.closeSession(session);
+    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(draft ? {} : { error: '暫時無法整理這段對話。' }) });
+    return draft ? {
+      ...draft,
+      createdAt: Date.now(),
+      sourceTurnIds: session.turns.filter(turn => turn.role === 'user').map(turn => turn.id)
+    } : null;
   }
 
   /** Explicit review effect: the complete recent timeline is read only after this call. */

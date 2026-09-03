@@ -1,4 +1,4 @@
-import { Moment } from '../../domain/harbor';
+import { HarborSession, Moment, SessionClosureDraft } from '../../domain/harbor';
 import { GeminiProxyClient } from '../../logic/geminiProxyClient';
 
 /**
@@ -8,5 +8,10 @@ import { GeminiProxyClient } from '../../logic/geminiProxyClient';
 export class CompanionService {
   public replyToPresentMoment(moment: Moment): Promise<string | null> {
     return GeminiProxyClient.getCompanionResponse(moment.content);
+  }
+
+  /** A closing reflection may see only this explicit conversation, never the wider history. */
+  public closeSession(session: HarborSession): Promise<SessionClosureDraft | null> {
+    return GeminiProxyClient.getSessionClosure(session.turns);
   }
 }
