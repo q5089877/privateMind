@@ -94,6 +94,8 @@ AI 依任務分角色，而不是由 UI 任意拼 prompt：
 
 每個角色都必須有明確的 prompt 規則與 `Response Validator`。Validator 必須驗證引用是否真的存在、時間門檻是否符合、回覆是否超出長度，以及是否出現診斷、命令、無依據因果或不允許的語言。
 
+每個角色的 prompt、模型設定、輸出 schema 與 validator 必須各自放在 `src/services/ai/roles/` 的獨立檔案。`GeminiProxyClient` 只能做 Worker 通訊、逾時、重試與取得原始回覆；它不得包含任何產品語氣、prompt 或角色判斷。調整一個角色時，不得順帶改變其他角色的規則。
+
 ### 5. 保存、備份與同步層
 
 `MindHarborRepository` 是唯一資料入口。Moment、session、turn、closure 與備份中仍需保留的舊版連線資料，都必須經過它，並盡可能採原子寫入。
