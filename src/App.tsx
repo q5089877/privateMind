@@ -20,7 +20,7 @@ const App: React.FC = () => {
       case 'PRESENT_SETTLED':
         return <CompletionScreen moment={flow.currentMoment} session={flow.currentSession} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} onSaveReply={flow.saveImmediateReply} getSessionClosure={flow.requestSessionClosure} onSaveClosure={flow.saveClosure} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
       case 'REVIEW':
-        return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getLines={flow.getLines} onOpenLine={flow.openLine} onCreateManualLine={flow.createManualLine} onOpenBackup={flow.openBackup} />;
+        return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getSessions={flow.getSessions} getLines={flow.getLines} onOpenLine={flow.openLine} onCreateManualLine={flow.createManualLine} onOpenBackup={flow.openBackup} />;
       case 'PARALLEL':
         return <ParallelMomentsScreen collection={flow.activeCollection} getMoments={flow.getMoments} getInsight={flow.requestTimelineInsight} onClose={flow.closeParallel} onConfirm={flow.confirmCandidate} onDecide={flow.decideCandidate} />;
       case 'DISCOVERY':
