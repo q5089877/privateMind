@@ -1,16 +1,13 @@
-/**
- * 思緒停靠（Mind Harbor）V7.2 — UI 官方文案庫
- * 01～19 已定案規格專用
- */
+/** Shared UI copy. Product and architecture rules live in docs/CORE_ARCHITECTURE.md. */
 
 export const UI_TEXT = {
   // 【01｜首頁輸入與「停靠」】
   home: {
     brandTitle: '思緒停靠 · MIND HARBOR',
-    title: '留下還沒想完的事。',
-    subtitle: '等時間過去，再看自己怎麼走到今天。',
-    inputPlaceholder: '想法、情緒，或只是一些說不上來的東西……',
-    submit: '先留下',
+    title: '把卡在心裡的事，先說出來。',
+    subtitle: '不用整理；我們可以慢慢看。',
+    inputPlaceholder: '腦中最先浮出來的那一句……',
+    submit: '開始說說',
     reviewPast: '再次相遇 →',
     reviewBtn: '再次相遇',
     footerPhilosophy: '寫下來可以停在這裡。要不要往前，由你決定。',
@@ -155,17 +152,14 @@ export const UI_TEXT = {
 };
 
 export const CORE_PHILOSOPHY = {
-  motto: '留下還沒想完的事；等時間過去，再看自己怎麼走到今天。',
+  motto: '說出來，看一看，收回來，放下去。',
   principles: [
-    '你可以寫。',
-    '可以停靠。',
-    '可以什麼都不做。',
-    '可以接著說。',
-    '沒想法時，可以換一個角度看。',
-    'AI 只提供操作，不替你下結論。',
-    '內容可以一直留著。',
-    '不想看了，可以收起來。',
-    '真的不要了，才讓它消失。',
-    '即使說不上來，也算一次完整的停靠。'
+    '先說出來，不必先分類。',
+    '每一次留下的原文都會保存。',
+    '想談時，可以在同一次停靠裡接著說。',
+    '收束是暫時的，不是結論。',
+    '跨時間回看必須由原文證據支撐。',
+    'AI 不替使用者診斷、命名或決定。',
+    '資料先留在本機，且可以完整備份。'
   ]
 };
