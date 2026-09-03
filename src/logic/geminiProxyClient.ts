@@ -57,34 +57,21 @@ export class GeminiProxyClient {
     }
   }
 
-  private static getApiKey(): string {
-    try {
-      return (
-        (typeof localStorage !== 'undefined' ? localStorage.getItem('GEMINI_API_KEY') : null) ||
-        (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY : null) ||
-        ''
-      );
-    } catch {
-      return '';
-    }
-  }
-
   public static isConfigured(): boolean {
-    return !!(this.getProxyUrl().trim() || this.getApiKey().trim());
+    return !!this.getProxyUrl().trim();
   }
 
   /** A present-tense reply. It must never retrieve or mention past Moments. */
   public static async getCompanionResponse(current: string): Promise<string | null> {
     const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return presentFallback(current);
+    if (!proxyUrl) return presentFallback(current);
     const payload = {
       model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: `使用者剛留下這一句：\n${current}\n\n請以繁體中文回覆剛好兩句、最多88字。只根據這一句話。第一句必須直接引用或重複其中一段 2 到 28 字的具體用語，讓人知道你讀到的是哪一句；第二句提供一個貼著那段用語的開放提問或續寫入口。不得提及過去紀錄、記憶、模式、重複或任何你未看見的內容。\n\n禁止診斷、心理標籤、建議、命令、空泛安慰、聲稱知道真正原因，也禁止使用「辛苦了」「這很正常」「真實的一刻」「一切正在運作」「允許自己」「先停下來」「休息一下」。不要替使用者下結論；保留今天不必想完的餘地。` }] }],
       generationConfig: { temperature: 0.45, maxOutputTokens: 72, responseMimeType: 'text/plain', thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 20_000);
+      const response = await postJsonWithTimeout(proxyUrl, payload, 20_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -105,8 +92,7 @@ export class GeminiProxyClient {
     const userTurns = turns.filter(turn => turn.role === 'user' && turn.content.trim());
     if (!userTurns.length) return null;
     const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return null;
+    if (!proxyUrl) return null;
 
     const sourceText = userTurns.map(turn => turn.content.trim()).join('\n');
     const transcript = sourceText.slice(-6000);
@@ -137,7 +123,7 @@ export class GeminiProxyClient {
       generationConfig: { temperature: 0.28, maxOutputTokens: 420, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 14_000);
+      const response = await postJsonWithTimeout(proxyUrl, payload, 14_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -173,8 +159,7 @@ export class GeminiProxyClient {
     const userTurns = turns.filter(turn => turn.role === 'user' && turn.content.trim());
     if (!userTurns.length) return null;
     const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return null;
+    if (!proxyUrl) return null;
 
     // AI's earlier wording is never evidence for a closure. Only the person's own turns count.
     const transcript = userTurns
@@ -195,7 +180,7 @@ export class GeminiProxyClient {
       generationConfig: { temperature: 0.25, maxOutputTokens: 180, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 12_000);
+      const response = await postJsonWithTimeout(proxyUrl, payload, 12_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -219,8 +204,7 @@ export class GeminiProxyClient {
   public static async getTimelineInsight(entries: Array<{ date: string; content: string }>): Promise<TimelineInsight | null> {
     if (entries.length < 3) return null;
     const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return null;
+    if (!proxyUrl) return null;
     const timeline = entries.map(item => `${item.date}｜${item.content}`).join('\n');
     const responseSchema = {
       type: 'OBJECT',
@@ -245,7 +229,7 @@ export class GeminiProxyClient {
       generationConfig: { temperature: 0.2, maxOutputTokens: 260, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${REFLECTION_MODEL}:generateContent?key=${apiKey}`, payload, 8_000);
+      const response = await postJsonWithTimeout(proxyUrl, payload, 8_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -270,8 +254,7 @@ export class GeminiProxyClient {
   public static async findRelevantMoments(entries: Array<{ id: string; createdAt: number; date: string; content: string }>): Promise<string[] | null> {
     if (entries.length < 3) return null;
     const proxyUrl = this.getProxyUrl();
-    const apiKey = this.getApiKey();
-    if (!proxyUrl && !apiKey) return null;
+    if (!proxyUrl) return null;
     const timeline = entries.map(item => `[${item.id}] ${item.date}｜${item.content}`).join('\n');
     const payload = {
       model: GEMINI_MODEL,
@@ -285,7 +268,7 @@ export class GeminiProxyClient {
       }
     };
     try {
-      const response = await postJsonWithTimeout(proxyUrl || `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, payload, 8_000);
+      const response = await postJsonWithTimeout(proxyUrl, payload, 8_000);
       if (!response.ok) return null;
       const data = await response.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
