@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, CircleDashed, Compass, Focus, MessageCircle, ShieldCheck, Split } from 'lucide-react';
 import { BackupStatus, Moment } from '../types';
-import { GeminiProxyClient, normalizeCompanionResponse } from '../logic/geminiProxyClient';
+import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 
 interface Props {
   moment: Moment | null;
   onReset: () => void;
   onContinue: (content: string) => Promise<void>;
+  getPresentReply: (moment: Moment) => Promise<string | null>;
   onSaveReply: (momentId: string, reply: string) => Promise<void>;
   getBackupStatus: () => Promise<BackupStatus>;
   onOpenBackup: () => void;
@@ -27,7 +28,7 @@ const backupLabel = (status: BackupStatus) => status.lastExportedAt
   ? `已建立備份 · ${new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(status.lastExportedAt))}`
   : '已留在這台裝置';
 
-export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue, onSaveReply, getBackupStatus, onOpenBackup }) => {
+export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue, getPresentReply, onSaveReply, getBackupStatus, onOpenBackup }) => {
   const [reply, setReply] = useState('');
   const [continuing, setContinuing] = useState(false);
   const [continuation, setContinuation] = useState('');
@@ -60,7 +61,7 @@ export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue,
     let alive = true;
     setReply('');
     setReplyUnavailable(false);
-    void GeminiProxyClient.getCompanionResponse(moment.content).then(async value => {
+    void getPresentReply(moment).then(async value => {
       if (!alive) return;
       if (!value) {
         setReplyUnavailable(true);
@@ -71,7 +72,7 @@ export const CompletionScreen: React.FC<Props> = ({ moment, onReset, onContinue,
       await onSaveReply(moment.id, clean);
     });
     return () => { alive = false; };
-  }, [moment?.id, replyAttempt, onSaveReply]);
+  }, [moment?.id, replyAttempt, getPresentReply, onSaveReply]);
 
   if (!moment) return null;
 

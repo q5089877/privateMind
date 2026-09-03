@@ -1,40 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Link2, Sparkles } from 'lucide-react';
-import { Moment } from '../types';
-import { GeminiProxyClient, TimelineInsight } from '../logic/geminiProxyClient';
+import { MemoryReading } from '../domain/harbor';
 
 interface Props {
-  getMoments: () => Promise<Moment[]>;
+  getInsight: () => Promise<MemoryReading | null>;
   onClose: () => void;
   onKeepLine: (momentIds: string[]) => Promise<void>;
 }
 
-interface DiscoveryResult extends TimelineInsight {
-  momentIds: string[];
-}
-
-const stamp = (value: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
-
-export const DiscoveryScreen: React.FC<Props> = ({ getMoments, onClose, onKeepLine }) => {
+export const DiscoveryScreen: React.FC<Props> = ({ getInsight, onClose, onKeepLine }) => {
   const [loading, setLoading] = useState(true);
-  const [insight, setInsight] = useState<DiscoveryResult | null>(null);
+  const [insight, setInsight] = useState<MemoryReading | null>(null);
 
   useEffect(() => {
     let alive = true;
-    void getMoments().then(async moments => {
-      // Keep the request bounded. The user explicitly opened this view; no background upload occurs.
-      const recent = [...moments].sort((a, b) => a.createdAt - b.createdAt).slice(-60);
-      // Short ids reduce AI transcription errors; only this screen maps them back to persistent Moment ids.
-      const indexed = recent.map((moment, index) => ({ id: `M${index + 1}`, sourceId: moment.id, createdAt: moment.createdAt, date: stamp(moment.createdAt), content: moment.content }));
-      const candidateIds = await GeminiProxyClient.findRelevantMoments(indexed);
-      const selected = candidateIds ? indexed.filter(item => candidateIds.includes(item.id)) : [];
-      const reading = selected.length >= 3 ? await GeminiProxyClient.getTimelineInsight(selected.map(item => ({ date: item.date, content: item.content }))) : null;
+    void getInsight().then(reading => {
       if (!alive) return;
-      setInsight(reading ? { ...reading, momentIds: selected.map(item => item.sourceId) } : null);
+      setInsight(reading);
       setLoading(false);
     });
     return () => { alive = false; };
-  }, [getMoments]);
+  }, [getInsight]);
 
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] py-5 sm:py-8">
     <header className="flex min-h-11 items-center"><button onClick={onClose} className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>回到現在</button></header>

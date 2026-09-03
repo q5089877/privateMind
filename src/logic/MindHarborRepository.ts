@@ -1,4 +1,4 @@
-import { LinkDecision, MindHarborData, Moment, ThoughtThread, ThreadLine } from '../types';
+import { HarborSession, LinkDecision, MindHarborData, Moment, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 1;
@@ -7,8 +7,9 @@ const STATE_KEY = 'current';
 const LEGACY_THREADS_KEY = 'mind_harbor_threads_v3';
 
 const emptyData = (): MindHarborData => ({
-  version: 1,
+  version: 2,
   moments: [],
+  sessions: [],
   lines: [],
   linkDecisions: [],
   backup: { pendingChanges: 0 }
@@ -57,7 +58,11 @@ export class MindHarborRepository {
 
   public async getData(): Promise<MindHarborData> {
     const stored = await this.readRaw();
-    if (stored) return this.normalise(stored);
+    if (stored) {
+      const normalised = this.normalise(stored);
+      if (stored.version !== normalised.version || !Array.isArray(stored.sessions)) await this.writeRaw(normalised);
+      return normalised;
+    }
     const migrated = this.migrateLegacyThreads();
     await this.writeRaw(migrated);
     return migrated;
@@ -77,10 +82,38 @@ export class MindHarborRepository {
     }));
   }
 
+  /** One atomic write keeps a newly captured Moment and its harbor session together. */
+  public async saveMomentWithSession(moment: Moment, session: HarborSession): Promise<MindHarborData> {
+    return this.update(data => ({
+      ...data,
+      moments: [...data.moments, moment],
+      sessions: [...data.sessions.filter(item => item.id !== session.id), session],
+      backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+    }));
+  }
+
   public async updateMoment(momentId: string, transform: (moment: Moment) => Moment): Promise<MindHarborData> {
     return this.update(data => ({
       ...data,
       moments: data.moments.map(moment => moment.id === momentId ? transform(moment) : moment),
+      backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+    }));
+  }
+
+  public async saveSession(session: HarborSession): Promise<MindHarborData> {
+    return this.update(data => ({
+      ...data,
+      sessions: [...data.sessions.filter(item => item.id !== session.id), session],
+      backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+    }));
+  }
+
+  /** Used when an AI turn is accepted, so the visible reply and conversation history cannot diverge. */
+  public async saveReplyAndSession(momentId: string, reply: string, session: HarborSession): Promise<MindHarborData> {
+    return this.update(data => ({
+      ...data,
+      moments: data.moments.map(moment => moment.id === momentId ? { ...moment, immediateReply: reply.trim() } : moment),
+      sessions: [...data.sessions.filter(item => item.id !== session.id), session],
       backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
     }));
   }
@@ -114,8 +147,9 @@ export class MindHarborRepository {
       const byId = <T extends { id: string }>(left: T[], right: T[]) => [...new Map([...right, ...left].map(item => [item.id, item])).values()];
       const byFingerprint = [...new Map([...incoming.linkDecisions, ...current.linkDecisions].map(item => [item.fingerprint, item])).values()];
       return {
-        version: 1,
+        version: 2,
         moments: byId(current.moments, incoming.moments).sort((a, b) => a.createdAt - b.createdAt),
+        sessions: byId(current.sessions, incoming.sessions).sort((a, b) => a.createdAt - b.createdAt),
         lines: byId(current.lines, incoming.lines),
         linkDecisions: byFingerprint,
         backup: { ...current.backup, lastImportedAt: Date.now(), pendingChanges: current.backup.pendingChanges }
@@ -125,8 +159,15 @@ export class MindHarborRepository {
 
   private normalise(data: MindHarborData): MindHarborData {
     return {
-      version: 1,
+      version: 2,
       moments: Array.isArray(data.moments) ? data.moments.map(moment => ({ ...moment, intent: moment.intent || 'captured' })) : [],
+      sessions: Array.isArray(data.sessions) ? data.sessions.map(session => ({
+        ...session,
+        momentIds: Array.isArray(session.momentIds) ? session.momentIds : [session.originMomentId],
+        turns: Array.isArray(session.turns) ? session.turns : [],
+        recalledMomentIds: Array.isArray(session.recalledMomentIds) ? session.recalledMomentIds : [],
+        status: session.status === 'landed' ? 'landed' : 'active'
+      })) : [],
       lines: Array.isArray(data.lines) ? data.lines : [],
       linkDecisions: Array.isArray(data.linkDecisions) ? data.linkDecisions : [],
       backup: { pendingChanges: 0, ...(data.backup || {}) }
@@ -158,7 +199,27 @@ export class MindHarborRepository {
       const linkDecisions = legacy.flatMap(thread => (thread.entries || []).flatMap(entry => (entry.dismissedRelatedEntryIds || []).map(sourceId => ({
         fingerprint: [entry.id, sourceId].sort().join(':'), decision: 'dismissed' as const, decidedAt: thread.updatedAt || entry.createdAt
       }))));
-      return { ...emptyData(), moments, lines, linkDecisions };
+      const sessions: HarborSession[] = legacy.map((thread): HarborSession | null => {
+        const entries = (thread.entries || []).filter(entry => seen.has(entry.id));
+        const first = entries[0];
+        if (!first) return null;
+        const turns = entries.flatMap(entry => {
+          const user = { id: `legacy-turn-${entry.id}`, role: 'user' as const, content: entry.content.trim(), createdAt: entry.createdAt, momentId: entry.id };
+          const assistant = entry.aiResponse?.trim() ? [{ id: `legacy-reply-${entry.id}`, role: 'assistant' as const, content: entry.aiResponse.trim(), createdAt: entry.createdAt }] : [];
+          return [user, ...assistant];
+        });
+        return {
+          id: `legacy-session-${thread.id}`,
+          originMomentId: first.id,
+          momentIds: entries.map(entry => entry.id),
+          turns,
+          recalledMomentIds: [],
+          status: 'active' as const,
+          createdAt: thread.createdAt,
+          updatedAt: thread.updatedAt || entries[entries.length - 1].createdAt
+        };
+      }).filter((session): session is HarborSession => session !== null);
+      return { ...emptyData(), moments, sessions, lines, linkDecisions };
     } catch {
       return emptyData();
     }

@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Link2, Sparkles } from 'lucide-react';
-import { ActiveCollection, Moment } from '../types';
+import { ActiveCollection, Moment, TimelineInsight } from '../types';
 import { hasInsightEligibility } from '../logic/connectionCandidates';
-import { GeminiProxyClient, TimelineInsight } from '../logic/geminiProxyClient';
 
 interface Props {
   collection: ActiveCollection | null;
   getMoments: () => Promise<Moment[]>;
+  getInsight: (momentIds: string[]) => Promise<TimelineInsight | null>;
   onClose: () => void;
   onConfirm: () => Promise<void>;
   onDecide: (decision: 'dismissed' | 'deferred') => Promise<void>;
@@ -14,7 +14,7 @@ interface Props {
 
 const stamp = (value: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
 
-export const ParallelMomentsScreen: React.FC<Props> = ({ collection, getMoments, onClose, onConfirm, onDecide }) => {
+export const ParallelMomentsScreen: React.FC<Props> = ({ collection, getMoments, getInsight, onClose, onConfirm, onDecide }) => {
   const [all, setAll] = useState<Moment[]>([]);
   const [working, setWorking] = useState(false);
   const [insight, setInsight] = useState<TimelineInsight | null>(null);
@@ -28,7 +28,7 @@ export const ParallelMomentsScreen: React.FC<Props> = ({ collection, getMoments,
   const askInsight = async () => {
     if (!eligible || analyzing) return;
     setAnalyzing(true);
-    setInsight(await GeminiProxyClient.getTimelineInsight(moments.map(moment => ({ date: stamp(moment.createdAt), content: moment.content }))));
+    setInsight(await getInsight(moments.map(moment => moment.id)));
     setAnalyzing(false);
   };
 

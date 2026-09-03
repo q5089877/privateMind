@@ -14,8 +14,11 @@ export const parseBackupText = (text: string): MindHarborData => {
   const data = parsed.data as Partial<MindHarborData>;
   if (!Array.isArray(data.moments) || !Array.isArray(data.lines) || !Array.isArray(data.linkDecisions)) throw new Error('備份檔內容不完整。');
   return {
-    version: 1,
+    // Version 1 backups did not contain sessions. They remain importable and are
+    // normalised into the current local-first format by the repository.
+    version: 2,
     moments: data.moments,
+    sessions: Array.isArray(data.sessions) ? data.sessions : [],
     lines: data.lines,
     linkDecisions: data.linkDecisions,
     backup: data.backup || { pendingChanges: 0 }

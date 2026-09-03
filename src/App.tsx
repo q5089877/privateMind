@@ -18,13 +18,13 @@ const App: React.FC = () => {
       case 'HOME':
         return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} canDiscover={flow.canDiscover} onOpenDiscovery={flow.openDiscovery} onOpenBackup={flow.openBackup} />;
       case 'PRESENT_SETTLED':
-        return <CompletionScreen moment={flow.currentMoment} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} onSaveReply={flow.saveImmediateReply} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
+        return <CompletionScreen moment={flow.currentMoment} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} onSaveReply={flow.saveImmediateReply} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
       case 'REVIEW':
         return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getLines={flow.getLines} onOpenLine={flow.openLine} onCreateManualLine={flow.createManualLine} onOpenBackup={flow.openBackup} />;
       case 'PARALLEL':
-        return <ParallelMomentsScreen collection={flow.activeCollection} getMoments={flow.getMoments} onClose={flow.closeParallel} onConfirm={flow.confirmCandidate} onDecide={flow.decideCandidate} />;
+        return <ParallelMomentsScreen collection={flow.activeCollection} getMoments={flow.getMoments} getInsight={flow.requestTimelineInsight} onClose={flow.closeParallel} onConfirm={flow.confirmCandidate} onDecide={flow.decideCandidate} />;
       case 'DISCOVERY':
-        return <DiscoveryScreen getMoments={flow.getMoments} onClose={flow.finish} onKeepLine={flow.createManualLine} />;
+        return <DiscoveryScreen getInsight={flow.requestMemoryReading} onClose={flow.finish} onKeepLine={flow.createManualLine} />;
       case 'BACKUP':
         return <BackupScreen getStatus={flow.getBackupStatus} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
       default:

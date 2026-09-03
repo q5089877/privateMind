@@ -3,6 +3,8 @@
  * Mind Harbor Dynamic Prompt Engine v3 - Thought Operations
  */
 
+import type { TimelineInsight } from '../domain/harbor';
+
 export interface ThoughtOperation {
   type: 'isolate' | 'contrast' | 'zoom_out' | 'landing';
   label: string;         // 操作卡片標題/摘要 (例如: "先只看『身體很累』")
@@ -22,12 +24,6 @@ export interface ThreadReflectionLens {
 
 export interface ThreadReflection {
   lenses: [ThreadReflectionLens, ThreadReflectionLens];
-}
-
-export interface TimelineInsight {
-  evidence: Array<{ date: string; phrase: string }>;
-  angle: string;
-  question: string;
 }
 
 /** Accept both plain Gemini text and the JSON wrapper returned by older Worker settings. */
