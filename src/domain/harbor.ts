@@ -56,7 +56,7 @@ export interface TimelineEvidence {
 export interface TimelineInsight {
   evidence: TimelineEvidence[];
   angle: string;
-  question: string;
+  unresolved: string;
 }
 
 export interface MemoryReading extends TimelineInsight {

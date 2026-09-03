@@ -35,7 +35,7 @@ AI 可以理解、提問、換角度與陪談，但不能假裝知道使用者�
 
 回看頁以「一次停靠」為單位排列時間流。每張卡保留起點、對話與收束；同一段 session 不能被拆成多個無意義的片段群組。
 
-跨時間洞見只能在使用者主動開啟時出現，且必須有足夠的時間跨度與原文證據。洞見只指出可驗證的變化、重複、缺口或尚未釐清的拉扯，不替使用者決定那代表什麼。
+跨時間洞見只能在使用者主動開啟時出現，且必須有足夠的時間跨度與原文證據。畫面固定依序顯示「留下的軌跡」（日期與原文）、「看得見的變化」與「還可再看的地方」；洞見只指出可驗證的變化、重複、缺口或尚未釐清的拉扯，不替使用者決定那代表什麼。
 
 ### 5. 再散落
 
@@ -133,4 +133,4 @@ Cloudflare Worker 只做安全轉送。Gemini API key 只能存在 Worker Secret
 
 目前已具備：Moment／session／turn／closure／line 資料模型、MVI Flow Engine、IndexedDB 與 JSON 備份、當下回應、使用者主動觸發且只讀本次 session 原文的 Explore Companion、使用者原文為依據的收束、可從回看重新開啟同一個 session 的續談、session 時間流、跨時間回看、Cloudflare Worker proxy。
 
-下一步應依序補足：獨立的 Explore Companion、可測試的 Prompt Roles 與 Response Validator 模組、session／備份／洞見門檻的自動化測試，以及最終才是使用者同意下的加密雲端同步。
+下一步應依序補足：可測試的 Prompt Roles 與 Response Validator 模組、session／備份／洞見門檻的自動化測試、清除已淘汰的分堆與操作卡程式，最後才是使用者同意下的加密雲端同步。

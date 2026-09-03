@@ -12,7 +12,7 @@ const terms = (text: string) => {
 
 export const fingerprint = (momentIds: string[]) => [...new Set(momentIds)].sort().join(':');
 
-export const hasInsightEligibility = (moments: Moment[]) => {
+export const hasInsightEligibility = <T extends { createdAt: number }>(moments: T[]) => {
   if (moments.length < 3) return false;
   const dates = new Set(moments.map(moment => new Date(moment.createdAt).toDateString()));
   const span = Math.max(...moments.map(moment => moment.createdAt)) - Math.min(...moments.map(moment => moment.createdAt));

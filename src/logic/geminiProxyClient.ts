@@ -299,13 +299,13 @@ export class GeminiProxyClient {
           }
         },
         angle: { type: 'STRING' },
-        question: { type: 'STRING' }
+        unresolved: { type: 'STRING' }
       },
-      required: ['evidence', 'angle', 'question']
+      required: ['evidence', 'angle', 'unresolved']
     };
     const payload = {
       model: REFLECTION_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `以下是同一條跨時間累積的原文：\n${timeline}\n\n請提供一個「分開寫時不容易看見」的新角度。它只能指出原文可驗證的缺口、轉折、重複或不對稱，不能推論原因、心理狀態或給建議。請以「這幾段裡」、「前面」或「後面」描述，不要評論使用者這個人。\n\n回傳 JSON：\n- evidence：至少兩則日期與原文逐字片段，phrase 必須從該日期的內容逐字複製。\n- angle：20 到 120 字的具體觀察；必須建立在 evidence 上，不能只是按日期重述。\n- question：一個 8 到 64 字、讓人自己判斷的問題；不可要求行動、不可給二選一答案。\n\n禁止：你其實、你在、這顯示、心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因。` }] }],
+      contents: [{ role: 'user', parts: [{ text: `以下是同一條跨時間累積的原文：\n${timeline}\n\n請提供一個「分開寫時不容易看見」的新角度。它只能指出原文可驗證的缺口、轉折、重複或不對稱，不能推論原因、心理狀態或給建議。請以「這幾段裡」、「前面」或「後面」描述，不要評論使用者這個人。\n\n回傳 JSON：\n- evidence：至少兩則日期與原文逐字片段，phrase 必須從該日期的內容逐字複製。\n- angle：20 到 120 字的具體觀察；必須建立在 evidence 上，不能只是按日期重述。\n- unresolved：8 到 64 字，指出一個還可再看的地方；不得用問號、不得要求行動、不得給二選一答案或替使用者下結論。\n\n禁止：你其實、你在、這顯示、心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因。` }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 260, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
     };
     try {
@@ -319,12 +319,12 @@ export class GeminiProxyClient {
         return { date: typeof value.date === 'string' ? value.date.trim() : '', phrase: typeof value.phrase === 'string' ? value.phrase.trim() : '' };
       }) : [];
       const angle = typeof parsed?.angle === 'string' ? parsed.angle.trim() : '';
-      const question = typeof parsed?.question === 'string' ? parsed.question.trim() : '';
+      const unresolved = typeof parsed?.unresolved === 'string' ? parsed.unresolved.trim() : '';
       const byDate = new Map(entries.map(entry => [entry.date, entry.content]));
       const forbidden = ['你其實', '你在', '這顯示', '心理', '壓力', '恐懼', '焦慮', '逃避', '人格', '診斷', '建議', '應該', '一定', '真正原因'];
       const bad = (value: string) => forbidden.some(word => value.includes(word));
-      if (evidence.length < 2 || evidence.some(item => !item.date || !item.phrase || !byDate.get(item.date)?.includes(item.phrase)) || angle.length < 20 || angle.length > 120 || question.length < 8 || question.length > 64 || bad(angle) || bad(question)) return null;
-      return { evidence, angle, question };
+      if (evidence.length < 2 || evidence.some(item => !item.date || !item.phrase || !byDate.get(item.date)?.includes(item.phrase)) || angle.length < 20 || angle.length > 120 || unresolved.length < 8 || unresolved.length > 64 || unresolved.includes('？') || unresolved.includes('?') || bad(angle) || bad(unresolved)) return null;
+      return { evidence, angle, unresolved };
     } catch {
       return null;
     }
