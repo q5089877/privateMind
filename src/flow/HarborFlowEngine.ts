@@ -277,7 +277,9 @@ export class HarborFlowEngine {
     if (uniqueIds.length < 2) return null;
     const now = Date.now();
     const data = await this.storage.getData();
-    const existing = data.lines.find(line => line.momentIds.some(id => uniqueIds.includes(id)));
+    // Lines are many-to-many. Sharing one Moment must not merge two unrelated lines.
+    const targetFingerprint = fingerprint(uniqueIds);
+    const existing = data.lines.find(line => fingerprint(line.momentIds) === targetFingerprint);
     const line: ThreadLine = existing
       ? { ...existing, momentIds: [...new Set([...existing.momentIds, ...uniqueIds])], updatedAt: now }
       : { id: this.id('line'), momentIds: uniqueIds, createdAt: now, updatedAt: now, origin };

@@ -11,7 +11,8 @@ export const harborReducer = (state: HarborAppState, intent: HarborIntent): Harb
     case 'SET_REQUEST':
       return { ...state, request: intent.request, error: intent.error };
     case 'MOMENT_CAPTURED':
-      return { ...state, screen: 'PRESENT_SETTLED', request: 'idle', currentMoment: intent.moment, currentSession: intent.session, activeCollection: null, canDiscover: intent.canDiscover };
+      // No historical pattern is surfaced at the moment someone has just written.
+      return { ...state, screen: 'PRESENT_SETTLED', request: 'idle', currentMoment: intent.moment, currentSession: intent.session, activeCollection: null, candidate: null, canDiscover: intent.canDiscover };
     case 'MOMENT_REPLY_SAVED':
       return { ...state, request: 'idle', currentMoment: intent.moment || state.currentMoment, currentSession: intent.session || state.currentSession };
     case 'SESSION_OPENED':

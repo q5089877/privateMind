@@ -16,7 +16,7 @@ const App: React.FC = () => {
     if (!flow.ready) return <div className="min-h-[60vh] w-full max-w-[560px] pt-24 text-sm text-ink-muted">正在整理停靠過的片段…</div>;
     switch (flow.state) {
       case 'HOME':
-        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} canDiscover={flow.canDiscover} onOpenDiscovery={flow.openDiscovery} onOpenBackup={flow.openBackup} />;
+        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} candidate={flow.candidate} onOpenCandidate={flow.openCandidate} canDiscover={flow.canDiscover} onOpenDiscovery={flow.openDiscovery} onOpenBackup={flow.openBackup} />;
       case 'PRESENT_SETTLED':
         return <CompletionScreen moment={flow.currentMoment} session={flow.currentSession} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} getSessionClosure={flow.requestSessionClosure} onSaveClosure={flow.saveClosure} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
       case 'REVIEW':
