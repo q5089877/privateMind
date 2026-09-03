@@ -65,7 +65,7 @@ UI 只負責呈現狀態與發出使用者意圖。它不得直接讀寫資料�
 
 `HarborFlowEngine` 是唯一的協調入口。它接收 UI 意圖、執行保存與非同步服務、透過 reducer 更新不可變狀態，再通知 UI 呈現。
 
-`FlowState` 只處理畫面狀態，例如 `HOME`、`PRESENT_SETTLED`、`REVIEW`、`PARALLEL`、`DISCOVERY`、`BACKUP`；它不能取代資料模型或承擔 AI 判斷。
+`FlowState` 只處理畫面狀態：`HOME`、`CHAT`、`LAND`、`REVIEW`、`BACKUP`；它不能取代資料模型或承擔 AI 判斷。
 
 session 的開始、續談與收束是獨立責任。目前可由 `HarborFlowEngine` 內的 session 方法承擔；當探索對話、重開 session 或多裝置同步增加複雜度時，必須抽成 `HarborSessionEngine`，而不是繼續把規則堆進 UI。
 
@@ -140,11 +140,11 @@ Cloudflare Worker 只做安全轉送。Gemini API key 只能存在 Worker Secret
 
 ## 五、目前實作與下一步
 
-目前已具備：Moment／session／turn／closure 資料模型、MVI Flow Engine、IndexedDB 與 JSON 備份、當下回應、使用者主動觸發且只讀本次 session 原文的 Explore Companion、使用者原文為依據的收束、可從回看重新開啟同一個 session 的續談、session 時間流、跨時間回看、Cloudflare Worker proxy。
+目前已具備：Moment／session／turn／closure 資料模型、五場景 MVI Flow Engine、IndexedDB 與 JSON 備份、當下回應、使用者主動觸發且只讀本次 session 原文的 Explore Companion、獨立 LAND 收束頁、可從回看重新開啟同一個 session 的續談、單一 session 時間流、使用者主動觸發的跨時間回看、Cloudflare Worker proxy。
 
 下一步應依序完成：
 
-1. 移除手動連線、候選確認與 `ThreadLine` 的使用者流程，改成使用者主動回看時的 AI 證據檢索。
-2. 強化 Present／Explore Companion，讓當下與對話中的 AI 能提出有根據的新角度，而不只給結構卡。
-3. 抽出可測試的 Prompt Roles 與 Response Validator 模組，補上 session／備份／洞見門檻的自動化測試。
+1. 強化 Present／Explore Companion，讓當下與對話中的 AI 能提出有根據的新角度，而不只給結構卡。
+2. 抽出可測試的 Prompt Roles 與 Response Validator 模組，補上 session／備份／洞見門檻的自動化測試。
+3. 完成舊版 `ThreadLine`／`LinkDecision` 的遷移與最終清理，同時維持舊備份可完整匯入。
 4. 在完成資料遷移與可攜備份後，再評估使用者同意下的加密雲端同步。

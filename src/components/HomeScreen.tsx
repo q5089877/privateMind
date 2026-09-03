@@ -1,20 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, History, MessageCircle, ShieldCheck, Sparkles, Waves } from 'lucide-react';
+import { ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
-import { LinkCandidate } from '../types';
 
 interface Props {
   onStartInput: (text: string) => void;
   onReview: () => void;
-  candidate: LinkCandidate | null;
-  onOpenCandidate: () => void;
-  canDiscover: boolean;
-  onOpenDiscovery: () => void;
   onOpenBackup: () => void;
 }
 
-export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, candidate, onOpenCandidate, canDiscover, onOpenDiscovery, onOpenBackup }) => {
+export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,13 +45,11 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, candidate,
         </div>
       </section>
 
-      <p className="mt-4 px-2 text-sm leading-relaxed text-ink-secondary">送出後，我會先陪你看這一句；不替你急著下結論。</p>
+      <p className="mt-4 px-2 text-sm leading-relaxed text-ink-secondary">送出後，我會先陪你把這一句看清一點；不替你急著下結論。</p>
     </main>
 
     <nav className="mt-10 border-t border-border-base pt-5 sm:mt-14">
-      {candidate && <button type="button" onClick={onOpenCandidate} className="mb-3 w-full rounded-2xl border border-border-base bg-surface px-4 py-4 text-left shadow-[0_3px_10px_rgba(47,70,54,0.04)] transition-colors hover:bg-surface-subtle"><span className="flex items-center gap-2 text-sm font-medium text-accent"><Waves size={16}/>有 {candidate.momentIds.length} 段留下的話</span><span className="mt-1.5 block text-sm leading-relaxed text-ink-secondary">它們還留在各自的時間裡；若你想，可以只把原文並排看看。</span><span className="mt-3 inline-flex text-sm font-medium text-accent">把這幾段放在一起 →</span></button>}
-      {canDiscover && <button type="button" onClick={onOpenDiscovery} className="mb-3 w-full rounded-2xl border border-accent/18 bg-accent/5 px-4 py-4 text-left transition-colors hover:bg-accent/10"><span className="flex items-center gap-2 text-sm font-medium text-accent"><Sparkles size={16}/>找幾段曾留下的話</span><span className="mt-1.5 block text-sm leading-relaxed text-ink-secondary">只找跨時間的原文；是否連在一起仍由你決定。</span></button>}
-      <button type="button" onClick={onReview} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-[16px] text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink"><span className="flex items-center gap-3"><History size={19} strokeWidth={1.7}/>回頭看看一路留下的事</span><span aria-hidden="true" className="text-ink-muted">→</span></button>
+      <button type="button" onClick={onReview} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-[16px] text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink"><span className="flex items-center gap-3"><History size={19} strokeWidth={1.7}/>回看以前留下的事</span><span aria-hidden="true" className="text-ink-muted">→</span></button>
       <button type="button" onClick={onOpenBackup} className="mt-2 flex min-h-9 items-center gap-2 px-2 text-[13px] text-ink-muted transition-colors hover:text-ink"><ShieldCheck size={15} className="text-accent"/>內容只保存在這台裝置</button>
     </nav>
   </div>;

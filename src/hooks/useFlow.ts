@@ -1,66 +1,39 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { FlowState, HarborSession, Moment, MomentIntent } from '../types';
+import { HarborSession, Moment, MomentIntent, SessionClosure } from '../types';
 
+/** React adapter for the MVI Flow Engine; screens never import data or AI services. */
 export function useFlow() {
   const engine = useFlowEngine();
   const [snapshot, setSnapshot] = useState(engine.getSnapshot());
-
-  const sync = useCallback(() => {
-    setSnapshot(engine.getSnapshot());
-  }, [engine]);
-
+  const sync = useCallback(() => setSnapshot(engine.getSnapshot()), [engine]);
   useEffect(() => engine.subscribe(sync), [engine, sync]);
-
-  const submitText = useCallback((text: string, intent?: MomentIntent) => engine.submitText(text, intent), [engine]);
-  const requestPresentReply = useCallback((moment: Moment) => engine.requestPresentReply(moment), [engine]);
-  const requestSessionClosure = useCallback((session: HarborSession) => engine.requestSessionClosure(session), [engine]);
-  const requestExploration = useCallback((session: HarborSession) => engine.requestExploration(session), [engine]);
-  const saveImmediateReply = useCallback((momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply), [engine]);
-  const getMoments = useCallback(() => engine.getMoments(), [engine]);
-  const getSessions = useCallback(() => engine.getSessions(), [engine]);
-  const getLines = useCallback(() => engine.getLines(), [engine]);
-  const getBackupStatus = useCallback(() => engine.getBackupStatus(), [engine]);
-  const getBackupOverview = useCallback(() => engine.getBackupOverview(), [engine]);
-  const requestMemoryCandidate = useCallback(() => engine.requestMemoryCandidate(), [engine]);
-  const requestTimelineInsight = useCallback((momentIds: string[]) => engine.requestTimelineInsight(momentIds), [engine]);
 
   return {
     state: snapshot.screen,
     currentMoment: snapshot.currentMoment,
     currentSession: snapshot.currentSession,
-    candidate: snapshot.candidate,
-    canDiscover: snapshot.canDiscover,
-    activeCollection: snapshot.activeCollection,
+    pendingClosure: snapshot.pendingClosure,
     ready: snapshot.ready,
     request: snapshot.request,
     error: snapshot.error,
-    submitText,
-    requestPresentReply,
-    requestSessionClosure,
-    requestExploration,
-    saveImmediateReply,
-    saveClosure: engine.saveClosure.bind(engine),
-    recordRecalledMoments: engine.recordRecalledMoments.bind(engine),
-    getMoments,
-    getSessions,
-    getLines,
-    getBackupStatus,
-    getBackupOverview,
-    requestMemoryCandidate,
-    requestTimelineInsight,
+    submitText: (text: string, intent?: MomentIntent) => engine.submitText(text, intent),
+    requestPresentReply: (moment: Moment) => engine.requestPresentReply(moment),
+    requestExploration: (session: HarborSession) => engine.requestExploration(session),
+    saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
+    beginLanding: (session: HarborSession) => engine.beginLanding(session),
+    completeLanding: (sessionId: string, closure: SessionClosure) => engine.completeLanding(sessionId, closure),
+    returnToChat: () => engine.returnToChat(),
+    requestReviewReading: () => engine.requestReviewReading(),
+    getMoments: () => engine.getMoments(),
+    getSessions: () => engine.getSessions(),
+    getBackupStatus: () => engine.getBackupStatus(),
+    getBackupOverview: () => engine.getBackupOverview(),
     openSession: (sessionId: string) => engine.openSession(sessionId),
-    openCandidate: () => engine.openCandidate(),
-    openDiscovery: () => engine.openDiscovery(),
-    openLine: (lineId: string) => engine.openLine(lineId),
-    createManualLine: (momentIds: string[]) => engine.createManualLine(momentIds),
-    confirmCandidate: () => engine.confirmCandidate(),
-    decideCandidate: (decision: 'dismissed' | 'deferred') => engine.decideCandidate(decision),
-    closeParallel: () => engine.closeParallel(),
+    openReview: () => engine.openReview(),
+    openBackup: () => engine.openBackup(),
     exportBackup: () => engine.exportBackup(),
     importBackup: (text: string) => engine.importBackup(text),
-    openBackup: () => engine.openBackup(),
-    finish: () => engine.reset(),
-    transition: (next: FlowState) => engine.transition(next)
+    finish: () => engine.reset()
   };
 }

@@ -2,10 +2,9 @@ import React from 'react';
 import { Layout } from './components/Layout';
 import { HomeScreen } from './components/HomeScreen';
 import { ReviewScreen } from './components/ReviewScreen';
-import { CompletionScreen } from './components/CompletionScreen';
-import { ParallelMomentsScreen } from './components/ParallelMomentsScreen';
+import { ChatScreen } from './components/ChatScreen';
+import { LandingScreen } from './components/LandingScreen';
 import { BackupScreen } from './components/BackupScreen';
-import { DiscoveryScreen } from './components/DiscoveryScreen';
 import { useFlow } from './hooks/useFlow';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -16,15 +15,13 @@ const App: React.FC = () => {
     if (!flow.ready) return <div className="min-h-[60vh] w-full max-w-[560px] pt-24 text-sm text-ink-muted">正在整理停靠過的片段…</div>;
     switch (flow.state) {
       case 'HOME':
-        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={() => flow.transition('REVIEW')} candidate={flow.candidate} onOpenCandidate={flow.openCandidate} canDiscover={flow.canDiscover} onOpenDiscovery={flow.openDiscovery} onOpenBackup={flow.openBackup} />;
-      case 'PRESENT_SETTLED':
-        return <CompletionScreen moment={flow.currentMoment} session={flow.currentSession} onReset={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} getSessionClosure={flow.requestSessionClosure} onSaveClosure={flow.saveClosure} getBackupStatus={flow.getBackupStatus} onOpenBackup={flow.openBackup} />;
+        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={flow.openReview} onOpenBackup={flow.openBackup} />;
+      case 'CHAT':
+        return <ChatScreen moment={flow.currentMoment} session={flow.currentSession} onLeave={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={flow.requestPresentReply} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} onBeginLanding={flow.beginLanding} />;
+      case 'LAND':
+        return <LandingScreen session={flow.currentSession} closure={flow.pendingClosure} onReturnToChat={flow.returnToChat} onSaveAndReturn={flow.completeLanding} />;
       case 'REVIEW':
-        return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getSessions={flow.getSessions} getLines={flow.getLines} onOpenSession={flow.openSession} onOpenLine={flow.openLine} onCreateManualLine={flow.createManualLine} onOpenBackup={flow.openBackup} />;
-      case 'PARALLEL':
-        return <ParallelMomentsScreen collection={flow.activeCollection} getMoments={flow.getMoments} getInsight={flow.requestTimelineInsight} onClose={flow.closeParallel} onConfirm={flow.confirmCandidate} onDecide={flow.decideCandidate} />;
-      case 'DISCOVERY':
-        return <DiscoveryScreen getCandidate={flow.requestMemoryCandidate} onClose={flow.finish} onOpenCandidate={flow.openCandidate} />;
+        return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getSessions={flow.getSessions} onOpenSession={flow.openSession} onRequestReading={flow.requestReviewReading} onOpenBackup={flow.openBackup} />;
       case 'BACKUP':
         return <BackupScreen getOverview={flow.getBackupOverview} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
       default:

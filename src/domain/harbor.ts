@@ -1,4 +1,4 @@
-export type FlowState = 'HOME' | 'PRESENT_SETTLED' | 'REVIEW' | 'PARALLEL' | 'DISCOVERY' | 'BACKUP';
+export type FlowState = 'HOME' | 'CHAT' | 'LAND' | 'REVIEW' | 'BACKUP';
 
 /** Why a moment was written. It is inferred from its entry point, never requested as a field. */
 export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_added';
@@ -59,6 +59,11 @@ export interface TimelineInsight {
   unresolved: string;
 }
 
+/** A non-persistent result from one explicit review request. */
+export interface ReviewReading extends TimelineInsight {
+  momentIds: string[];
+}
+
 export type HarborSessionStatus = 'active' | 'landed';
 
 /** The conversation that grows from one Moment and may continue across several turns. */
@@ -74,15 +79,8 @@ export interface HarborSession {
   closure?: SessionClosure;
 }
 
+/** Legacy relationship shapes remain for import compatibility only. */
 export type LinkDecisionKind = 'confirmed' | 'dismissed' | 'deferred';
-
-/** A quiet, local-only suggestion. It is never shown during the capture that created it. */
-export interface LinkCandidate {
-  id: string;
-  momentIds: string[];
-  score: number;
-  createdAt: number;
-}
 
 /** A user-owned relationship between moments. It never changes their original timeline. */
 export interface ThreadLine {
@@ -124,12 +122,6 @@ export interface MindHarborData {
   lines: ThreadLine[];
   linkDecisions: LinkDecision[];
   backup: BackupStatus;
-}
-
-export interface ActiveCollection {
-  kind: 'candidate' | 'line';
-  id: string;
-  momentIds: string[];
 }
 
 /** Legacy shapes remain only for a safe localStorage migration. */
