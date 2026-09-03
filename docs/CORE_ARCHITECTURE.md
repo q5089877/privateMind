@@ -95,6 +95,7 @@ AI 依任務分角色，而不是由 UI 任意拼 prompt：
 - `Backup Export` 匯出完整 JSON，不可只匯出 Moment。
 - `Backup Import` 必須先驗證格式再合併，不可覆蓋既有本機資料。
 - `Backup Status` 清楚表達本機保存、最後匯出、最後匯入與待備份變更。
+- 備份畫面必須列出完整內容清單：Moment、session、turn、closure、line 與 decision，讓人知道帶走的不只是原始文字。
 - 加密雲端同步是未來可選能力，不得破壞 local-first、原文主權與可攜備份原則。
 
 ### 6. 後端與安全

@@ -21,6 +21,7 @@ export function useFlow() {
   const getSessions = useCallback(() => engine.getSessions(), [engine]);
   const getLines = useCallback(() => engine.getLines(), [engine]);
   const getBackupStatus = useCallback(() => engine.getBackupStatus(), [engine]);
+  const getBackupOverview = useCallback(() => engine.getBackupOverview(), [engine]);
   const requestMemoryReading = useCallback(() => engine.requestMemoryReading(), [engine]);
   const requestTimelineInsight = useCallback((momentIds: string[]) => engine.requestTimelineInsight(momentIds), [engine]);
 
@@ -45,6 +46,7 @@ export function useFlow() {
     getSessions,
     getLines,
     getBackupStatus,
+    getBackupOverview,
     requestMemoryReading,
     requestTimelineInsight,
     openSession: (sessionId: string) => engine.openSession(sessionId),

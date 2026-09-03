@@ -109,6 +109,16 @@ export interface BackupStatus {
   pendingChanges: number;
 }
 
+/** A transparent inventory of every local-first record included in a JSON backup. */
+export interface BackupOverview {
+  status: BackupStatus;
+  moments: number;
+  sessions: number;
+  closures: number;
+  lines: number;
+  decisions: number;
+}
+
 /** The complete local-first backup payload. */
 export interface MindHarborData {
   version: 2;

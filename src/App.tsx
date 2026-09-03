@@ -26,7 +26,7 @@ const App: React.FC = () => {
       case 'DISCOVERY':
         return <DiscoveryScreen getInsight={flow.requestMemoryReading} onClose={flow.finish} onKeepLine={flow.createManualLine} />;
       case 'BACKUP':
-        return <BackupScreen getStatus={flow.getBackupStatus} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
+        return <BackupScreen getOverview={flow.getBackupOverview} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
       default:
         return null;
     }

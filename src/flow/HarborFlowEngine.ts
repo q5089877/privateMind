@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { ActiveCollection, BackupStatus, ExplorePerspective, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
+import { ActiveCollection, BackupOverview, BackupStatus, ExplorePerspective, HarborSession, LinkCandidate, MemoryReading, MindHarborData, Moment, MomentIntent, SessionClosure, SessionClosureDraft, ThreadLine, TimelineInsight } from '../domain/harbor';
 import { fingerprint } from '../logic/connectionCandidates';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
@@ -174,6 +174,17 @@ export class HarborFlowEngine {
   public async getSessions(): Promise<HarborSession[]> { return (await this.storage.getData()).sessions.sort((a, b) => b.updatedAt - a.updatedAt); }
   public async getLines(): Promise<ThreadLine[]> { return (await this.storage.getData()).lines.sort((a, b) => b.updatedAt - a.updatedAt); }
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
+  public async getBackupOverview(): Promise<BackupOverview> {
+    const data = await this.storage.getData();
+    return {
+      status: data.backup,
+      moments: data.moments.length,
+      sessions: data.sessions.length,
+      closures: data.sessions.filter(session => Boolean(session.closure)).length,
+      lines: data.lines.length,
+      decisions: data.linkDecisions.length
+    };
+  }
 
   /**
    * Re-entering an old harbor is explicit. A landing is temporary, so reopening
