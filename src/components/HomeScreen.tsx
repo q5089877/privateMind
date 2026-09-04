@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, ChevronDown, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
+import { ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -9,40 +9,36 @@ interface Props {
   onOpenBackup: () => void;
 }
 
-const expressionGuides = [
-  { id: 'busy', label: '腦袋很吵', options: [
-    { label: '停不下來', prompt: '好多念頭同時出現，不知道先從哪一個說起。' },
-    { label: '有件事懸著', prompt: '有件事一直掛在心上，還沒有想清楚。' },
-  ] },
-  { id: 'feeling', label: '心裡有感覺', options: [
-    { label: '剛剛發生的', prompt: '剛剛發生了一件事，我還不知道該怎麼說。' },
-    { label: '說不上來', prompt: '我現在說不上來，只知道心裡有些感覺。' },
-  ] },
-  { id: 'stuck', label: '有件事卡住', options: [
-    { label: '不知道怎麼選', prompt: '我正在兩個方向之間，不知道怎麼選。' },
-    { label: '不知道怎麼開始', prompt: '我知道有件事要開始，但還不知道第一步。' },
-  ] },
-  { id: 'keep', label: '有件想留下', options: [
-    { label: '怕自己忘記', prompt: '有個念頭我想先留下，免得之後忘記。' },
-    { label: '還沒想完', prompt: '這件事還沒想完，但我想先記住現在的感覺。' },
-  ] },
+const quickStates = [
+  { id: 'busy', label: '腦袋太吵', draft: '好多念頭同時衝進來，不知道先顧哪一個，停不下來。' },
+  { id: 'feeling', label: '心裡很悶', draft: '剛剛發生了一件事，說不上來是什麼感覺，但心裡很堵。' },
+  { id: 'stuck', label: '事情卡住', draft: '手上有件事卡在兩個選擇之間，完全不知道該怎麼走下一步。' },
+  { id: 'keep', label: '先留著', draft: '有個念頭我怕之後忘記，想先原封不動留在這裡。' },
 ] as const;
+
+const ventWords = ['停', '先別想', '呼', '可以', '隨它'] as const;
 
 export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
   const [input, setInput] = useState('');
-  const [showGuides, setShowGuides] = useState(false);
-  const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
-  const [activePrompt, setActivePrompt] = useState('');
+  const [ventCount, setVentCount] = useState(0);
+  const [ventWord, setVentWord] = useState('');
+  const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const activeGuide = expressionGuides.find(guide => guide.id === activeGuideId);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  const closeGuides = () => {
-    setShowGuides(false);
-    setActiveGuideId(null);
-    setActivePrompt('');
+  const handleVent = () => {
+    triggerHaptic('unlatch');
+    const nextCount = ventCount + 1;
+    setVentCount(nextCount);
+    const word = ventWords[(nextCount - 1) % ventWords.length];
+    setVentWord(word);
+  };
+
+  const handleQuickState = (state: typeof quickStates[number]) => {
+    setActiveQuickState(state.id);
+    setInput(state.draft);
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   const beginConversation = () => {
@@ -51,21 +47,38 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
     triggerHaptic('docking');
     onStartInput(text);
     setInput('');
-    closeGuides();
-  };
-
-  const toggleGuides = () => {
-    if (showGuides) closeGuides();
-    else setShowGuides(true);
+    setActiveQuickState(null);
   };
 
   return <div className="w-full max-w-[590px] min-h-[calc(100vh-104px)] px-1 py-6 sm:py-10">
-    <header className="flex items-center gap-3">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_8px_18px_rgba(47,91,71,0.16)]"><Waves size={25} strokeWidth={1.65}/></span>
-      <div><p className="text-[21px] font-semibold tracking-[-0.05em] text-ink sm:text-[24px]">思緒停靠</p><p className="mt-0.5 text-[10px] tracking-[0.18em] text-ink-muted sm:text-[11px]">MIND HARBOR</p></div>
+    <header className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_8px_18px_rgba(47,91,71,0.16)]"><Waves size={25} strokeWidth={1.65}/></span>
+        <div><p className="text-[21px] font-semibold tracking-[-0.05em] text-ink sm:text-[24px]">思緒停靠</p><p className="mt-0.5 text-[10px] tracking-[0.18em] text-ink-muted sm:text-[11px]">MIND HARBOR</p></div>
+      </div>
+
+      <div className="flex flex-col items-end">
+        <button
+          type="button"
+          onClick={handleVent}
+          className="group relative flex h-9 items-center gap-2 rounded-full border border-accent/25 bg-surface px-3.5 text-xs font-medium text-ink-secondary transition-all hover:border-accent/50 hover:bg-surface-subtle active:scale-95 shadow-2xs"
+          title="消波微震"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/40 opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-accent"></span>
+          </span>
+          <span>{ventWord || '消波微震'}</span>
+        </button>
+        {ventCount >= 3 && (
+          <span className="mt-1 text-[11px] text-ink-muted">
+            已消波 {ventCount} 次 · 想說的話，再點這裡
+          </span>
+        )}
+      </div>
     </header>
 
-    <main className="pt-12 sm:pt-16">
+    <main className="pt-10 sm:pt-14">
       <section className="px-1">
         <p className="flex items-center gap-2 text-sm font-medium text-accent"><span className="h-2 w-2 rounded-full bg-accent"/>現在這一刻</p>
         <h1 className="mt-5 max-w-[500px] text-[34px] font-medium leading-[1.2] tracking-[-0.055em] text-ink sm:text-[48px]">把卡在心裡的事，<br/>先說出來。</h1>
@@ -73,35 +86,58 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
       </section>
 
       <section className="mt-9 rounded-[28px] border border-border-base bg-surface px-5 py-5 shadow-[0_10px_28px_rgba(47,70,54,0.08)] sm:mt-12 sm:rounded-[32px] sm:px-7 sm:py-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-ink"><MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>現在想說什麼？</div>
-          <button type="button" aria-expanded={showGuides} onClick={toggleGuides} className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-sm font-medium text-accent transition-colors hover:bg-surface-subtle hover:text-ink">
-            不知道怎麼說？<ChevronDown size={15} className={`transition-transform ${showGuides ? 'rotate-180' : ''}`}/>
-          </button>
+        <div className="flex items-center gap-2 text-sm font-medium text-ink">
+          <MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>現在想說什麼？
         </div>
 
-        {showGuides && <div className="mt-4 rounded-[20px] border border-border-base bg-surface-subtle p-4">
-          <p className="text-xs leading-relaxed text-ink-muted">先點一個比較接近現在的狀態。這不是分類，也不會被保存。</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {expressionGuides.map(guide => <button key={guide.id} type="button" aria-pressed={activeGuideId === guide.id} onClick={() => { setActiveGuideId(guide.id); setActivePrompt(''); }} className={`rounded-full border px-3 py-2 text-sm transition-colors ${activeGuideId === guide.id ? 'border-accent bg-accent text-white' : 'border-border-base bg-surface text-ink-secondary hover:border-accent/45 hover:text-ink'}`}>{guide.label}</button>)}
-          </div>
-          {activeGuide && <div className="mt-4 border-t border-border-base pt-3">
-            <p className="text-xs text-ink-muted">再靠近一點</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {activeGuide.options.map(option => <button key={option.label} type="button" aria-pressed={activePrompt === option.prompt} onClick={() => { setActivePrompt(option.prompt); requestAnimationFrame(() => inputRef.current?.focus()); }} className={`rounded-full border px-3 py-2 text-sm transition-colors ${activePrompt === option.prompt ? 'border-accent/70 bg-surface text-accent' : 'border-border-base bg-surface text-ink-secondary hover:border-accent/45 hover:text-ink'}`}>{option.label}</button>)}
-            </div>
-          </div>}
-        </div>}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {quickStates.map(state => (
+            <button
+              key={state.id}
+              type="button"
+              onClick={() => handleQuickState(state)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeQuickState === state.id && input === state.draft
+                  ? 'border-accent bg-accent text-white'
+                  : 'border-border-base bg-surface-subtle text-ink-secondary hover:border-accent/40 hover:text-ink'
+              }`}
+            >
+              {state.label}
+            </button>
+          ))}
+        </div>
 
-        {activePrompt && <aside aria-live="polite" className="mt-4 flex items-start justify-between gap-3 rounded-2xl border-l-2 border-accent/55 bg-surface-subtle px-4 py-3">
-          <div><p className="text-[11px] font-medium text-accent">你可以從這裡開始</p><p className="mt-1 text-sm leading-relaxed text-ink-secondary">{activePrompt}</p></div>
-          <button type="button" onClick={() => setActivePrompt('')} className="shrink-0 text-xs text-ink-muted hover:text-ink">收起</button>
-        </aside>}
+        <textarea
+          ref={inputRef}
+          rows={5}
+          value={input}
+          onChange={event => {
+            setInput(event.target.value);
+            if (activeQuickState) setActiveQuickState(null);
+          }}
+          onKeyDown={event => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              beginConversation();
+            }
+          }}
+          placeholder={UI_TEXT.home.inputPlaceholder}
+          className="mt-4 min-h-[140px] w-full resize-none bg-transparent p-0 text-[18px] leading-[1.75] tracking-[-0.025em] text-ink caret-accent outline-none placeholder:text-ink-placeholder sm:min-h-[160px] sm:text-[20px]"
+        />
 
-        <textarea ref={inputRef} rows={5} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); beginConversation(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="mt-5 min-h-[156px] w-full resize-none bg-transparent p-0 text-[18px] leading-[1.75] tracking-[-0.025em] text-ink caret-accent outline-none placeholder:text-ink-placeholder sm:min-h-[180px] sm:text-[21px]" />
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-base pt-4">
-          <p className="text-xs leading-relaxed text-ink-muted">{showGuides ? '提示不會被保存，只有你寫下的文字會留下。' : '先說一句也可以。'}</p>
-          <button type="button" disabled={!input.trim()} onClick={beginConversation} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_5px_12px_rgba(47,91,71,0.2)] transition-all hover:-translate-y-px hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"><span>開始說說</span><ArrowUp size={16} strokeWidth={2}/></button>
+          <p className="text-xs leading-relaxed text-ink-muted">
+            {activeQuickState ? '已帶入草稿，可直接送出或修改。' : '先說一句也可以。'}
+          </p>
+          <button
+            type="button"
+            disabled={!input.trim()}
+            onClick={beginConversation}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_5px_12px_rgba(47,91,71,0.2)] transition-all hover:-translate-y-px hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <span>開始說說</span>
+            <ArrowUp size={16} strokeWidth={2}/>
+          </button>
         </div>
       </section>
 

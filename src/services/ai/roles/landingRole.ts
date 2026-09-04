@@ -9,9 +9,9 @@ export const landingRole = {
     const transcript = userTurns.map(turn => `使用者：${turn.content}`).join('\n');
     const responseSchema = {
       type: 'OBJECT', properties: {
-        takeaway: { type: 'STRING', description: '12 到 100 字；只整理這段對話實際提過、可以帶走的一點。' },
-        unresolved: { type: 'STRING', description: '4 到 72 字；指出今天可以暫不回答的一個開放處，不可變成問題或待辦。' },
-        resumeAnchor: { type: 'STRING', description: '0 到 48 字；下次若想回來，可從使用者原文的一個方向接著說。' }
+        takeaway: { type: 'STRING', description: '15 到 80 字；整理對話中已說明白的客觀事實。' },
+        unresolved: { type: 'STRING', description: '10 到 60 字；指認今晚即使想破頭也沒有新資訊、明天才能驗證的外部變數。' },
+        resumeAnchor: { type: 'STRING', description: '0 到 35 字；摘錄一個具體方向作為下次接點。' }
       }, required: ['takeaway', 'unresolved', 'resumeAnchor']
     };
     return {
@@ -19,8 +19,8 @@ export const landingRole = {
       context: undefined,
       payload: {
         model: FLASH_LITE_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `以下是使用者這次親口留下的句子：\n${transcript}\n\n請替這次對話寫一個「暫時收束」，不是結論。它讓人能帶走一點已經說清楚的東西，也允許尚未回答的地方留在這裡。\n\n回傳 JSON：\n- takeaway：12 到 100 字，只根據這些句子，寫出一個具體、可帶走的整理。\n- unresolved：4 到 72 字，寫出今天可以暫不回答的開放處；不得用問號、不得形成待辦或建議。\n- resumeAnchor：0 到 48 字，用一個使用者已提過的具體方向，作為下次可接續的起點。\n\n禁止：心理、壓力、恐懼、焦慮、逃避、人格、診斷、建議、應該、一定、真正原因、你其實、你在、這顯示。不可替使用者下結論、補上沒有說過的背景。語氣平實、繁體中文。` }] }],
-        generationConfig: { temperature: 0.25, maxOutputTokens: 180, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+        contents: [{ role: 'user', parts: [{ text: `以下是使用者這次親口留下的句子：\n${transcript}\n\n請替這次對話寫一份「物理封存草稿」，協助大腦畫下今日思考的邊界：\n- takeaway（這次先帶走）：15 到 80 字，整理對話中已經說明白的客觀事實。\n- unresolved（留在明天看）：10 到 60 字，明確指認出「今晚即使想破頭也沒有新資訊、必須明天才能驗證」的外部變數；不得用問號、不得形成待辦或建議。\n- resumeAnchor（下次若要接著談）：0 到 35 字，摘錄一個具體方向作為下次接點。\n\n禁止任何心理診斷、說教、同理套話（辛苦了、這很正常）、你其實、你在、這顯示。不可替使用者下結論。語氣冷靜平實、繁體中文。` }] }],
+        generationConfig: { temperature: 0.25, maxOutputTokens: 200, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
   },
@@ -30,9 +30,9 @@ export const landingRole = {
     const takeaway = typeof parsed?.takeaway === 'string' ? parsed.takeaway.trim() : '';
     const unresolved = typeof parsed?.unresolved === 'string' ? parsed.unresolved.trim() : '';
     const resumeAnchor = typeof parsed?.resumeAnchor === 'string' ? parsed.resumeAnchor.trim() : '';
-    const forbidden = ['心理', '人格', '診斷', '建議', '應該', '一定', '真正原因', '你其實', '你在', '這顯示'];
+    const forbidden = ['心理', '人格', '診斷', '建議', '應該', '一定', '真正原因', '你其實', '你在', '這顯示', '辛苦了'];
     const invalid = (value: string) => forbidden.some(word => value.includes(word));
-    if (takeaway.length < 12 || takeaway.length > 100 || unresolved.length < 4 || unresolved.length > 72 || resumeAnchor.length > 48 || unresolved.includes('？') || unresolved.includes('?') || invalid(takeaway) || invalid(unresolved) || invalid(resumeAnchor)) return null;
+    if (takeaway.length < 10 || takeaway.length > 100 || unresolved.length < 4 || unresolved.length > 80 || resumeAnchor.length > 48 || unresolved.includes('？') || unresolved.includes('?') || invalid(takeaway) || invalid(unresolved) || invalid(resumeAnchor)) return null;
     return { takeaway, unresolved, ...(resumeAnchor ? { resumeAnchor } : {}) };
   }
 };
