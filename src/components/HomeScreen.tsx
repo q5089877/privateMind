@@ -52,7 +52,6 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
 
   const clearHold = () => {
     clearTimers();
-    cancelHaptics();
     setIsHolding(false);
     setIsHeartSustaining(false);
     setHeartBeatPhase(false);
@@ -115,7 +114,6 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
     // 小於 240ms：純輕點（戳戳樂模式）
     if (pressDuration < 240) {
       clearTimers();
-      cancelHaptics();
       setVentCount(prev => prev + 1);
       return;
     }
