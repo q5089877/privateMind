@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
+import { Anchor, ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -63,7 +63,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
         window.setTimeout(() => {
           setIsHolding(false);
           setHoldProgress(0);
-        }, 320);
+        }, 450);
         return;
       }
       setHoldProgress(current);
@@ -100,6 +100,52 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   };
 
   return <div className="w-full max-w-[590px] min-h-[calc(100vh-104px)] px-1 py-6 sm:py-10">
+    {/* 全螢幕定錨注水層 (Full-screen Ballast Water) */}
+    <div
+      className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 ${
+        isHolding || holdProgress > 0 ? 'opacity-100' : 'opacity-0'
+      }`}
+      aria-hidden="true"
+    >
+      {/* 湧升深水層 */}
+      <div
+        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/80 via-accent/50 to-accent/20 backdrop-blur-[4px] transition-[height] duration-75 ease-linear"
+        style={{ height: `${holdProgress}%` }}
+      >
+        {/* 潮水頂部發光水線 */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-white/40 shadow-[0_0_16px_rgba(255,255,255,0.7)]" />
+      </div>
+
+      {/* 沉降大錨 ⚓ 剪影與即時進度 */}
+      {(isHolding || holdProgress > 0) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none">
+          <div
+            className="flex flex-col items-center gap-5 transition-transform duration-75"
+            style={{
+              transform: `translateY(${Math.min(holdProgress * 0.4, 30)}px)`
+            }}
+          >
+            <span className={`flex h-24 w-24 items-center justify-center rounded-full border shadow-[0_16px_40px_rgba(20,40,30,0.35)] backdrop-blur-md transition-all duration-300 ${
+              holdProgress >= 100
+                ? 'border-white bg-accent text-white scale-110 shadow-[0_0_30px_rgba(255,255,255,0.4)]'
+                : 'border-accent/40 bg-surface/90 text-accent'
+            }`}>
+              <Anchor size={48} strokeWidth={1.75} className={holdProgress >= 100 ? 'rotate-0' : 'animate-pulse'} />
+            </span>
+
+            <div className="space-y-1 drop-shadow-md">
+              <p className="text-xl font-medium tracking-tight text-white sm:text-2xl">
+                {holdProgress >= 100 ? '已定錨 · 風浪平息' : '按住下錨，暫歇湧浪'}
+              </p>
+              <p className="font-mono text-sm tracking-widest text-white/80">
+                {holdProgress >= 100 ? '前額葉重置完成' : `${Math.round(holdProgress)}%`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+
     <header className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_8px_18px_rgba(47,91,71,0.16)]"><Waves size={25} strokeWidth={1.65}/></span>
@@ -114,26 +160,14 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
           onPointerLeave={clearHold}
           onPointerCancel={clearHold}
           onContextMenu={e => e.preventDefault()}
-          className="group relative flex h-11 w-[144px] items-center justify-between overflow-hidden rounded-full border border-accent/30 bg-surface px-3.5 text-xs font-medium shadow-xs transition-all select-none touch-none active:scale-[0.98]"
-          title="按住消波"
+          className="group relative flex h-11 items-center gap-2 rounded-full border border-accent/30 bg-surface px-3.5 text-xs font-medium shadow-xs transition-all select-none touch-none active:scale-[0.96]"
+          title="按住下錨，平浪定心"
         >
-          {/* 能量條填充層 */}
-          <div
-            className="absolute inset-y-0 left-0 bg-accent/20 transition-[width] duration-75 ease-linear pointer-events-none"
-            style={{ width: `${holdProgress}%` }}
-          />
-
-          <div className="relative z-10 flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className={`absolute inline-flex h-full w-full rounded-full bg-accent/40 ${isHolding ? 'animate-ping' : ''}`}></span>
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent"></span>
-            </span>
-            <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
-              {UI_TEXT.home.vent.buttonLabel}
-            </span>
-          </div>
-
-          <span className="relative z-10 text-[10px] font-mono text-ink-muted whitespace-nowrap">
+          <Anchor size={17} className={`text-accent transition-transform duration-200 ${isHolding ? 'scale-115 text-accent-hover' : 'group-hover:scale-110'}`} />
+          <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
+            {UI_TEXT.home.vent.buttonLabel}
+          </span>
+          <span className="text-[10px] font-mono text-ink-muted whitespace-nowrap">
             {isHolding ? `${Math.round(holdProgress)}%` : UI_TEXT.home.vent.idleHint}
           </span>
         </button>

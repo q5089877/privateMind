@@ -9,14 +9,14 @@ export const UI_TEXT = {
     brandSubtitle: 'MIND HARBOR',
     inputPlaceholder: '腦中最先浮出來的那一句……',
     submitBtn: '留下這句',
-    // Level 0: 消波微震（固定能量充能條與純生理出口）
+    // Level 0: ⚓ 全螢幕定錨注水（純生理出口）
     vent: {
-      buttonLabel: '消波微震',
+      buttonLabel: '下錨',
       idleHint: '按住',
-      counterPrefix: '已消波',
+      counterPrefix: '已定錨',
       counterSuffix: '次 · 想說的話，再點這裡',
       pulseWords: ['停', '先別想', '呼', '可以', '隨它'] as const,
-      description: '固定尺寸能量充能條，按住不放平滑累積水位並觸發節奏微震，滿載 100% 觸發落底深沉咬合。'
+      description: '⚓ 全螢幕沉降注水定錨：按住時深邃潮水自螢幕底端湧升覆蓋雜訊，滿載 100% 錨定海床並觸發重磅落底咬合震動。'
     },
     pulseWords: ['停', '先別想', '呼', '可以', '隨它'] as const,
     pulseHint: '想說的話，再點這裡。',
