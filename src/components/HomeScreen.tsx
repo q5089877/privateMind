@@ -129,17 +129,17 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent"></span>
             </span>
             <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
-              消波微震
+              {UI_TEXT.home.vent.buttonLabel}
             </span>
           </div>
 
           <span className="relative z-10 text-[10px] font-mono text-ink-muted whitespace-nowrap">
-            {isHolding ? `${Math.round(holdProgress)}%` : '按住'}
+            {isHolding ? `${Math.round(holdProgress)}%` : UI_TEXT.home.vent.idleHint}
           </span>
         </button>
         {ventCount >= 3 && (
           <span className="mt-1.5 text-[11px] text-ink-muted transition-opacity">
-            已消波 {ventCount} 次 · 想說的話，再點這裡
+            {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
           </span>
         )}
       </div>
