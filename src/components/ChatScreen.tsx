@@ -161,7 +161,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
         {showAngles && !showComposer && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4">
           {exploring ? <p className="text-sm text-ink-muted">正在找這次適合的四個切入點…</p> : exploration ? <>
             <p className="text-xs font-medium text-accent">{groupCopy[exploration.route.group].label}</p>
-            <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{groupCopy[exploration.route.group].detail} 它們是角度，不是結論。</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-secondary">選一張有感覺的接著想；不必四張都看。</p>
             <div className="mt-3">
               <button onClick={() => setShowGroupPicker(value => !value)} className="text-sm font-medium text-ink-secondary underline decoration-border-strong underline-offset-4 hover:text-ink">換一種方式看</button>
               {showGroupPicker && <div className="mt-3 flex flex-wrap gap-2">
@@ -172,8 +172,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
               {exploration.perspectives.map(perspective => <button key={perspective.id} onClick={() => openComposer(perspective.followUp)} className="rounded-2xl border border-border-base bg-surface px-4 py-4 text-left transition-colors hover:border-accent/50">
                 <span className="text-[15px] font-medium text-ink">{perspective.title}</span>
                 <span className="mt-2 block text-sm leading-[1.75] text-ink-secondary">{perspective.content}</span>
-                <span className="mt-3 block border-t border-border-base pt-2.5 text-xs leading-relaxed text-accent">想接著談：{perspective.followUp}</span>
-                <span className="mt-2 block text-[11px] leading-relaxed text-ink-muted">根據：「{perspective.sourcePhrases.join('／')}」</span>
+                <span className="mt-3 block border-t border-border-base pt-2.5 text-xs leading-relaxed text-accent">可以想想：{perspective.followUp}</span>
               </button>)}
             </div>
           </> : <p className="text-sm leading-relaxed text-ink-secondary">這次沒有可靠的新角度；你也可以直接接著說。</p>}

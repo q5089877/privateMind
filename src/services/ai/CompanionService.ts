@@ -35,22 +35,22 @@ export class CompanionService {
     if (source.length < 2) return null;
     const phrase = `「${source}」`;
     if (group === 'decision') return [
-      { id: 'values', title: '我想守住什麼', content: `${phrase}裡，先被放在桌上的不只是選項，也有不想失去的東西。先看要守住什麼，比急著選邊更能說清取捨。`, followUp: '如果只能先守住一件事，你最不想失去什麼？', sourcePhrases: [source] },
-      { id: 'constraint', title: '現實卡在哪裡', content: `${phrase}可能同時碰到想要與做得到的距離。把已知的成本、時間或資源分開寫，能讓卡住的位置更清楚。`, followUp: '目前最不能忽略的現實限制是什麼？', sourcePhrases: [source] },
-      { id: 'reversible', title: '哪一步還能回頭', content: `面對${phrase}，不一定每一步都等於最後決定。先分辨哪些改變還能調整，能替眼前的壓力留出一點空間。`, followUp: '這件事裡，哪一小步做了之後還能調整？', sourcePhrases: [source] },
-      { id: 'time', title: '放到之後看', content: `${phrase}現在聽起來很急，但把時間拉遠後，未必所有部分都同樣重要。先看想替之後的自己保留什麼。`, followUp: '放到幾個月後看，你想替自己保留什麼？', sourcePhrases: [source] }
+      { id: 'values', title: '我想守住什麼', content: `${phrase}裡，同時有選擇與不想失去的東西；可以先看想守住什麼。`, followUp: '此刻最想守住的是什麼？', sourcePhrases: [source] },
+      { id: 'constraint', title: '現實卡在哪裡', content: `${phrase}可能卡在想要與做得到之間；可以先分清已知限制。`, followUp: '哪個現實限制最不能忽略？', sourcePhrases: [source] },
+      { id: 'reversible', title: '哪一步還能回頭', content: `面對${phrase}，有些步驟未必等於最後決定；可以先看哪一步仍能調整。`, followUp: '哪一步做了仍能調整？', sourcePhrases: [source] },
+      { id: 'time', title: '放到之後看', content: `${phrase}放到幾個月後看，今天最急的部分也許會改變。`, followUp: '幾個月後，什麼仍會重要？', sourcePhrases: [source] }
     ];
     if (group === 'relationship') return [
-      { id: 'self', title: '我在意什麼', content: `${phrase}裡先能確定的，是這件事已經碰到你在意的地方。先把自己的期待、界線或受影響之處說清楚，不必先替別人下判斷。`, followUp: '這段互動裡，你最在意的是什麼？', sourcePhrases: [source] },
-      { id: 'unknown', title: '還不知道什麼', content: `${phrase}留下的是你看見的部分；關於對方怎麼想，可能仍有很多不知道。把已知與未知分開，能避免替對方補完故事。`, followUp: '這段裡，關於對方還不知道的是什麼？', sourcePhrases: [source] },
-      { id: 'observer', title: '旁觀者會看見什麼', content: `若只看${phrase}裡已說出的互動，一個旁觀者可能先看見的是發生了什麼，而不是誰比較有道理。這能讓事情稍微拉開。`, followUp: '若只描述互動本身，發生了什麼？', sourcePhrases: [source] },
-      { id: 'system', title: '環境正在推什麼', content: `${phrase}未必只屬於兩個人；若其中有角色、規則或資源差異，它們也可能讓互動變得更難。先看原話裡已有的環境線索。`, followUp: '這段互動周圍，有什麼角色或規則正在影響它？', sourcePhrases: [source] }
+      { id: 'self', title: '我在意什麼', content: `${phrase}已經碰到你在意的地方；可以先看自己的期待或界線。`, followUp: '這段互動裡最在意什麼？', sourcePhrases: [source] },
+      { id: 'unknown', title: '還不知道什麼', content: `${phrase}是你看見的部分；對方怎麼想，仍有尚未知道的地方。`, followUp: '關於對方，什麼還不知道？', sourcePhrases: [source] },
+      { id: 'observer', title: '旁觀者會看見什麼', content: `若只看${phrase}裡的互動，旁觀者可能先注意發生了什麼，而不是誰對。`, followUp: '若只描述互動，發生了什麼？', sourcePhrases: [source] },
+      { id: 'system', title: '環境正在推什麼', content: `${phrase}也可能受角色、規則或資源差異影響，不只屬於兩個人。`, followUp: '有哪些角色或規則在影響？', sourcePhrases: [source] }
     ];
     return [
-      { id: 'context', title: '眼前發生什麼', content: `${phrase}是此刻正在出現的感受，但眼前的情境還沒有完全說出來。先把剛剛發生的事放進來，可能更容易看清它停在哪裡。`, followUp: `剛剛發生什麼，讓${phrase}在這一刻冒出來？`, sourcePhrases: [source] },
-      { id: 'change', title: '哪裡不一樣', content: `把${phrase}放在時間裡，值得看的未必是它是否正確，而是和以前相比，什麼開始不一樣。變化可以先被看見，不必馬上有理由。`, followUp: '和以前比，哪件原本會有感覺的事，現在變得不太一樣？', sourcePhrases: [source] },
-      { id: 'body', title: '身體怎麼說', content: `${phrase}也許還沒有準備好用更多道理說明。先不分析，它在身體裡更像累、緊、悶、空，還是沒有力氣？`, followUp: '如果不用想，這句話在身體裡比較像什麼？', sourcePhrases: [source] },
-      { id: 'suspend', title: '先不下結論', content: `${phrase}是此刻很重要的感受，但暫時不必讓它成為對整個生活的判斷。把它放旁邊，也許會留下另一件仍想說的事。`, followUp: '先把這句放在旁邊，現在還想到的是什麼？', sourcePhrases: [source] }
+      { id: 'context', title: '眼前發生什麼', content: `${phrase}是此刻的感受，但眼前發生的情境還沒有完全說出來。`, followUp: `眼前發生了什麼，讓${phrase}出現？`, sourcePhrases: [source] },
+      { id: 'change', title: '哪裡不一樣', content: `把${phrase}和以前相比，值得先看的也許是哪裡開始不一樣。`, followUp: '和以前比，哪裡不一樣？', sourcePhrases: [source] },
+      { id: 'body', title: '身體怎麼說', content: `${phrase}也許不必先講道理；它在身體裡可能更像累、緊、悶或空。`, followUp: '這句話在身體裡像什麼？', sourcePhrases: [source] },
+      { id: 'suspend', title: '先不下結論', content: `${phrase}很重要，但暫時不必成為對整個生活的判斷。`, followUp: '先不下結論，還想到什麼？', sourcePhrases: [source] }
     ];
   }
 }
