@@ -202,7 +202,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
             {isHolding ? `${Math.round(holdProgress)}%` : UI_TEXT.home.vent.idleHint}
           </span>
         </button>
-        {ventCount >= 3 && (
+        {ventCount > 0 && (
           <span className="mt-1.5 text-[11px] text-ink-muted transition-opacity">
             {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
           </span>
