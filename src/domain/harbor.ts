@@ -39,11 +39,12 @@ export interface SessionClosureDraft {
   resumeAnchor?: string;
 }
 
-/** A user-invoked writing entrance grounded in this session's own user turns. */
+/** One distinct, user-invoked AI angle grounded in this session's own user turns. */
 export interface ExplorePerspective {
   id: 'focus' | 'contrast' | 'reframe' | 'open';
-  label: string;
-  prompt: string;
+  title: string;
+  content: string;
+  followUp: string;
   sourcePhrases: string[];
 }
 
