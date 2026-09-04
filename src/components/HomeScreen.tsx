@@ -16,17 +16,51 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   const [input, setInput] = useState('');
   const [ventCount, setVentCount] = useState(0);
   const [ventWord, setVentWord] = useState('');
+  const [isHolding, setIsHolding] = useState(false);
   const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pulseIntervalRef = useRef<number | null>(null);
+  const holdStartTimeRef = useRef<number>(0);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+    return () => {
+      if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
+    };
+  }, []);
 
-  const handleVent = () => {
+  const stepVent = () => {
     triggerHaptic('unlatch');
-    const nextCount = ventCount + 1;
-    setVentCount(nextCount);
-    const word = ventWords[(nextCount - 1) % ventWords.length];
-    setVentWord(word);
+    setVentCount(prev => prev + 1);
+    setVentWord(prev => {
+      const idx = ventWords.indexOf(prev as (typeof ventWords)[number]);
+      const nextIdx = idx === -1 ? 0 : (idx + 1) % ventWords.length;
+      return ventWords[nextIdx];
+    });
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    setIsHolding(true);
+    holdStartTimeRef.current = Date.now();
+    stepVent();
+
+    if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
+    pulseIntervalRef.current = window.setInterval(() => {
+      stepVent();
+      if (Date.now() - holdStartTimeRef.current > 2500) {
+        triggerHaptic('docking');
+        holdStartTimeRef.current = Date.now() + 5000;
+      }
+    }, 170);
+  };
+
+  const handlePointerUp = () => {
+    setIsHolding(false);
+    if (pulseIntervalRef.current) {
+      clearInterval(pulseIntervalRef.current);
+      pulseIntervalRef.current = null;
+    }
   };
 
   const handleQuickState = (state: (typeof quickStates)[number]) => {
@@ -54,18 +88,34 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
       <div className="flex flex-col items-end">
         <button
           type="button"
-          onClick={handleVent}
-          className="group relative flex h-9 items-center gap-2 rounded-full border border-accent/25 bg-surface px-3.5 text-xs font-medium text-ink-secondary transition-all hover:border-accent/50 hover:bg-surface-subtle active:scale-95 shadow-2xs"
-          title="消波微震"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onContextMenu={e => e.preventDefault()}
+          className={`group relative flex h-11 items-center gap-2.5 rounded-full border px-4 text-xs font-medium transition-all select-none touch-none active:scale-95 shadow-xs ${
+            isHolding
+              ? 'border-accent bg-accent/15 scale-105 ring-4 ring-accent/20'
+              : 'border-accent/30 bg-surface text-ink hover:border-accent/60 hover:bg-surface-subtle'
+          }`}
+          title="點擊或長按消波"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/40 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-accent"></span>
+          {isHolding && (
+            <span className="absolute inset-0 rounded-full animate-ping bg-accent/25 pointer-events-none" />
+          )}
+          <span className="relative flex h-2.5 w-2.5">
+            <span className={`absolute inline-flex h-full w-full rounded-full bg-accent/40 ${isHolding ? 'animate-ping' : ''}`}></span>
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent"></span>
           </span>
-          <span>{ventWord || '消波微震'}</span>
+          <span className="text-[13px] font-semibold tracking-wider text-ink">
+            {ventWord || '消波微震'}
+          </span>
+          <span className="text-[10px] text-ink-muted opacity-75">
+            {isHolding ? '釋放中…' : '按住'}
+          </span>
         </button>
         {ventCount >= 3 && (
-          <span className="mt-1 text-[11px] text-ink-muted">
+          <span className="mt-1.5 text-[11px] text-ink-muted transition-opacity">
             已消波 {ventCount} 次 · 想說的話，再點這裡
           </span>
         )}
