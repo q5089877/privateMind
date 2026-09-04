@@ -17,9 +17,9 @@ interface Props {
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
 
 const groupCopy: Record<ExploreGroup, { label: string; detail: string }> = {
-  feeling: { label: '從感受慢慢看', detail: '先從此刻的感受與情境，找四個不同入口。' },
-  decision: { label: '從選擇與代價切入', detail: '先把想守住的事、現實限制與時間放在一起看。' },
-  relationship: { label: '從這段互動看', detail: '只看原話裡已經說出的互動，不替任何人補上動機。' }
+  feeling: { label: '從感受看', detail: '先從此刻的感受與情境，找四個不同入口。' },
+  decision: { label: '從選擇看', detail: '先把想守住的事、現實限制與時間放在一起看。' },
+  relationship: { label: '從互動看', detail: '只看原話裡已經說出的互動，不替任何人補上動機。' }
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
