@@ -41,7 +41,7 @@ export interface SessionClosureDraft {
 
 /** One distinct, user-invoked AI angle grounded in this session's own user turns. */
 export interface ExplorePerspective {
-  id: 'focus' | 'contrast' | 'reframe' | 'open';
+  id: 'context' | 'change' | 'body' | 'suspend';
   title: string;
   content: string;
   followUp: string;

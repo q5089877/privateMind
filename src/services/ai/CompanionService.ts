@@ -33,24 +33,24 @@ export class CompanionService {
     if (source.length < 2) return null;
     return [
       {
-        id: 'focus', title: '先停在這句',
-        content: `先不急著替「${source}」找原因。這句裡最重的那個詞，可能比整件事更值得先被聽見。`,
-        followUp: `「${source}」裡，哪個詞最不想略過？`, sourcePhrases: [source]
+        id: 'context', title: '眼前發生什麼',
+        content: `「${source}」是此刻正在出現的感受，但眼前的情境還沒有完全說出來。先把剛剛發生的事放進來，可能更容易看清它停在哪裡。`,
+        followUp: `剛剛發生什麼，讓「${source}」在這一刻冒出來？`, sourcePhrases: [source]
       },
       {
-        id: 'contrast', title: '拆成兩邊看',
-        content: `「${source}」也許同時有眼前發生的事，和它讓你想起的事；兩邊不必立刻合成同一個答案。`,
-        followUp: '眼前發生的事，和它讓你想到的事，各是什麼？', sourcePhrases: [source]
+        id: 'change', title: '哪裡不一樣',
+        content: `把「${source}」放在時間裡，值得看的未必是它是否正確，而是和以前相比，什麼開始不一樣。變化可以先被看見，不必馬上有理由。`,
+        followUp: '和以前比，哪件原本會有感覺的事，現在變得不太一樣？', sourcePhrases: [source]
       },
       {
-        id: 'reframe', title: '從變化看',
-        content: `先把「${source}」當成一個變化的訊號，而不是需要立刻修好的問題：有些地方可能已經不像原本那樣了。`,
-        followUp: '如果只描述「不再像原本那樣」的地方，你會怎麼說？', sourcePhrases: [source]
+        id: 'body', title: '身體怎麼說',
+        content: `「${source}」也許還沒有準備好用更多道理說明。先不分析，它在身體裡更像累、緊、悶、空，還是沒有力氣？`,
+        followUp: '如果不用想，這句話在身體裡比較像什麼？', sourcePhrases: [source]
       },
       {
-        id: 'open', title: '留住未答處',
-        content: `「${source}」不一定要今天就變成結論。先留下它，也是在替之後的自己保留一個能回來看的位置。`,
-        followUp: '今天還不必回答、但想留住的是什麼？', sourcePhrases: [source]
+        id: 'suspend', title: '先不下結論',
+        content: `「${source}」是此刻很重要的感受，但暫時不必讓它成為對整個生活的判斷。把它放旁邊，也許會留下另一件仍想說的事。`,
+        followUp: '先把這句放在旁邊，現在還想到的是什麼？', sourcePhrases: [source]
       }
     ];
   }
