@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, ChevronDown, Compass, MessageCircle, Waves } from 'lucide-react';
+import { ArrowLeft, ArrowUp, Compass, MessageCircle, RotateCw, Waves } from 'lucide-react';
 import { ConversationTurn, ExploreGroup, ExploreResult, HarborSession, Moment } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 
@@ -31,10 +31,9 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
   const [continuationGuide, setContinuationGuide] = useState('');
   const [showComposer, setShowComposer] = useState(false);
   const [showAngles, setShowAngles] = useState(false);
-  const [showGroupPicker, setShowGroupPicker] = useState(false);
   const [exploring, setExploring] = useState(false);
   const [exploration, setExploration] = useState<ExploreResult | null>(null);
-  const [selectedPerspectiveId, setSelectedPerspectiveId] = useState<string | null>(null);
+  const [activePerspectiveIndex, setActivePerspectiveIndex] = useState(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -45,10 +44,9 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     setContinuationGuide('');
     setShowComposer(false);
     setShowAngles(false);
-    setShowGroupPicker(false);
     setExploring(false);
     setExploration(null);
-    setSelectedPerspectiveId(null);
+    setActivePerspectiveIndex(0);
   }, [moment?.id]);
 
   useEffect(() => {
@@ -91,17 +89,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
       return;
     }
     setShowAngles(true);
-    setShowGroupPicker(false);
     setExploring(true);
     const result = await getExploration(session, requestedGroup);
     setExploration(result);
+    setActivePerspectiveIndex(0);
     setExploring(false);
   };
-
-  const activeGroup = exploration?.route.group;
-  const otherGroups = activeGroup
-    ? (Object.keys(groupCopy) as ExploreGroup[]).filter(group => group !== activeGroup)
-    : [];
 
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] py-5 sm:py-8">
     <header className="flex min-h-11 items-center">
@@ -168,38 +161,44 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
         </div>}
 
         {showAngles && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4 sm:p-5">
-          {exploring ? <div className="py-6 text-center text-sm text-ink-muted">正在找這次適合的四個切入點…</div> : exploration ? <>
-            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border-base/70 pb-3">
-              <div>
-                <p className="text-xs font-medium text-accent">{groupCopy[exploration.route.group].label}</p>
-                <p className="mt-0.5 text-xs text-ink-secondary">從「{moment.content.slice(0, 20)}{moment.content.length > 20 ? '…' : ''}」出發，選一張有感覺的看：</p>
+          {exploring ? <div className="py-6 text-center text-sm text-ink-muted">正在換個角度看看這句話…</div> : exploration && exploration.perspectives.length > 0 ? (() => {
+            const currentPerspective = exploration.perspectives[activePerspectiveIndex % exploration.perspectives.length];
+            return <div>
+              <div className="flex items-center justify-between gap-2 border-b border-border-base/70 pb-3">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-accent">
+                  <Compass size={14}/>
+                  <span>換個角度：{currentPerspective.title}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActivePerspectiveIndex(idx => (idx + 1) % exploration.perspectives.length)}
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-ink-secondary hover:bg-surface hover:text-ink transition-colors"
+                >
+                  <RotateCw size={13}/>
+                  換下一個角度
+                </button>
               </div>
-              <button type="button" onClick={() => setShowGroupPicker(value => !value)} className="text-xs font-medium text-ink-secondary underline decoration-border-strong underline-offset-4 hover:text-ink">換一種方式看</button>
-            </div>
-            {showGroupPicker && <div className="mt-3 flex flex-wrap gap-2 pb-2">
-              {otherGroups.map(group => <button key={group} type="button" onClick={() => void requestAngles(group)} className="rounded-full border border-border-base bg-surface px-3 py-1.5 text-xs text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink">{groupCopy[group].label}</button>)}
-            </div>}
-            <div className="mt-3 flex flex-col gap-2 min-h-[180px]">
-              {exploration.perspectives.map(perspective => {
-                const isExpanded = selectedPerspectiveId === perspective.id;
-                return <div key={perspective.id} className={`rounded-2xl border transition-colors ${isExpanded ? 'border-accent/40 bg-surface shadow-xs' : 'border-border-base bg-surface/70 hover:border-accent/30 hover:bg-surface'}`}>
-                  <button type="button" aria-expanded={isExpanded} onClick={() => setSelectedPerspectiveId(current => current === perspective.id ? null : perspective.id)} className="flex w-full items-center justify-between px-4 py-3 text-left font-medium text-ink">
-                    <span className="text-[15px]">{perspective.title}</span>
-                    <ChevronDown size={16} className={`text-ink-muted transition-transform duration-200 ${isExpanded ? 'rotate-180 text-accent' : ''}`}/>
+
+              <div className="mt-3.5 rounded-2xl border border-border-base bg-surface p-4 shadow-xs">
+                <p className="text-[15px] leading-[1.8] text-ink">{currentPerspective.content}</p>
+                <div className="mt-3.5 rounded-xl bg-surface-subtle px-3.5 py-3 border-l-2 border-accent/40">
+                  <p className="text-xs leading-relaxed font-medium text-accent">可以想想：{currentPerspective.followUp}</p>
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-border-base pt-3">
+                  <button
+                    type="button"
+                    onClick={() => openComposer(currentPerspective.followUp)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-ink transition-colors"
+                  >
+                    沿這個角度聊 <ArrowUp size={13}/>
                   </button>
-                  {isExpanded && <div className="border-t border-border-base px-4 pt-3 pb-4">
-                    <p className="text-sm leading-[1.8] text-ink-secondary">{perspective.content}</p>
-                    <div className="mt-3 rounded-xl bg-surface-subtle px-3.5 py-3">
-                      <p className="text-xs leading-relaxed font-medium text-accent">可以想想：{perspective.followUp}</p>
-                      <button type="button" onClick={() => openComposer(perspective.followUp)} className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-ink transition-colors">
-                        從這裡接著說 <ArrowUp size={13}/>
-                      </button>
-                    </div>
-                  </div>}
-                </div>;
-              })}
-            </div>
-          </> : <p className="text-sm leading-relaxed text-ink-secondary">這次沒有可靠的新角度；你也可以直接接著說。</p>}
+                  <span className="text-[11px] text-ink-muted">
+                    {(activePerspectiveIndex % exploration.perspectives.length) + 1} / {exploration.perspectives.length}
+                  </span>
+                </div>
+              </div>
+            </div>;
+          })() : <p className="text-sm leading-relaxed text-ink-secondary">這次沒有可靠的新角度；你也可以直接接著說。</p>}
         </div>}
       </section>
     </main>

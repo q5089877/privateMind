@@ -46,7 +46,7 @@ export const exploreRole = {
             type: 'OBJECT', properties: {
               id: { type: 'STRING', enum: cards.map(card => card.id) },
               title: { type: 'STRING', description: '必須完全等於指定標題。' },
-              content: { type: 'STRING', description: '20 到 72 字的一段精簡觀點，基於對話原意延伸，嚴禁重複原句當開頭，只寫一段，不鋪陳。' },
+              content: { type: 'STRING', description: '20 到 68 字的直白大白話觀點，直指核心感受，嚴禁文學比喻或散文腦補，只寫一段，不鋪陳。' },
               followUp: { type: 'STRING', description: '8 到 32 字、可由使用者自行回答的一句延續問題。' },
               sourcePhrases: { type: 'ARRAY', minItems: 1, maxItems: 2, items: { type: 'STRING' }, description: '本次對話中與該觀點對應的 1 到 2 段原話短語（2 到 28 字）。' }
             }, required: ['id', 'title', 'content', 'followUp', 'sourcePhrases']
@@ -60,8 +60,8 @@ export const exploreRole = {
       context: { transcript, group },
       payload: {
         model: FLASH_LITE_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動選了「換個角度」，這次只使用「${group}」這一組。請寫出剛好四段真正不同、平級的 AI 觀點；不是四個操作提示、分析報告或結論。每張卡都要有 id, title, content, followUp, sourcePhrases。\n\n${instructions}\n\n每張 content 只寫一個重點，必須基於使用者說過的原意延伸，嚴禁在每張卡第一句複誦原句（例如「當出現……」「面對……」）。四張卡切入維度必須截然不同，不可重複或同義改寫；省略開場鋪陳、規則說明與總結。sourcePhrases 填寫本次對話中啟發該觀點的原話片段（2 到 28 字）。若有推測，使用「也許」「可能」「像是」等保留語氣。followUp 只問一件事，不替使用者填答案。禁止心理或人格標籤、建議、命令、診斷、因果定論、提及舊紀錄、使用「你其實」「你在」「這顯示」。繁體中文。` }] }],
-        generationConfig: { temperature: 0.42, maxOutputTokens: 520, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+        contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動選了「換個角度」，這次只使用「${group}」這一組。請寫出剛好四段真正不同、平級的 AI 觀點；不是四個操作提示、分析報告或結論。每張卡都要有 id, title, content, followUp, sourcePhrases。\n\n${instructions}\n\n每張 content 只寫一個重點，必須基於使用者說過的原意延伸，嚴禁在每張卡第一句複誦原句（例如「當出現……」「面對……」）。\n\n【核心文風禁令】：\n嚴禁使用文學比喻、散文修辭、舞台劇式情境描寫或二度腦補（嚴禁描繪法庭、審判、黑夜、鐘聲、枷鎖等虛構意象或文學散文）；請一律用真誠、口語、平實的大白話直接指出當下的核心感受、矛盾或卡住點。\n\n四張卡切入維度必須截然不同，不可重複或同義改寫；省略開場鋪陳、規則說明與總結。sourcePhrases 填寫本次對話中啟發該觀點的原話片段（2 到 28 字）。若有推測，使用「也許」「可能」「像是」等保留語氣。followUp 只問一件事，不替使用者填答案。禁止心理或人格標籤、建議、命令、診斷、因果定論、提及舊紀錄、使用「你其實」「你在」「這顯示」。繁體中文。` }] }],
+        generationConfig: { temperature: 0.38, maxOutputTokens: 520, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
   },
