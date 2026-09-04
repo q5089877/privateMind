@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
+import { ArrowUp, ChevronDown, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -9,11 +9,41 @@ interface Props {
   onOpenBackup: () => void;
 }
 
+const expressionGuides = [
+  { id: 'busy', label: '腦袋很吵', options: [
+    { label: '停不下來', prompt: '好多念頭同時出現，不知道先從哪一個說起。' },
+    { label: '有件事懸著', prompt: '有件事一直掛在心上，還沒有想清楚。' },
+  ] },
+  { id: 'feeling', label: '心裡有感覺', options: [
+    { label: '剛剛發生的', prompt: '剛剛發生了一件事，我還不知道該怎麼說。' },
+    { label: '說不上來', prompt: '我現在說不上來，只知道心裡有些感覺。' },
+  ] },
+  { id: 'stuck', label: '有件事卡住', options: [
+    { label: '不知道怎麼選', prompt: '我正在兩個方向之間，不知道怎麼選。' },
+    { label: '不知道怎麼開始', prompt: '我知道有件事要開始，但還不知道第一步。' },
+  ] },
+  { id: 'keep', label: '有件想留下', options: [
+    { label: '怕自己忘記', prompt: '有個念頭我想先留下，免得之後忘記。' },
+    { label: '還沒想完', prompt: '這件事還沒想完，但我想先記住現在的感覺。' },
+  ] },
+] as const;
+
 export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
   const [input, setInput] = useState('');
+  const [showGuides, setShowGuides] = useState(false);
+  const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
+  const [activePrompt, setActivePrompt] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const activeGuide = expressionGuides.find(guide => guide.id === activeGuideId);
+
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const closeGuides = () => {
+    setShowGuides(false);
+    setActiveGuideId(null);
+    setActivePrompt('');
+  };
 
   const beginConversation = () => {
     const text = input.trim();
@@ -21,6 +51,12 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
     triggerHaptic('docking');
     onStartInput(text);
     setInput('');
+    closeGuides();
+  };
+
+  const toggleGuides = () => {
+    if (showGuides) closeGuides();
+    else setShowGuides(true);
   };
 
   return <div className="w-full max-w-[590px] min-h-[calc(100vh-104px)] px-1 py-6 sm:py-10">
@@ -37,10 +73,34 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
       </section>
 
       <section className="mt-9 rounded-[28px] border border-border-base bg-surface px-5 py-5 shadow-[0_10px_28px_rgba(47,70,54,0.08)] sm:mt-12 sm:rounded-[32px] sm:px-7 sm:py-7">
-        <div className="flex items-center gap-2 text-sm font-medium text-ink"><MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>現在想說什麼？</div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink"><MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>現在想說什麼？</div>
+          <button type="button" aria-expanded={showGuides} onClick={toggleGuides} className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-sm font-medium text-accent transition-colors hover:bg-surface-subtle hover:text-ink">
+            不知道怎麼說？<ChevronDown size={15} className={`transition-transform ${showGuides ? 'rotate-180' : ''}`}/>
+          </button>
+        </div>
+
+        {showGuides && <div className="mt-4 rounded-[20px] border border-border-base bg-surface-subtle p-4">
+          <p className="text-xs leading-relaxed text-ink-muted">先點一個比較接近現在的狀態。這不是分類，也不會被保存。</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {expressionGuides.map(guide => <button key={guide.id} type="button" aria-pressed={activeGuideId === guide.id} onClick={() => { setActiveGuideId(guide.id); setActivePrompt(''); }} className={`rounded-full border px-3 py-2 text-sm transition-colors ${activeGuideId === guide.id ? 'border-accent bg-accent text-white' : 'border-border-base bg-surface text-ink-secondary hover:border-accent/45 hover:text-ink'}`}>{guide.label}</button>)}
+          </div>
+          {activeGuide && <div className="mt-4 border-t border-border-base pt-3">
+            <p className="text-xs text-ink-muted">再靠近一點</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {activeGuide.options.map(option => <button key={option.label} type="button" aria-pressed={activePrompt === option.prompt} onClick={() => { setActivePrompt(option.prompt); requestAnimationFrame(() => inputRef.current?.focus()); }} className={`rounded-full border px-3 py-2 text-sm transition-colors ${activePrompt === option.prompt ? 'border-accent/70 bg-surface text-accent' : 'border-border-base bg-surface text-ink-secondary hover:border-accent/45 hover:text-ink'}`}>{option.label}</button>)}
+            </div>
+          </div>}
+        </div>}
+
+        {activePrompt && <aside aria-live="polite" className="mt-4 flex items-start justify-between gap-3 rounded-2xl border-l-2 border-accent/55 bg-surface-subtle px-4 py-3">
+          <div><p className="text-[11px] font-medium text-accent">你可以從這裡開始</p><p className="mt-1 text-sm leading-relaxed text-ink-secondary">{activePrompt}</p></div>
+          <button type="button" onClick={() => setActivePrompt('')} className="shrink-0 text-xs text-ink-muted hover:text-ink">收起</button>
+        </aside>}
+
         <textarea ref={inputRef} rows={5} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); beginConversation(); } }} placeholder={UI_TEXT.home.inputPlaceholder} className="mt-5 min-h-[156px] w-full resize-none bg-transparent p-0 text-[18px] leading-[1.75] tracking-[-0.025em] text-ink caret-accent outline-none placeholder:text-ink-placeholder sm:min-h-[180px] sm:text-[21px]" />
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-base pt-4">
-          <p className="text-xs leading-relaxed text-ink-muted">先說一句也可以。</p>
+          <p className="text-xs leading-relaxed text-ink-muted">{showGuides ? '提示不會被保存，只有你寫下的文字會留下。' : '先說一句也可以。'}</p>
           <button type="button" disabled={!input.trim()} onClick={beginConversation} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_5px_12px_rgba(47,91,71,0.2)] transition-all hover:-translate-y-px hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"><span>開始說說</span><ArrowUp size={16} strokeWidth={2}/></button>
         </div>
       </section>
