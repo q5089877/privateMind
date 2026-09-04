@@ -15,52 +15,73 @@ const ventWords = UI_TEXT.home.pulseWords;
 export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
   const [input, setInput] = useState('');
   const [ventCount, setVentCount] = useState(0);
-  const [ventWord, setVentWord] = useState('');
+  const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const pulseIntervalRef = useRef<number | null>(null);
-  const holdStartTimeRef = useRef<number>(0);
+  const progressTimerRef = useRef<number | null>(null);
+  const lastHapticStepRef = useRef<number>(0);
 
   useEffect(() => {
     inputRef.current?.focus();
     return () => {
-      if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
   }, []);
 
-  const stepVent = () => {
-    triggerHaptic('unlatch');
-    setVentCount(prev => prev + 1);
-    setVentWord(prev => {
-      const idx = ventWords.indexOf(prev as (typeof ventWords)[number]);
-      const nextIdx = idx === -1 ? 0 : (idx + 1) % ventWords.length;
-      return ventWords[nextIdx];
-    });
+  const clearHold = () => {
+    setIsHolding(false);
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setHoldProgress(0);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     setIsHolding(true);
-    holdStartTimeRef.current = Date.now();
-    stepVent();
+    setHoldProgress(0);
+    lastHapticStepRef.current = 0;
+    triggerHaptic('unlatch');
 
-    if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
-    pulseIntervalRef.current = window.setInterval(() => {
-      stepVent();
-      if (Date.now() - holdStartTimeRef.current > 2500) {
+    const duration = 2200; // 2.2 秒充飽
+    const interval = 30; // 30ms 步進
+    const step = (interval / duration) * 100;
+    let current = 0;
+
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = window.setInterval(() => {
+      current += step;
+      if (current >= 100) {
+        current = 100;
+        setHoldProgress(100);
+        clearInterval(progressTimerRef.current!);
+        progressTimerRef.current = null;
         triggerHaptic('docking');
-        holdStartTimeRef.current = Date.now() + 5000;
+        setVentCount(prev => prev + 1);
+        window.setTimeout(() => {
+          setIsHolding(false);
+          setHoldProgress(0);
+        }, 320);
+        return;
       }
-    }, 170);
+      setHoldProgress(current);
+
+      const stepIndex = Math.floor(current / 20);
+      if (stepIndex > lastHapticStepRef.current) {
+        lastHapticStepRef.current = stepIndex;
+        triggerHaptic('unlatch');
+      }
+    }, interval);
   };
 
   const handlePointerUp = () => {
-    setIsHolding(false);
-    if (pulseIntervalRef.current) {
-      clearInterval(pulseIntervalRef.current);
-      pulseIntervalRef.current = null;
+    if (!isHolding) return;
+    if (holdProgress > 15 && holdProgress < 100) {
+      setVentCount(prev => prev + 1);
     }
+    clearHold();
   };
 
   const handleQuickState = (state: (typeof quickStates)[number]) => {
@@ -90,28 +111,30 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
           type="button"
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-          onPointerCancel={handlePointerUp}
+          onPointerLeave={clearHold}
+          onPointerCancel={clearHold}
           onContextMenu={e => e.preventDefault()}
-          className={`group relative flex h-11 items-center gap-2.5 rounded-full border px-4 text-xs font-medium transition-all select-none touch-none active:scale-95 shadow-xs ${
-            isHolding
-              ? 'border-accent bg-accent/15 scale-105 ring-4 ring-accent/20'
-              : 'border-accent/30 bg-surface text-ink hover:border-accent/60 hover:bg-surface-subtle'
-          }`}
-          title="點擊或長按消波"
+          className="group relative flex h-11 w-[144px] items-center justify-between overflow-hidden rounded-full border border-accent/30 bg-surface px-3.5 text-xs font-medium shadow-xs transition-all select-none touch-none active:scale-[0.98]"
+          title="按住消波"
         >
-          {isHolding && (
-            <span className="absolute inset-0 rounded-full animate-ping bg-accent/25 pointer-events-none" />
-          )}
-          <span className="relative flex h-2.5 w-2.5">
-            <span className={`absolute inline-flex h-full w-full rounded-full bg-accent/40 ${isHolding ? 'animate-ping' : ''}`}></span>
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent"></span>
-          </span>
-          <span className="text-[13px] font-semibold tracking-wider text-ink">
-            {ventWord || '消波微震'}
-          </span>
-          <span className="text-[10px] text-ink-muted opacity-75">
-            {isHolding ? '釋放中…' : '按住'}
+          {/* 能量條填充層 */}
+          <div
+            className="absolute inset-y-0 left-0 bg-accent/20 transition-[width] duration-75 ease-linear pointer-events-none"
+            style={{ width: `${holdProgress}%` }}
+          />
+
+          <div className="relative z-10 flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className={`absolute inline-flex h-full w-full rounded-full bg-accent/40 ${isHolding ? 'animate-ping' : ''}`}></span>
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent"></span>
+            </span>
+            <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
+              消波微震
+            </span>
+          </div>
+
+          <span className="relative z-10 text-[10px] font-mono text-ink-muted whitespace-nowrap">
+            {isHolding ? `${Math.round(holdProgress)}%` : '按住'}
           </span>
         </button>
         {ventCount >= 3 && (
