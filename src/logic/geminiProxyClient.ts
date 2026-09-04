@@ -18,17 +18,31 @@ import { timelineRole, type TimelineSource } from '../services/ai/roles/timeline
 export { normalizeCompanionResponse } from '../services/ai/roles/shared';
 
 const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: number): Promise<Response> => {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  const doFetch = async () => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
+
   try {
-    return await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-  } finally {
-    window.clearTimeout(timeoutId);
+    const res = await doFetch();
+    if (res.status === 503 || res.status === 429) {
+      await new Promise(r => window.setTimeout(r, 600));
+      return await doFetch();
+    }
+    return res;
+  } catch {
+    await new Promise(r => window.setTimeout(r, 600));
+    return await doFetch();
   }
 };
 
