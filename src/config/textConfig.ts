@@ -9,14 +9,14 @@ export const UI_TEXT = {
     brandSubtitle: 'MIND HARBOR',
     inputPlaceholder: '腦中最先浮出來的那一句……',
     submitBtn: '留下這句',
-    // Level 0: ⚓ 全螢幕定錨注水（純生理出口）
+    // Level 0: 🤍 全螢幕注水定錨與平靜心跳（純生理出口）
     vent: {
-      buttonLabel: '下錨',
+      buttonLabel: '心跳',
       idleHint: '按住',
       counterPrefix: '已定錨',
       counterSuffix: '次 · 想說的話，再點這裡',
       pulseWords: ['停', '先別想', '呼', '可以', '隨它'] as const,
-      description: '⚓ 全螢幕沉降注水定錨：按住時深邃潮水自螢幕底端湧升覆蓋雜訊，滿載 100% 錨定海床並觸發重磅落底咬合震動。'
+      description: '🤍 全螢幕沉降注水平靜心跳：按住時深邃潮水自螢幕底端湧升，伴隨平靜穩定的生理心跳律動（~60 BPM），滿載 100% 後持續維持心跳共振直到放開。'
     },
     pulseWords: ['停', '先別想', '呼', '可以', '隨它'] as const,
     pulseHint: '想說的話，再點這裡。',
