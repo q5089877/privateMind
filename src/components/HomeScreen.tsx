@@ -9,14 +9,8 @@ interface Props {
   onOpenBackup: () => void;
 }
 
-const quickStates = [
-  { id: 'busy', label: '腦袋太吵', draft: '好多念頭同時衝進來，不知道先顧哪一個，停不下來。' },
-  { id: 'feeling', label: '心裡很悶', draft: '剛剛發生了一件事，說不上來是什麼感覺，但心裡很堵。' },
-  { id: 'stuck', label: '事情卡住', draft: '手上有件事卡在兩個選擇之間，完全不知道該怎麼走下一步。' },
-  { id: 'keep', label: '先留著', draft: '有個念頭我怕之後忘記，想先原封不動留在這裡。' },
-] as const;
-
-const ventWords = ['停', '先別想', '呼', '可以', '隨它'] as const;
+const quickStates = UI_TEXT.home.quickDrafts;
+const ventWords = UI_TEXT.home.pulseWords;
 
 export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
   const [input, setInput] = useState('');
@@ -35,9 +29,9 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
     setVentWord(word);
   };
 
-  const handleQuickState = (state: typeof quickStates[number]) => {
+  const handleQuickState = (state: (typeof quickStates)[number]) => {
     setActiveQuickState(state.id);
-    setInput(state.draft);
+    setInput(state.text);
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
@@ -97,7 +91,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
               type="button"
               onClick={() => handleQuickState(state)}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeQuickState === state.id && input === state.draft
+                activeQuickState === state.id && input === state.text
                   ? 'border-accent bg-accent text-white'
                   : 'border-border-base bg-surface-subtle text-ink-secondary hover:border-accent/40 hover:text-ink'
               }`}
