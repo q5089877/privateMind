@@ -135,11 +135,13 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
 
             <div className="space-y-1 drop-shadow-md">
               <p className="text-xl font-medium tracking-tight text-white sm:text-2xl">
-                {holdProgress >= 100 ? '已定錨 · 風浪平息' : '按住下錨，暫歇湧浪'}
+                {holdProgress >= 100 ? '已定錨 · 風浪平息' : '按住下錨'}
               </p>
-              <p className="font-mono text-sm tracking-widest text-white/80">
-                {holdProgress >= 100 ? '前額葉重置完成' : `${Math.round(holdProgress)}%`}
-              </p>
+              {holdProgress < 100 && (
+                <p className="font-mono text-sm tracking-widest text-white/80">
+                  {Math.round(holdProgress)}%
+                </p>
+              )}
             </div>
           </div>
         </div>
