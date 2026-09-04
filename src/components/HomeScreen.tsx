@@ -17,68 +17,95 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   const [ventCount, setVentCount] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
+  const [isTapping, setIsTapping] = useState(false);
   const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const progressTimerRef = useRef<number | null>(null);
+  const holdDelayTimerRef = useRef<number | null>(null);
+  const pressStartTimeRef = useRef<number>(0);
   const lastHapticStepRef = useRef<number>(0);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, []);
-
-  const clearHold = () => {
-    setIsHolding(false);
+  const clearTimers = () => {
+    if (holdDelayTimerRef.current) {
+      clearTimeout(holdDelayTimerRef.current);
+      holdDelayTimerRef.current = null;
+    }
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
     }
+  };
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    return () => clearTimers();
+  }, []);
+
+  const clearHold = () => {
+    clearTimers();
+    setIsHolding(false);
     setHoldProgress(0);
+    setIsTapping(false);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
-    setIsHolding(true);
-    setHoldProgress(0);
-    lastHapticStepRef.current = 0;
+    clearTimers();
+    pressStartTimeRef.current = Date.now();
     triggerHaptic('unlatch');
+    setIsTapping(true);
 
-    const duration = 2200; // 2.2 秒充飽
-    const interval = 30; // 30ms 步進
-    const step = (interval / duration) * 100;
-    let current = 0;
+    // 延遲 260ms：若 260ms 內放開，判定為純「輕點 (Tap)」；持續按住超過 260ms 才啟動全螢幕注水下錨
+    holdDelayTimerRef.current = window.setTimeout(() => {
+      setIsHolding(true);
+      setHoldProgress(0);
+      lastHapticStepRef.current = 0;
 
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    progressTimerRef.current = window.setInterval(() => {
-      current += step;
-      if (current >= 100) {
-        current = 100;
-        setHoldProgress(100);
-        clearInterval(progressTimerRef.current!);
-        progressTimerRef.current = null;
-        triggerHaptic('docking');
-        setVentCount(prev => prev + 1);
-        window.setTimeout(() => {
-          setIsHolding(false);
-          setHoldProgress(0);
-        }, 450);
-        return;
-      }
-      setHoldProgress(current);
+      const duration = 2200; // 2.2 秒充飽
+      const interval = 30; // 30ms 步進
+      const step = (interval / duration) * 100;
+      let current = 0;
 
-      const stepIndex = Math.floor(current / 20);
-      if (stepIndex > lastHapticStepRef.current) {
-        lastHapticStepRef.current = stepIndex;
-        triggerHaptic('unlatch');
-      }
-    }, interval);
+      progressTimerRef.current = window.setInterval(() => {
+        current += step;
+        if (current >= 100) {
+          current = 100;
+          setHoldProgress(100);
+          clearInterval(progressTimerRef.current!);
+          progressTimerRef.current = null;
+          triggerHaptic('docking');
+          setVentCount(prev => prev + 1);
+          window.setTimeout(() => {
+            setIsHolding(false);
+            setHoldProgress(0);
+            setIsTapping(false);
+          }, 450);
+          return;
+        }
+        setHoldProgress(current);
+
+        const stepIndex = Math.floor(current / 20);
+        if (stepIndex > lastHapticStepRef.current) {
+          lastHapticStepRef.current = stepIndex;
+          triggerHaptic('unlatch');
+        }
+      }, interval);
+    }, 260);
   };
 
   const handlePointerUp = () => {
-    if (!isHolding) return;
-    if (holdProgress > 15 && holdProgress < 100) {
+    const pressDuration = Date.now() - pressStartTimeRef.current;
+    window.setTimeout(() => setIsTapping(false), 120);
+
+    // 小於 260ms：純輕點（狂戳模式，不觸發全螢幕）
+    if (pressDuration < 260) {
+      clearTimers();
+      setVentCount(prev => prev + 1);
+      return;
+    }
+
+    // 超過 260ms 但未滿 100% 放開：記一次消波並平滑退潮
+    if (isHolding && holdProgress < 100) {
       setVentCount(prev => prev + 1);
     }
     clearHold();
@@ -162,10 +189,12 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
           onPointerLeave={clearHold}
           onPointerCancel={clearHold}
           onContextMenu={e => e.preventDefault()}
-          className="group relative flex h-11 items-center gap-2 rounded-full border border-accent/30 bg-surface px-3.5 text-xs font-medium shadow-xs transition-all select-none touch-none active:scale-[0.96]"
-          title="按住下錨，平浪定心"
+          className={`group relative flex h-11 items-center gap-2 rounded-full border px-3.5 text-xs font-medium shadow-xs select-none touch-none transition-all duration-100 ${
+            isTapping ? 'scale-90 border-accent bg-accent/15' : 'border-accent/30 bg-surface active:scale-95'
+          }`}
+          title="輕點消波，按住下錨"
         >
-          <Anchor size={17} className={`text-accent transition-transform duration-200 ${isHolding ? 'scale-115 text-accent-hover' : 'group-hover:scale-110'}`} />
+          <Anchor size={17} className={`text-accent transition-transform duration-200 ${isHolding ? 'scale-115 text-accent-hover' : isTapping ? 'scale-90 rotate-[-10deg]' : 'group-hover:scale-110'}`} />
           <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
             {UI_TEXT.home.vent.buttonLabel}
           </span>
