@@ -46,9 +46,9 @@ export const exploreRole = {
             type: 'OBJECT', properties: {
               id: { type: 'STRING', enum: cards.map(card => card.id) },
               title: { type: 'STRING', description: '必須完全等於指定標題。' },
-              content: { type: 'STRING', description: '24 到 68 字的一段精簡觀點，必須引用至少一段 sourcePhrases；只寫一段，不鋪陳。' },
+              content: { type: 'STRING', description: '20 到 72 字的一段精簡觀點，基於對話原意延伸，嚴禁重複原句當開頭，只寫一段，不鋪陳。' },
               followUp: { type: 'STRING', description: '8 到 32 字、可由使用者自行回答的一句延續問題。' },
-              sourcePhrases: { type: 'ARRAY', minItems: 1, maxItems: 2, items: { type: 'STRING' } }
+              sourcePhrases: { type: 'ARRAY', minItems: 1, maxItems: 2, items: { type: 'STRING' }, description: '本次對話中與該觀點對應的 1 到 2 段原話短語（2 到 28 字）。' }
             }, required: ['id', 'title', 'content', 'followUp', 'sourcePhrases']
           }
         }
@@ -60,7 +60,7 @@ export const exploreRole = {
       context: { transcript, group },
       payload: {
         model: FLASH_LITE_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動選了「換個角度」，這次只使用「${group}」這一組。請寫出剛好四段真正不同、平級的 AI 觀點；不是四個操作提示、分析報告或結論。每張卡都要有 title、content、followUp。\n\n${instructions}\n\n每張 content 只寫一個重點，必須逐字引用至少一段 sourcePhrases，並且和其他三張不可重複或同義改寫；省略開場鋪陳、規則說明與總結。若有推測，使用「也許」「可能」「像是」等保留語氣。followUp 只問一件事，不替使用者填答案。禁止心理或人格標籤、建議、命令、診斷、因果定論、提及舊紀錄、使用「你其實」「你在」「這顯示」。繁體中文。` }] }],
+        contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動選了「換個角度」，這次只使用「${group}」這一組。請寫出剛好四段真正不同、平級的 AI 觀點；不是四個操作提示、分析報告或結論。每張卡都要有 id, title, content, followUp, sourcePhrases。\n\n${instructions}\n\n每張 content 只寫一個重點，必須基於使用者說過的原意延伸，嚴禁在每張卡第一句複誦原句（例如「當出現……」「面對……」）。四張卡切入維度必須截然不同，不可重複或同義改寫；省略開場鋪陳、規則說明與總結。sourcePhrases 填寫本次對話中啟發該觀點的原話片段（2 到 28 字）。若有推測，使用「也許」「可能」「像是」等保留語氣。followUp 只問一件事，不替使用者填答案。禁止心理或人格標籤、建議、命令、診斷、因果定論、提及舊紀錄、使用「你其實」「你在」「這顯示」。繁體中文。` }] }],
         generationConfig: { temperature: 0.42, maxOutputTokens: 520, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
@@ -83,8 +83,8 @@ export const exploreRole = {
         ? item.sourcePhrases.filter((phrase): phrase is string => typeof phrase === 'string').map(phrase => phrase.trim()).filter(phrase => phrase.length >= 2 && phrase.length <= 28)
         : [];
       const combined = `${title} ${content} ${followUp}`;
-      const containsSource = sourcePhrases.some(phrase => transcript.includes(phrase) && content.includes(phrase));
-      if (!requiredTitles.has(id) || title !== requiredTitles.get(id) || content.length < 24 || content.length > 68 || followUp.length < 8 || followUp.length > 32 || !sourcePhrases.length || !containsSource || forbidden.some(word => combined.includes(word))) return null;
+      const validSource = sourcePhrases.length > 0 && sourcePhrases.some(phrase => transcript.includes(phrase));
+      if (!requiredTitles.has(id) || title !== requiredTitles.get(id) || content.length < 18 || content.length > 80 || followUp.length < 6 || followUp.length > 36 || !validSource || forbidden.some(word => combined.includes(word))) return null;
       return { id, title, content, followUp, sourcePhrases };
     }).filter((card): card is ExplorePerspective => Boolean(card));
     const normalized = valid.map(card => card.content.replace(/[\s\p{P}]/gu, ''));

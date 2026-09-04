@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, Compass, MessageCircle, Waves } from 'lucide-react';
+import { ArrowLeft, ArrowUp, ChevronDown, Compass, MessageCircle, Waves } from 'lucide-react';
 import { ConversationTurn, ExploreGroup, ExploreResult, HarborSession, Moment } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 
@@ -34,6 +34,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
   const [showGroupPicker, setShowGroupPicker] = useState(false);
   const [exploring, setExploring] = useState(false);
   const [exploration, setExploration] = useState<ExploreResult | null>(null);
+  const [selectedPerspectiveId, setSelectedPerspectiveId] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     setShowGroupPicker(false);
     setExploring(false);
     setExploration(null);
+    setSelectedPerspectiveId(null);
   }, [moment?.id]);
 
   useEffect(() => {
@@ -91,7 +93,8 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     setShowAngles(true);
     setShowGroupPicker(false);
     setExploring(true);
-    setExploration(await getExploration(session, requestedGroup));
+    const result = await getExploration(session, requestedGroup);
+    setExploration(result);
     setExploring(false);
   };
 
@@ -152,28 +155,49 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="text-sm text-ink-muted hover:text-ink">先不說了</button>
             <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">說下去 <ArrowUp size={15}/></button>
           </div>
-        </div> : <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <button onClick={() => openComposer()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm"><MessageCircle size={16}/>接著說</button>
-          <button onClick={() => void requestAngles()} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm font-medium text-ink-secondary hover:text-ink"><Compass size={16}/>{showAngles ? '收起角度' : '換個角度'}</button>
-          <button onClick={() => void onBeginLanding(session)} className="inline-flex min-h-11 items-center px-2 text-sm text-ink-muted hover:text-ink">今天先到這裡</button>
+        </div> : <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <button type="button" onClick={() => openComposer()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px">
+            <MessageCircle size={16}/>接著說
+          </button>
+          <button type="button" onClick={() => void onBeginLanding(session)} className="inline-flex min-h-11 items-center rounded-full border border-border-base bg-surface px-4 text-sm font-medium text-ink-secondary shadow-xs transition-colors hover:border-accent/40 hover:text-ink">
+            今天先到這裡
+          </button>
+          <button type="button" onClick={() => void requestAngles()} className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors ${showAngles ? 'bg-surface-subtle text-accent' : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink'}`}>
+            <Compass size={16}/>{showAngles ? '收起角度' : '換個角度'}
+          </button>
         </div>}
 
-        {showAngles && !showComposer && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4">
-          {exploring ? <p className="text-sm text-ink-muted">正在找這次適合的四個切入點…</p> : exploration ? <>
-            <p className="text-xs font-medium text-accent">{groupCopy[exploration.route.group].label}</p>
-            <p className="mt-1 text-sm leading-relaxed text-ink-secondary">選一張有感覺的接著想；不必四張都看。</p>
-            <div className="mt-3">
-              <button onClick={() => setShowGroupPicker(value => !value)} className="text-sm font-medium text-ink-secondary underline decoration-border-strong underline-offset-4 hover:text-ink">換一種方式看</button>
-              {showGroupPicker && <div className="mt-3 flex flex-wrap gap-2">
-                {otherGroups.map(group => <button key={group} onClick={() => void requestAngles(group)} className="rounded-full border border-border-base bg-surface px-3 py-2 text-sm text-ink-secondary hover:border-accent/40 hover:text-ink">{groupCopy[group].label}</button>)}
-              </div>}
+        {showAngles && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4 sm:p-5">
+          {exploring ? <div className="py-6 text-center text-sm text-ink-muted">正在找這次適合的四個切入點…</div> : exploration ? <>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border-base/70 pb-3">
+              <div>
+                <p className="text-xs font-medium text-accent">{groupCopy[exploration.route.group].label}</p>
+                <p className="mt-0.5 text-xs text-ink-secondary">從「{moment.content.slice(0, 20)}{moment.content.length > 20 ? '…' : ''}」出發，選一張有感覺的看：</p>
+              </div>
+              <button type="button" onClick={() => setShowGroupPicker(value => !value)} className="text-xs font-medium text-ink-secondary underline decoration-border-strong underline-offset-4 hover:text-ink">換一種方式看</button>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {exploration.perspectives.map(perspective => <button key={perspective.id} onClick={() => openComposer(perspective.followUp)} className="rounded-2xl border border-border-base bg-surface px-4 py-4 text-left transition-colors hover:border-accent/50">
-                <span className="text-[15px] font-medium text-ink">{perspective.title}</span>
-                <span className="mt-2 block text-sm leading-[1.75] text-ink-secondary">{perspective.content}</span>
-                <span className="mt-3 block border-t border-border-base pt-2.5 text-xs leading-relaxed text-accent">可以想想：{perspective.followUp}</span>
-              </button>)}
+            {showGroupPicker && <div className="mt-3 flex flex-wrap gap-2 pb-2">
+              {otherGroups.map(group => <button key={group} type="button" onClick={() => void requestAngles(group)} className="rounded-full border border-border-base bg-surface px-3 py-1.5 text-xs text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink">{groupCopy[group].label}</button>)}
+            </div>}
+            <div className="mt-3 flex flex-col gap-2 min-h-[180px]">
+              {exploration.perspectives.map(perspective => {
+                const isExpanded = selectedPerspectiveId === perspective.id;
+                return <div key={perspective.id} className={`rounded-2xl border transition-colors ${isExpanded ? 'border-accent/40 bg-surface shadow-xs' : 'border-border-base bg-surface/70 hover:border-accent/30 hover:bg-surface'}`}>
+                  <button type="button" aria-expanded={isExpanded} onClick={() => setSelectedPerspectiveId(current => current === perspective.id ? null : perspective.id)} className="flex w-full items-center justify-between px-4 py-3 text-left font-medium text-ink">
+                    <span className="text-[15px]">{perspective.title}</span>
+                    <ChevronDown size={16} className={`text-ink-muted transition-transform duration-200 ${isExpanded ? 'rotate-180 text-accent' : ''}`}/>
+                  </button>
+                  {isExpanded && <div className="border-t border-border-base px-4 pt-3 pb-4">
+                    <p className="text-sm leading-[1.8] text-ink-secondary">{perspective.content}</p>
+                    <div className="mt-3 rounded-xl bg-surface-subtle px-3.5 py-3">
+                      <p className="text-xs leading-relaxed font-medium text-accent">可以想想：{perspective.followUp}</p>
+                      <button type="button" onClick={() => openComposer(perspective.followUp)} className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-ink transition-colors">
+                        從這裡接著說 <ArrowUp size={13}/>
+                      </button>
+                    </div>
+                  </div>}
+                </div>;
+              })}
             </div>
           </> : <p className="text-sm leading-relaxed text-ink-secondary">這次沒有可靠的新角度；你也可以直接接著說。</p>}
         </div>}
