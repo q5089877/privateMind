@@ -39,13 +39,34 @@ export interface SessionClosureDraft {
   resumeAnchor?: string;
 }
 
+/** A non-persistent session-only exploration group. It is never a user label. */
+export type ExploreGroup = 'feeling' | 'decision' | 'relationship';
+
+export type ExplorePerspectiveId =
+  | 'context' | 'change' | 'body' | 'suspend'
+  | 'values' | 'constraint' | 'reversible' | 'time'
+  | 'self' | 'unknown' | 'observer' | 'system';
+
+/** The route selected for this one explicit exploration request. */
+export interface ExploreRoute {
+  group: ExploreGroup;
+  evidence: string[];
+  source: 'automatic' | 'manual';
+}
+
 /** One distinct, user-invoked AI angle grounded in this session's own user turns. */
 export interface ExplorePerspective {
-  id: 'context' | 'change' | 'body' | 'suspend';
+  id: ExplorePerspectiveId;
   title: string;
   content: string;
   followUp: string;
   sourcePhrases: string[];
+}
+
+/** An ephemeral result. It must never be persisted as a Moment, turn, or user category. */
+export interface ExploreResult {
+  route: ExploreRoute;
+  perspectives: ExplorePerspective[];
 }
 
 export interface TimelineEvidence {

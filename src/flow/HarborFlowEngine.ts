@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { BackupOverview, BackupStatus, ExplorePerspective, HarborSession, MindHarborData, Moment, MomentIntent, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { BackupOverview, BackupStatus, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
 import { MemoryService } from '../services/memory/MemoryService';
@@ -83,12 +83,12 @@ export class HarborFlowEngine {
     return request;
   }
 
-  /** Explore is explicit and is scoped to the visible session only. */
-  public async requestExploration(session: HarborSession): Promise<ExplorePerspective[] | null> {
+  /** Explore is explicit, scoped to the visible session, and never persisted as a user label. */
+  public async requestExploration(session: HarborSession, requestedGroup?: ExploreGroup): Promise<ExploreResult | null> {
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const perspectives = await this.companion.exploreSession(session);
-    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(perspectives ? {} : { error: '暫時找不到可用的新角度。' }) });
-    return perspectives;
+    const result = await this.companion.exploreSession(session, requestedGroup);
+    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(result ? {} : { error: '暫時找不到可用的新角度。' }) });
+    return result;
   }
 
   /** Enter LAND with a visible draft first; no closure has been persisted yet. */

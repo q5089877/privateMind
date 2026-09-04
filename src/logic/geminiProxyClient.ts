@@ -6,8 +6,9 @@
  * accidentally changing another role's boundaries.
  */
 
-import type { ConversationTurn, ExplorePerspective, SessionClosureDraft, TimelineInsight } from '../domain/harbor';
+import type { ConversationTurn, ExploreGroup, ExplorePerspective, ExploreRoute, SessionClosureDraft, TimelineInsight } from '../domain/harbor';
 import { exploreRole } from '../services/ai/roles/exploreRole';
+import { exploreRouterRole } from '../services/ai/roles/exploreRouterRole';
 import { landingRole } from '../services/ai/roles/landingRole';
 import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
 import { presentFallback, presentRole } from '../services/ai/roles/presentRole';
@@ -68,14 +69,27 @@ export class GeminiProxyClient {
     }
   }
 
-  /** Explore Companion: explicit session-only perspective request. */
-  public static async getExplorePerspectives(turns: ConversationTurn[]): Promise<ExplorePerspective[] | null> {
-    const task = exploreRole.create(turns);
+  /** Conservative session-only router. Ambiguity always falls back to feeling. */
+  public static async getExploreRoute(turns: ConversationTurn[]): Promise<ExploreRoute | null> {
+    const task = exploreRouterRole.create(turns);
+    const proxyUrl = this.getProxyUrl();
+    if (!task || !proxyUrl) return task ? exploreRouterRole.fallback() : null;
+    try {
+      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
+      return raw ? exploreRouterRole.read(raw, task.context.transcript) : exploreRouterRole.fallback();
+    } catch {
+      return exploreRouterRole.fallback();
+    }
+  }
+
+  /** Explore Companion: explicit session-only perspectives from one selected group. */
+  public static async getExplorePerspectives(turns: ConversationTurn[], group: ExploreGroup): Promise<ExplorePerspective[] | null> {
+    const task = exploreRole.create(turns, group);
     const proxyUrl = this.getProxyUrl();
     if (!task || !proxyUrl) return null;
     try {
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
-      return raw ? exploreRole.read(raw, task.context.transcript) : null;
+      return raw ? exploreRole.read(raw, task.context.transcript, group) : null;
     } catch {
       return null;
     }

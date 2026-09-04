@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { HarborSession, Moment, MomentIntent, SessionClosure } from '../types';
+import { ExploreGroup, HarborSession, Moment, MomentIntent, SessionClosure } from '../types';
 
 /** React adapter for the MVI Flow Engine; screens never import data or AI services. */
 export function useFlow() {
@@ -19,7 +19,7 @@ export function useFlow() {
     error: snapshot.error,
     submitText: (text: string, intent?: MomentIntent) => engine.submitText(text, intent),
     requestPresentReply: (moment: Moment) => engine.requestPresentReply(moment),
-    requestExploration: (session: HarborSession) => engine.requestExploration(session),
+    requestExploration: (session: HarborSession, requestedGroup?: ExploreGroup) => engine.requestExploration(session, requestedGroup),
     saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
     beginLanding: (session: HarborSession) => engine.beginLanding(session),
     completeLanding: (sessionId: string, closure: SessionClosure) => engine.completeLanding(sessionId, closure),
