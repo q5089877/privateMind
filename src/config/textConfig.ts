@@ -121,6 +121,18 @@ export const UI_TEXT = {
     userTurnLabel: '你留下的話',
     aiTurnLabel: '當時的映照'
   },
+  patternInsights: {
+    sectionTitle: '跨時間與情境的線索',
+    eventTrackTitle: '事件脈絡重現',
+    eventTrackPrefix: '關於這件事：',
+    stateTrackTitle: '今日狀態溢出',
+    stateSpilloverNotice: '今天的煩躁，好像跟著你跑了好幾個地方。',
+    metaPatternTitle: '長期模式重現',
+    metaPatternNotice: '有些日子，你的煩躁似乎容易從一個情境延續到另一個情境。',
+    exploreGuideQuestion: '要不要看看，今天是不是有什麼東西一直沒鬆下來？',
+    adoptLinkBtn: '收下這條線索',
+    dismissLinkBtn: '先不管它'
+  },
   layout: {
     supportBtn: '需要找人聊聊？',
     modal: {
@@ -139,10 +151,12 @@ export const UI_TEXT = {
 export const CORE_PHILOSOPHY = {
   motto: '說出來 → 看一看 → 收回來 → 放下去。',
   containmentMotto: '物理現實明早 09:00 前不收件，今晚在床上運算一律判定為無效。',
+  passiveLinkageMotto: '平常不打擾，看到連結才開口。',
   principles: [
     'Level 0 消波：急性混亂時，先給身體出口，不必面對文字。',
     'Level 1 草稿：低摩擦膠囊，降低啟動阻抗。',
     '客觀手術刀：切開客觀張力與物理邊界，嚴禁心理診斷與套話。',
+    '雙軌解耦：事件軌道（人事地）與狀態軌道（身心感受）分離，捕捉跨情境溢出與跨時間重現。',
     '心智封裝：指認今晚運算無效的外部變數，履約下班。',
     '原文第一：每一次留下的原文永久保存，AI 不覆蓋、不篡改。'
   ]
