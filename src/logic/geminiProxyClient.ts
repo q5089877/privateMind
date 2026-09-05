@@ -99,14 +99,14 @@ export class GeminiProxyClient {
     }
   }
 
-  /** Explore Companion: explicit session-only perspectives from one selected group. */
-  public static async getExplorePerspectives(turns: ConversationTurn[], group: ExploreGroup): Promise<ExplorePerspective[] | null> {
-    const task = exploreRole.create(turns, group);
+  /** Explore Companion: explicit session-only perspectives from orthogonal axes. */
+  public static async getExplorePerspectives(turns: ConversationTurn[], excludeAxes?: string[] | ExploreGroup): Promise<ExplorePerspective[] | null> {
+    const task = exploreRole.create(turns, excludeAxes);
     const proxyUrl = this.getProxyUrl();
     if (!task || !proxyUrl) return null;
     try {
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
-      return raw ? exploreRole.read(raw, task.context.transcript, group) : null;
+      return raw ? exploreRole.read(raw, task.context.transcript) : null;
     } catch {
       return null;
     }

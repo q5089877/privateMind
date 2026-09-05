@@ -16,6 +16,20 @@ export const ORTHOGONAL_AXIS_DEFINITIONS: Record<string, { title: string; instru
   action: { title: '行動', instruction: '從想通切換到最小下一步；如果今天只讓自己稍微喘口氣或舒服 5%，做什麼最容易？' }
 };
 
+const ORTHOGONAL_CLUSTERS = [
+  ['fact', 'body', 'context', 'scale'],
+  ['control', 'action', 'assumption', 'exception'],
+  ['defusion', 'time', 'need', 'other']
+];
+
+export function sampleOrthogonalAxes(excludeAxes: string[] = []): string[] {
+  return ORTHOGONAL_CLUSTERS.map(cluster => {
+    const available = cluster.filter(axis => !excludeAxes.includes(axis));
+    const pool = available.length > 0 ? available : cluster;
+    return pool[Math.floor(Math.random() * pool.length)];
+  });
+}
+
 const transcriptFrom = (turns: ConversationTurn[]) => turns
   .filter(turn => turn.role === 'user' && turn.content.trim())
   .map(turn => turn.content.trim())
@@ -23,16 +37,17 @@ const transcriptFrom = (turns: ConversationTurn[]) => turns
   .slice(-6000);
 
 export const exploreRole = {
-  create(turns: ConversationTurn[], _group?: ExploreGroup): GeminiRoleRequest<{ transcript: string; group?: ExploreGroup }> | null {
+  create(turns: ConversationTurn[], excludeAxes?: string[] | ExploreGroup): GeminiRoleRequest<{ transcript: string; group?: ExploreGroup }> | null {
     const transcript = transcriptFrom(turns);
     if (!transcript) return null;
-    const axisKeys = Object.keys(ORTHOGONAL_AXIS_DEFINITIONS);
+    const excluded = Array.isArray(excludeAxes) ? excludeAxes : [];
+    const targetAxes = sampleOrthogonalAxes(excluded);
     const responseSchema = {
       type: 'OBJECT', properties: {
         perspectives: {
-          type: 'ARRAY', minItems: 3, maxItems: 4, items: {
+          type: 'ARRAY', minItems: targetAxes.length, maxItems: targetAxes.length, items: {
             type: 'OBJECT', properties: {
-              id: { type: 'STRING', enum: axisKeys },
+              id: { type: 'STRING', enum: targetAxes },
               title: { type: 'STRING', description: '必須等於該正交軸指定的中文標題。' },
               content: { type: 'STRING', description: '20 到 65 字的直白大白話觀點，針對該軸度進行認知切換，嚴禁文學比喻或憑空腦補。' },
               followUp: { type: 'STRING', description: '8 到 32 字、可由使用者自行回答的一句延續思考。' },
@@ -42,27 +57,25 @@ export const exploreRole = {
         }
       }, required: ['perspectives']
     };
-    const instructions = Object.entries(ORTHOGONAL_AXIS_DEFINITIONS)
-      .map(([id, def]) => `- ${id}（${def.title}）：${def.instruction}`)
+    const instructions = targetAxes
+      .map(id => `- ${id}（${ORTHOGONAL_AXIS_DEFINITIONS[id]?.title || id}）：${ORTHOGONAL_AXIS_DEFINITIONS[id]?.instruction || ''}`)
       .join('\n');
 
     return {
       timeoutMs: 14_000,
-      context: { transcript, group: _group },
+      context: { transcript, group: undefined },
       payload: {
         model: FLASH_LITE_MODEL,
         contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動點選了「換個角度」。
-我們有以下 12 條互斥的【正交認知軸度】：\n${instructions}
-
-請根據使用者剛才說的話，從這 12 條軸度中，嚴格挑選剛好 3 到 4 條【彼此推理機制完全互斥、絕不概念重疊】的正交軸。
-針對挑出的每一條軸，生成一段具備實質思維槓桿的視角卡（每張卡包含 id, title, content, followUp, sourcePhrases）。
+請嚴格針對以下指定抽出的 ${targetAxes.length} 條【互斥正交認知軸度】，各自生成 1 個視角卡（剛好 ${targetAxes.length} 張卡，每張卡的 id 必須嚴格對應）：
+${instructions}
 
 【核心文風禁令】：
-- 嚴禁同義反覆：即使字面完全不同，只要推理機制類似（例如兩張卡都在講休息、或都在講身體），即屬嚴重違規！每張卡切入的認知軸度必須截然獨立。
+- 嚴禁同義反覆：三張卡的推理機制完全獨立，分別對應其指定軸度。
 - 嚴禁憑空腦補：絕對不可捏造使用者沒提及的領域（如工作、效率、壓力、家庭等）。只根據使用者說出的內容延伸。
 - 嚴禁文學比喻與散文修辭：嚴禁法庭、審判、黑夜、鐘聲等虛構比喻。請一律用口語、真誠的大白話。
 - 嚴禁心理學標籤與教訓：禁止使用「你其實」、「這顯示」、「心理防衛」等說教口氣。繁體中文。` }] }],
-        generationConfig: { temperature: 0.35, maxOutputTokens: 600, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+        generationConfig: { temperature: 0.35, maxOutputTokens: 550, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
   },

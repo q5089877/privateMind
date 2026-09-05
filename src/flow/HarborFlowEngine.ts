@@ -88,9 +88,9 @@ export class HarborFlowEngine {
   }
 
   /** Explore is explicit, scoped to the visible session, and never persisted as a user label. */
-  public async requestExploration(session: HarborSession, requestedGroup?: ExploreGroup): Promise<ExploreResult | null> {
+  public async requestExploration(session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]): Promise<ExploreResult | null> {
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const result = await this.companion.exploreSession(session, requestedGroup);
+    const result = await this.companion.exploreSession(session, requestedGroupOrExcludeAxes);
     this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(result ? {} : { error: '暫時找不到可用的新角度。' }) });
     return result;
   }

@@ -18,14 +18,15 @@ export class CompanionService {
   }
 
   /** Exploration is explicit, session-only, and its selected group is never persisted. */
-  public async exploreSession(session: HarborSession, requestedGroup?: ExploreGroup): Promise<ExploreResult | null> {
+  public async exploreSession(session: HarborSession, excludeAxesOrGroup?: string[] | ExploreGroup): Promise<ExploreResult | null> {
+    const excludeAxes = Array.isArray(excludeAxesOrGroup) ? excludeAxesOrGroup : undefined;
+    const requestedGroup = typeof excludeAxesOrGroup === 'string' ? excludeAxesOrGroup : undefined;
     const route = requestedGroup
       ? { group: requestedGroup, evidence: [], source: 'manual' as const }
-      : await GeminiProxyClient.getExploreRoute(session.turns);
-    const resolvedRoute = route || { group: DEFAULT_EXPLORE_GROUP, evidence: [], source: 'automatic' as const };
-    const generated = await GeminiProxyClient.getExplorePerspectives(session.turns, resolvedRoute.group);
-    const perspectives = generated || this.localExplore(session, resolvedRoute.group);
-    return perspectives ? { route: resolvedRoute, perspectives } : null;
+      : { group: DEFAULT_EXPLORE_GROUP, evidence: [], source: 'automatic' as const };
+    const generated = await GeminiProxyClient.getExplorePerspectives(session.turns, excludeAxes || route.group);
+    const perspectives = generated || this.localExplore(session, route.group);
+    return perspectives ? { route, perspectives } : null;
   }
 
   /** Safe source-grounded cards for timeouts or invalid model output. */

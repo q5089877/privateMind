@@ -10,7 +10,7 @@ interface Props {
   onLeave: () => void;
   onContinue: (content: string) => Promise<void>;
   getPresentReply: (moment: Moment, session?: HarborSession | null, force?: boolean) => Promise<string | null>;
-  getExploration: (session: HarborSession, requestedGroup?: ExploreGroup) => Promise<ExploreResult | null>;
+  getExploration: (session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]) => Promise<ExploreResult | null>;
   onSaveReply: (momentId: string, reply: string) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
 }
@@ -23,12 +23,6 @@ const isFallbackReply = (text?: string | null) => {
   return clean === legacyFallbackReply ||
     clean === 'AI暫時無回應' ||
     clean.includes('已經留下來。眼前最卡住、最想先分清的是哪一部分');
-};
-
-const groupCopy: Record<ExploreGroup, { label: string; detail: string }> = {
-  feeling: { label: '從感受看', detail: '先從此刻的感受與情境，找四個不同入口。' },
-  decision: { label: '從選擇看', detail: '先把想守住的事、現實限制與時間放在一起看。' },
-  relationship: { label: '從互動看', detail: '只看原話裡已經說出的互動，不替任何人補上動機。' }
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
@@ -115,17 +109,44 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     if (content) await onContinue(content);
   };
 
-  const requestAngles = async (requestedGroup?: ExploreGroup) => {
-    if (!requestedGroup && showAngles) {
+  const requestAngles = async () => {
+    if (showAngles) {
       setShowAngles(false);
       return;
     }
     setShowAngles(true);
     setExploring(true);
-    const result = await getExploration(session, requestedGroup);
+    const result = await getExploration(session);
     setExploration(result);
     setActivePerspectiveIndex(0);
     setExploring(false);
+  };
+
+  const nextPerspective = async () => {
+    if (!exploration || exploration.perspectives.length === 0 || exploring) return;
+    const nextIdx = activePerspectiveIndex + 1;
+    if (nextIdx >= exploration.perspectives.length) {
+      setExploring(true);
+      const seenIds = exploration.perspectives.map(p => p.id);
+      const nextBatch = await getExploration(session, seenIds);
+      if (nextBatch && nextBatch.perspectives.length > 0) {
+        const filtered = nextBatch.perspectives.filter(p => !seenIds.includes(p.id));
+        if (filtered.length > 0) {
+          setExploration(prev => prev ? {
+            ...prev,
+            perspectives: [...prev.perspectives, ...filtered]
+          } : nextBatch);
+          setActivePerspectiveIndex(nextIdx);
+        } else {
+          setActivePerspectiveIndex(0);
+        }
+      } else {
+        setActivePerspectiveIndex(0);
+      }
+      setExploring(false);
+    } else {
+      setActivePerspectiveIndex(nextIdx);
+    }
   };
 
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] py-5 sm:py-8">
@@ -194,11 +215,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
                               <div className="mt-3 flex items-center justify-between border-t border-border-base/50 pt-2.5 text-xs">
                                 <button
                                   type="button"
-                                  onClick={() => setActivePerspectiveIndex(idx => (idx + 1) % exploration.perspectives.length)}
-                                  className="inline-flex items-center gap-1.5 font-medium text-accent hover:text-ink transition-colors"
+                                  disabled={exploring}
+                                  onClick={() => void nextPerspective()}
+                                  className="inline-flex items-center gap-1.5 font-medium text-accent hover:text-ink transition-colors disabled:opacity-50"
                                 >
-                                  <RotateCw size={12} />
-                                  <span>{t.exploreNextBtn}</span>
+                                  <RotateCw size={12} className={exploring ? 'animate-spin' : ''} />
+                                  <span>{exploring ? t.exploreLoading : t.exploreNextBtn}</span>
                                 </button>
                                 <button
                                   type="button"

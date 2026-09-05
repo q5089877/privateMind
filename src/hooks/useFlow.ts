@@ -19,7 +19,7 @@ export function useFlow() {
     error: snapshot.error,
     submitText: (text: string, intent?: MomentIntent) => engine.submitText(text, intent),
     requestPresentReply: (moment: Moment, session?: HarborSession, force?: boolean) => engine.requestPresentReply(moment, session, force),
-    requestExploration: (session: HarborSession, requestedGroup?: ExploreGroup) => engine.requestExploration(session, requestedGroup),
+    requestExploration: (session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]) => engine.requestExploration(session, requestedGroupOrExcludeAxes),
     saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
     beginLanding: (session: HarborSession) => engine.beginLanding(session),
     completeLanding: (sessionId: string, closure: SessionClosure) => engine.completeLanding(sessionId, closure),
