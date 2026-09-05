@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Heart, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
+import { Anchor, ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
 
@@ -158,7 +158,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
         <div className="absolute inset-x-0 top-0 h-1 bg-white/40 shadow-[0_0_16px_rgba(255,255,255,0.7)]" />
       </div>
 
-      {/* 核心心跳 ❤️ 符號與平靜共振進度 */}
+      {/* 核心定心錨 ⚓ 與生理心跳共振進度 */}
       {(isHolding || holdProgress > 0) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none">
           <div
@@ -172,21 +172,21 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
                 ? 'border-white bg-accent text-white shadow-[0_0_35px_rgba(255,255,255,0.5)]'
                 : 'border-accent/40 bg-surface/90 text-accent'
             }`}>
-              <Heart
+              <Anchor
                 size={48}
                 strokeWidth={1.8}
-                className={`transition-transform duration-150 fill-current ${
-                  heartBeatPhase ? 'scale-125' : 'scale-100'
+                className={`transition-transform duration-150 ${
+                  heartBeatPhase ? 'scale-115' : 'scale-100'
                 }`}
               />
             </span>
 
             <div className="space-y-1 drop-shadow-md">
               <p className="text-xl font-medium tracking-tight text-white sm:text-2xl">
-                {isHeartSustaining ? '平靜心跳 · 持續定錨' : '按住，隨心跳放慢'}
+                {isHeartSustaining ? UI_TEXT.home.vent.sustainedState : UI_TEXT.home.vent.holdingState}
               </p>
               <p className="font-mono text-sm tracking-widest text-white/80">
-                {isHeartSustaining ? '保持呼吸 · 放開即止' : `${Math.round(holdProgress)}%`}
+                {isHeartSustaining ? UI_TEXT.home.vent.sustainedSubtext : `${Math.round(holdProgress)}%`}
               </p>
             </div>
           </div>
@@ -211,14 +211,14 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
           className={`group relative flex h-11 items-center gap-2 rounded-full border px-3.5 text-xs font-medium shadow-xs select-none touch-none transition-all duration-100 ${
             isTapping ? 'scale-90 border-accent bg-accent/15' : 'border-accent/30 bg-surface active:scale-95'
           }`}
-          title="輕點消波，按住隨心跳放慢"
+          title={UI_TEXT.home.vent.buttonTitle}
         >
-          <Heart size={17} className={`text-accent transition-transform duration-200 fill-current ${isHolding ? 'scale-115 text-accent-hover' : isTapping ? 'scale-90 rotate-[-10deg]' : 'group-hover:scale-110'}`} />
+          <Anchor size={17} className={`text-accent transition-transform duration-200 ${isHolding ? 'scale-115 text-accent-hover' : isTapping ? 'scale-90 rotate-[-10deg]' : 'group-hover:scale-110'}`} />
           <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
             {UI_TEXT.home.vent.buttonLabel}
           </span>
           <span className="text-[10px] font-mono text-ink-muted whitespace-nowrap">
-            {isHolding ? (isHeartSustaining ? '平靜中' : `${Math.round(holdProgress)}%`) : UI_TEXT.home.vent.idleHint}
+            {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : UI_TEXT.home.vent.idleHint}
           </span>
         </button>
         {ventCount > 0 && (
@@ -238,7 +238,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
 
       <section className="mt-9 rounded-[28px] border border-border-base bg-surface px-5 py-5 shadow-[0_10px_28px_rgba(47,70,54,0.08)] sm:mt-12 sm:rounded-[32px] sm:px-7 sm:py-7">
         <div className="flex items-center gap-2 text-sm font-medium text-ink">
-          <MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>現在想說什麼？
+          <MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>{UI_TEXT.home.sectionTitle}
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -278,7 +278,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-base pt-4">
           <p className="text-xs leading-relaxed text-ink-muted">
-            {activeQuickState ? '已帶入草稿，可直接送出或修改。' : '先說一句也可以。'}
+            {activeQuickState ? UI_TEXT.home.inputHintDraft : UI_TEXT.home.inputHintDefault}
           </p>
           <button
             type="button"
@@ -286,18 +286,18 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
             onClick={beginConversation}
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_5px_12px_rgba(47,91,71,0.2)] transition-all hover:-translate-y-px hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"
           >
-            <span>開始說說</span>
+            <span>{UI_TEXT.home.submitBtn}</span>
             <ArrowUp size={16} strokeWidth={2}/>
           </button>
         </div>
       </section>
 
-      <p className="mt-4 px-2 text-sm leading-relaxed text-ink-secondary">送出後，我會先陪你把這一句看清一點；不替你急著下結論。</p>
+      <p className="mt-4 px-2 text-sm leading-relaxed text-ink-secondary">{UI_TEXT.home.footerPromise}</p>
     </main>
 
     <nav className="mt-10 border-t border-border-base pt-5 sm:mt-14">
-      <button type="button" onClick={onReview} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-[16px] text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink"><span className="flex items-center gap-3"><History size={19} strokeWidth={1.7}/>回看以前留下的事</span><span aria-hidden="true" className="text-ink-muted">→</span></button>
-      <button type="button" onClick={onOpenBackup} className="mt-2 flex min-h-9 items-center gap-2 px-2 text-[13px] text-ink-muted transition-colors hover:text-ink"><ShieldCheck size={15} className="text-accent"/>內容只保存在這台裝置</button>
+      <button type="button" onClick={onReview} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-[16px] text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink"><span className="flex items-center gap-3"><History size={19} strokeWidth={1.7}/>{UI_TEXT.home.reviewPast}</span><span aria-hidden="true" className="text-ink-muted">→</span></button>
+      <button type="button" onClick={onOpenBackup} className="mt-2 flex min-h-9 items-center gap-2 px-2 text-[13px] text-ink-muted transition-colors hover:text-ink"><ShieldCheck size={15} className="text-accent"/>{UI_TEXT.home.backup}</button>
     </nav>
   </div>;
 };

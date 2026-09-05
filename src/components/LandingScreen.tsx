@@ -23,7 +23,7 @@ export const LandingScreen: React.FC<Props> = ({ session, closure, onReturnToCha
   };
 
   return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] py-5 sm:py-8">
-    <header className="flex min-h-11 items-center"><button onClick={onReturnToChat} className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>{t.backBtn}</button></header>
+    <header className="flex min-h-11 items-center"><button onClick={onReturnToChat} className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>{t.backToChatBtn}</button></header>
     <main className="pt-10 sm:pt-14">
       <div className="flex items-center gap-2 text-sm font-medium text-accent"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10"><Waves size={15}/></span>{t.tag}</div>
       <h1 className="mt-5 text-[32px] font-medium tracking-[-0.05em] text-ink sm:text-[40px]">{t.title}</h1>

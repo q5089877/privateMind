@@ -1,7 +1,7 @@
 /** Shared transport-shaped types and parsing helpers for independent AI roles. */
 
-export const FLASH_LITE_MODEL = 'gemini-3.6-flash';
-export const FLASH_MODEL = 'gemini-3.6-flash';
+export const FLASH_LITE_MODEL = 'gemini-3.5-flash-lite';
+export const FLASH_MODEL = 'gemini-3.5-flash-lite';
 export const FAST_THINKING_CONFIG = { thinkingLevel: 'minimal' };
 
 export interface GeminiRoleRequest<Context = undefined> {

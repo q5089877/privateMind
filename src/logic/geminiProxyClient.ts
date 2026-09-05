@@ -47,7 +47,10 @@ const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: num
 };
 
 const readModelText = async (response: Response): Promise<string | null> => {
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn(`[GeminiProxyClient] API call failed (${response.status}): ${response.statusText}`);
+    return null;
+  }
   const data = await response.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   return typeof text === 'string' ? text : null;
@@ -70,16 +73,16 @@ export class GeminiProxyClient {
     return !!this.getProxyUrl().trim();
   }
 
-  /** Present Companion: one current Moment, no historical retrieval. */
-  public static async getCompanionResponse(current: string): Promise<string | null> {
-    const task = presentRole.create(current);
+  /** Present Companion: one current Moment, with in-session context if available, no cross-session historical retrieval. */
+  public static async getCompanionResponse(current: string, priorTurns?: ConversationTurn[]): Promise<string | null> {
+    const task = presentRole.create(current, priorTurns);
     const proxyUrl = this.getProxyUrl();
-    if (!proxyUrl) return presentFallback(current);
+    if (!proxyUrl) return null;
     try {
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
-      return raw ? presentRole.read(raw, current) : presentFallback(current);
+      return raw ? presentRole.read(raw, current) : null;
     } catch {
-      return presentFallback(current);
+      return null;
     }
   }
 

@@ -68,12 +68,13 @@ export class HarborFlowEngine {
     this.dispatch({ type: 'MOMENT_CAPTURED', moment, session });
   }
 
-  /** Present Companion reads one current Moment and no past history. */
-  public async requestPresentReply(moment: Moment): Promise<string | null> {
+  /** Present Companion reads one current Moment with in-session context, and no past cross-session history. */
+  public async requestPresentReply(moment: Moment, session?: HarborSession): Promise<string | null> {
     const existing = this.presentReplyRequests.get(moment.id);
     if (existing) return existing;
+    const activeSession = session || this.snapshot.currentSession || undefined;
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const request = this.companion.replyToPresentMoment(moment).then(reply => {
+    const request = this.companion.replyToPresentMoment(moment, activeSession).then(reply => {
       this.dispatch(reply
         ? { type: 'SET_REQUEST', request: 'idle' }
         : { type: 'SET_REQUEST', request: 'idle', error: '回應暫時沒有連上。' });
