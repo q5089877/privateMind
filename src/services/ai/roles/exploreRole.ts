@@ -1,31 +1,19 @@
 import type { ConversationTurn, ExploreGroup, ExplorePerspective, ExplorePerspectiveId } from '../../../domain/harbor';
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, parseJson } from './shared';
 
-interface CardDefinition {
-  id: ExplorePerspectiveId;
-  title: string;
-  instruction: string;
-}
-
-const CARD_DEFINITIONS: Record<ExploreGroup, CardDefinition[]> = {
-  feeling: [
-    { id: 'context', title: '眼前發生什麼', instruction: '從抽象感受補足此刻正在發生的具體情境；不追問原因，也不要求回想過去。' },
-    { id: 'change', title: '哪裡不一樣', instruction: '對照現在與以前的差異，只讓變化浮現；「以前」只能由使用者在本次對話定義。' },
-    { id: 'body', title: '身體怎麼說', instruction: '提供暫時不分析、從感官接近的可能；不可假設身體必有答案或存在症狀。' },
-    { id: 'suspend', title: '先不下結論', instruction: '暫時把一句重的話放旁邊，避免它成為對自己或生活的定論；不可質疑感受真假。' }
-  ],
-  decision: [
-    { id: 'values', title: '我想守住什麼', instruction: '辨認原文已說出的價值、底線或不願失去的事；不替人指定優先順序。' },
-    { id: 'constraint', title: '現實卡在哪裡', instruction: '區分原文真正提到的限制、成本或資源；不可把猜測補成事實。' },
-    { id: 'reversible', title: '哪一步還能回頭', instruction: '看選擇是否有可逆的小步；不可變成行動指令或風險建議。' },
-    { id: 'time', title: '放到之後看', instruction: '拉開時間距離看今天急著決定的事；不可預測結果。' }
-  ],
-  relationship: [
-    { id: 'self', title: '我在意什麼', instruction: '指出使用者親口說出的感受、期待、界線或受影響之處。' },
-    { id: 'unknown', title: '還不知道什麼', instruction: '區分已知的對方言行與未知想法；不可替對方推測恐懼、意圖或防衛。' },
-    { id: 'observer', title: '旁觀者會看見什麼', instruction: '只根據已說出的互動描述可觀察行為；不可做道德評價。' },
-    { id: 'system', title: '環境正在推什麼', instruction: '只有原文有制度、角色、資源或情境證據時才指出其可能影響；不可虛構結構原因。' }
-  ]
+export const ORTHOGONAL_AXIS_DEFINITIONS: Record<string, { title: string; instruction: string }> = {
+  fact: { title: '事實', instruction: '拿掉原因、動機與腦補，只還原目前百分之百能確定的客觀事實。' },
+  time: { title: '時間', instruction: '把現在放進更大的時間尺度；現在的狀態很重，不代表接下來也會一直是這樣。' },
+  control: { title: '控制', instruction: '分清現在能改變什麼 vs 只能承受什麼；不強求心情變好，只看此刻能掌握的最小邊界。' },
+  defusion: { title: '解離', instruction: '狀態不等於自己；你正在經歷這個感受，不等於你就是這樣的人。' },
+  need: { title: '需求', instruction: '情緒背後往往是具體匱乏；比起逼自己振作，先看當下缺休息、陪伴、還是某種期待。' },
+  body: { title: '身體', instruction: '從心理分析切換到生理感官（睡眠、體力、飲食）；停止大腦空轉，先看身體的物質基礎。' },
+  context: { title: '情境', instruction: '不問「我怎麼了」，改看環境或角色推力；最近的生活或環境裡，有沒有什麼在持續消耗你。' },
+  exception: { title: '例外', instruction: '尋找問題沒有出現的縫隙；最近有沒有哪怕只有半小時，情況其實沒有這麼糟？' },
+  other: { title: '他者', instruction: '換成旁觀者或重要他人的位置；如果是你在乎的人遇到這事，你大概不會要求他立刻解決。' },
+  scale: { title: '尺度', instruction: '從整個人生縮小到眼前具體一小部分；今天最卡住的可能只是局部，不代表全局瓦解。' },
+  assumption: { title: '假設', instruction: '挑戰偷偷存在的前提；例如「非得現在想出原因嗎？」、「這件事一定非做不可嗎？」' },
+  action: { title: '行動', instruction: '從想通切換到最小下一步；如果今天只讓自己稍微喘口氣或舒服 5%，做什麼最容易？' }
 };
 
 const transcriptFrom = (turns: ConversationTurn[]) => turns
@@ -35,48 +23,61 @@ const transcriptFrom = (turns: ConversationTurn[]) => turns
   .slice(-6000);
 
 export const exploreRole = {
-  create(turns: ConversationTurn[], group: ExploreGroup): GeminiRoleRequest<{ transcript: string; group: ExploreGroup }> | null {
+  create(turns: ConversationTurn[], _group?: ExploreGroup): GeminiRoleRequest<{ transcript: string; group?: ExploreGroup }> | null {
     const transcript = transcriptFrom(turns);
     if (!transcript) return null;
-    const cards = CARD_DEFINITIONS[group];
+    const axisKeys = Object.keys(ORTHOGONAL_AXIS_DEFINITIONS);
     const responseSchema = {
       type: 'OBJECT', properties: {
         perspectives: {
-          type: 'ARRAY', minItems: 4, maxItems: 4, items: {
+          type: 'ARRAY', minItems: 3, maxItems: 4, items: {
             type: 'OBJECT', properties: {
-              id: { type: 'STRING', enum: cards.map(card => card.id) },
-              title: { type: 'STRING', description: '必須完全等於指定標題。' },
-              content: { type: 'STRING', description: '20 到 68 字的直白大白話觀點，直指核心感受，嚴禁文學比喻或散文腦補，只寫一段，不鋪陳。' },
-              followUp: { type: 'STRING', description: '8 到 32 字、可由使用者自行回答的一句延續問題。' },
+              id: { type: 'STRING', enum: axisKeys },
+              title: { type: 'STRING', description: '必須等於該正交軸指定的中文標題。' },
+              content: { type: 'STRING', description: '20 到 65 字的直白大白話觀點，針對該軸度進行認知切換，嚴禁文學比喻或憑空腦補。' },
+              followUp: { type: 'STRING', description: '8 到 32 字、可由使用者自行回答的一句延續思考。' },
               sourcePhrases: { type: 'ARRAY', minItems: 1, maxItems: 2, items: { type: 'STRING' }, description: '本次對話中與該觀點對應的 1 到 2 段原話短語（2 到 28 字）。' }
             }, required: ['id', 'title', 'content', 'followUp', 'sourcePhrases']
           }
         }
       }, required: ['perspectives']
     };
-    const instructions = cards.map(card => `- ${card.id}，title 必須是「${card.title}」：${card.instruction}`).join('\n');
+    const instructions = Object.entries(ORTHOGONAL_AXIS_DEFINITIONS)
+      .map(([id, def]) => `- ${id}（${def.title}）：${def.instruction}`)
+      .join('\n');
+
     return {
       timeoutMs: 14_000,
-      context: { transcript, group },
+      context: { transcript, group: _group },
       payload: {
         model: FLASH_LITE_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動選了「換個角度」，這次只使用「${group}」這一組。請寫出剛好四段真正不同、平級的 AI 觀點；不是四個操作提示、分析報告或結論。每張卡都要有 id, title, content, followUp, sourcePhrases。\n\n${instructions}\n\n每張 content 只寫一個重點，必須基於使用者說過的原意延伸，嚴禁在每張卡第一句複誦原句（例如「當出現……」「面對……」）。\n\n【核心文風禁令】：\n嚴禁使用文學比喻、散文修辭、舞台劇式情境描寫或二度腦補（嚴禁描繪法庭、審判、黑夜、鐘聲、枷鎖等虛構意象或文學散文）；請一律用真誠、口語、平實的大白話直接指出當下的核心感受、矛盾或卡住點。\n\n四張卡切入維度必須截然不同，不可重複或同義改寫；省略開場鋪陳、規則說明與總結。sourcePhrases 填寫本次對話中啟發該觀點的原話片段（2 到 28 字）。若有推測，使用「也許」「可能」「像是」等保留語氣。followUp 只問一件事，不替使用者填答案。禁止心理或人格標籤、建議、命令、診斷、因果定論、提及舊紀錄、使用「你其實」「你在」「這顯示」。繁體中文。` }] }],
-        generationConfig: { temperature: 0.38, maxOutputTokens: 520, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+        contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動點選了「換個角度」。
+我們有以下 12 條互斥的【正交認知軸度】：\n${instructions}
+
+請根據使用者剛才說的話，從這 12 條軸度中，嚴格挑選剛好 3 到 4 條【彼此推理機制完全互斥、絕不概念重疊】的正交軸。
+針對挑出的每一條軸，生成一段具備實質思維槓桿的視角卡（每張卡包含 id, title, content, followUp, sourcePhrases）。
+
+【核心文風禁令】：
+- 嚴禁同義反覆：即使字面完全不同，只要推理機制類似（例如兩張卡都在講休息、或都在講身體），即屬嚴重違規！每張卡切入的認知軸度必須截然獨立。
+- 嚴禁憑空腦補：絕對不可捏造使用者沒提及的領域（如工作、效率、壓力、家庭等）。只根據使用者說出的內容延伸。
+- 嚴禁文學比喻與散文修辭：嚴禁法庭、審判、黑夜、鐘聲等虛構比喻。請一律用口語、真誠的大白話。
+- 嚴禁心理學標籤與教訓：禁止使用「你其實」、「這顯示」、「心理防衛」等說教口氣。繁體中文。` }] }],
+        generationConfig: { temperature: 0.35, maxOutputTokens: 600, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
   },
 
-  read(raw: string, transcript: string, group: ExploreGroup): ExplorePerspective[] | null {
+  read(raw: string, transcript: string, _group?: ExploreGroup): ExplorePerspective[] | null {
     const parsed = parseJson(raw) as { perspectives?: unknown } | null;
     const cards = Array.isArray(parsed?.perspectives) ? parsed.perspectives : [];
-    const definitions = CARD_DEFINITIONS[group];
-    const requiredTitles = new Map(definitions.map(card => [card.id, card.title]));
     const forbidden = ['心理', '人格', '診斷', '建議', '應該', '一定', '真正原因', '你其實', '你在', '這顯示'];
     const valid = cards.map((card: unknown): ExplorePerspective | null => {
       if (!card || typeof card !== 'object') return null;
       const item = card as Record<string, unknown>;
       const id = item.id as ExplorePerspectiveId;
-      const title = typeof item.title === 'string' ? item.title.trim() : '';
+      const def = ORTHOGONAL_AXIS_DEFINITIONS[id];
+      if (!def) return null;
+      const title = typeof item.title === 'string' ? item.title.trim() : def.title;
       const content = typeof item.content === 'string' ? item.content.trim() : '';
       const followUp = typeof item.followUp === 'string' ? item.followUp.trim() : '';
       const sourcePhrases = Array.isArray(item.sourcePhrases)
@@ -84,14 +85,14 @@ export const exploreRole = {
         : [];
       const combined = `${title} ${content} ${followUp}`;
       const validSource = sourcePhrases.length > 0 && sourcePhrases.some(phrase => transcript.includes(phrase));
-      if (!requiredTitles.has(id) || title !== requiredTitles.get(id) || content.length < 18 || content.length > 80 || followUp.length < 6 || followUp.length > 36 || !validSource || forbidden.some(word => combined.includes(word))) return null;
-      return { id, title, content, followUp, sourcePhrases };
+      if (content.length < 15 || content.length > 85 || followUp.length < 5 || followUp.length > 40 || !validSource || forbidden.some(word => combined.includes(word))) return null;
+      return { id, title: def.title, content, followUp, sourcePhrases };
     }).filter((card): card is ExplorePerspective => Boolean(card));
+
     const normalized = valid.map(card => card.content.replace(/[\s\p{P}]/gu, ''));
-    return valid.length === 4
-      && new Set(valid.map(card => card.id)).size === 4
-      && new Set(valid.map(card => card.title)).size === 4
-      && new Set(normalized).size === 4
+    return valid.length >= 3 && valid.length <= 4
+      && new Set(valid.map(card => card.id)).size === valid.length
+      && new Set(normalized).size === valid.length
       ? valid
       : null;
   }

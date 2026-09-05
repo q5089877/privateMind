@@ -43,8 +43,10 @@ export interface SessionClosureDraft {
 export type ExploreGroup = 'feeling' | 'decision' | 'relationship';
 
 export type ExplorePerspectiveId =
-  | 'context' | 'change' | 'body' | 'suspend'
-  | 'values' | 'constraint' | 'reversible' | 'time'
+  | 'fact' | 'time' | 'control' | 'defusion'
+  | 'need' | 'body' | 'context' | 'exception'
+  | 'other' | 'scale' | 'assumption' | 'action'
+  | 'change' | 'suspend' | 'values' | 'constraint' | 'reversible'
   | 'self' | 'unknown' | 'observer' | 'system';
 
 /** The route selected for this one explicit exploration request. */

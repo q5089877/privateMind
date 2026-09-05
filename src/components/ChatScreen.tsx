@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, Compass, MessageCircle, RotateCw, Waves } from 'lucide-react';
+import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
 import { ConversationTurn, ExploreGroup, ExploreResult, HarborSession, Moment } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { UI_TEXT } from '../config/textConfig';
@@ -146,16 +146,80 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
       </aside>}
 
       <section aria-label="這次停靠的對話" className="mt-10 space-y-5">
-        {turns.map(turn => turn.role === 'user'
-          ? <article key={turn.id} className="ml-5 rounded-[24px] border border-border-base bg-surface px-5 py-4 shadow-[0_3px_10px_rgba(47,70,54,0.06)] sm:ml-12">
-              <p className="text-xs font-medium text-ink-muted">{t.userTurnLabel}</p>
-              <p className="mt-2 whitespace-pre-wrap text-[18px] leading-[1.7] tracking-[-0.02em] text-ink">{turn.content}</p>
-            </article>
-          : <article key={turn.id} className="mr-5 border-l-2 border-accent/55 py-1 pl-4 sm:mr-12 sm:pl-5">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-accent"><Waves size={14}/>{t.aiMirrorLabel}</p>
-              <p className="mt-2 whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-secondary">{turn.content}</p>
-            </article>
-        )}
+        {turns.map((turn, index) => {
+          const isLastAssistant = turn.role === 'assistant' && index === turns.length - 1;
+          return turn.role === 'user'
+            ? <article key={turn.id} className="ml-5 rounded-[24px] border border-border-base bg-surface px-5 py-4 shadow-[0_3px_10px_rgba(47,70,54,0.06)] sm:ml-12">
+                <p className="text-xs font-medium text-ink-muted">{t.userTurnLabel}</p>
+                <p className="mt-2 whitespace-pre-wrap text-[18px] leading-[1.7] tracking-[-0.02em] text-ink">{turn.content}</p>
+              </article>
+            : <article key={turn.id} className="mr-5 border-l-2 border-accent/55 py-1 pl-4 sm:mr-12 sm:pl-5">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-accent"><Waves size={14}/>{t.aiMirrorLabel}</p>
+                <p className="mt-2 whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-secondary">{turn.content}</p>
+
+                {isLastAssistant && (
+                  <div className="mt-3">
+                    {!showAngles ? (
+                      <button
+                        type="button"
+                        disabled={exploring}
+                        onClick={() => void requestAngles()}
+                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-ink-muted transition-colors hover:bg-surface-subtle hover:text-accent disabled:opacity-50"
+                      >
+                        <RotateCw size={12} className={exploring ? 'animate-spin' : ''} />
+                        <span>{exploring ? t.exploreLoading : t.exploreBtn}</span>
+                      </button>
+                    ) : (
+                      <div className="rounded-2xl border border-accent/20 bg-surface-subtle p-3.5 sm:p-4">
+                        {exploring ? (
+                          <p className="flex items-center gap-2 text-xs text-ink-muted">
+                            <RotateCw size={13} className="animate-spin text-accent" />
+                            {t.exploreLoading}
+                          </p>
+                        ) : exploration && exploration.perspectives.length > 0 ? (() => {
+                          const currentPerspective = exploration.perspectives[activePerspectiveIndex % exploration.perspectives.length];
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between text-[11px] font-medium text-accent">
+                                <span>{t.explorePerspectivePrefix} · {currentPerspective.title}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAngles(false)}
+                                  className="text-ink-muted hover:text-ink transition-colors"
+                                >
+                                  {t.closeExploreBtn}
+                                </button>
+                              </div>
+                              <p className="mt-2 text-[15px] leading-relaxed text-ink">{currentPerspective.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-border-base/50 pt-2.5 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setActivePerspectiveIndex(idx => (idx + 1) % exploration.perspectives.length)}
+                                  className="inline-flex items-center gap-1.5 font-medium text-accent hover:text-ink transition-colors"
+                                >
+                                  <RotateCw size={12} />
+                                  <span>{t.exploreNextBtn}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openComposer(currentPerspective.followUp)}
+                                  className="inline-flex items-center gap-1 font-medium text-ink-secondary hover:text-accent transition-colors"
+                                >
+                                  <span>{t.exploreAdoptBtn}</span>
+                                  <ArrowDown size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })() : (
+                          <p className="text-xs text-ink-muted">{t.exploreEmpty}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </article>;
+        })}
         {!hasCurrentAssistant && !reply && !replyUnavailable && !isRetrying && (
           <article className="mr-5 border-l-2 border-accent/25 py-1 pl-4 sm:mr-12 sm:pl-5">
             <p className="flex items-center gap-2 text-sm text-ink-muted">
@@ -184,7 +248,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
         {showComposer ? <div className="rounded-[24px] border border-accent/20 bg-surface p-4 shadow-[0_5px_16px_rgba(47,70,54,0.07)]">
           <label htmlFor="continue-thought" className="text-sm font-medium text-ink">{t.composerTitle}</label>
           {continuationGuide && <div className="mt-3 rounded-2xl bg-surface-subtle px-3 py-2.5">
-            <p className="text-[11px] font-medium text-accent">{t.exploreBtn}</p>
+            <p className="text-[11px] font-medium text-accent">{t.explorePerspectivePrefix}</p>
             <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{continuationGuide}</p>
           </div>}
           <textarea ref={composerRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event => {
@@ -204,50 +268,6 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
           <button type="button" onClick={() => void onBeginLanding(session)} className="inline-flex min-h-11 items-center rounded-full border border-border-base bg-surface px-4 text-sm font-medium text-ink-secondary shadow-xs transition-colors hover:border-accent/40 hover:text-ink">
             {t.concludeBtn}
           </button>
-          <button type="button" onClick={() => void requestAngles()} className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors ${showAngles ? 'bg-surface-subtle text-accent' : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink'}`}>
-            <Compass size={16}/>{showAngles ? t.closeExploreBtn : t.exploreBtn}
-          </button>
-        </div>}
-
-        {showAngles && <div className="mt-5 rounded-[24px] border border-border-base bg-surface-subtle p-4 sm:p-5">
-          {exploring ? <div className="py-6 text-center text-sm text-ink-muted">{t.exploreLoading}</div> : exploration && exploration.perspectives.length > 0 ? (() => {
-            const currentPerspective = exploration.perspectives[activePerspectiveIndex % exploration.perspectives.length];
-            return <div>
-              <div className="flex items-center justify-between gap-2 border-b border-border-base/70 pb-3">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-accent">
-                  <Compass size={14}/>
-                  <span>{t.explorePerspectivePrefix}{currentPerspective.title}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActivePerspectiveIndex(idx => (idx + 1) % exploration.perspectives.length)}
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-ink-secondary hover:bg-surface hover:text-ink transition-colors"
-                >
-                  <RotateCw size={13}/>
-                  {t.exploreNextBtn}
-                </button>
-              </div>
-
-              <div className="mt-3.5 rounded-2xl border border-border-base bg-surface p-4 shadow-xs">
-                <p className="text-[15px] leading-[1.8] text-ink">{currentPerspective.content}</p>
-                <div className="mt-3.5 rounded-xl bg-surface-subtle px-3.5 py-3 border-l-2 border-accent/40">
-                  <p className="text-xs leading-relaxed font-medium text-accent">{t.exploreFollowUpPrefix}{currentPerspective.followUp}</p>
-                </div>
-                <div className="mt-4 flex items-center justify-between border-t border-border-base pt-3">
-                  <button
-                    type="button"
-                    onClick={() => openComposer(currentPerspective.followUp)}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-ink transition-colors"
-                  >
-                    {t.exploreAdoptBtn} <ArrowDown size={13}/>
-                  </button>
-                  <span className="text-[11px] text-ink-muted">
-                    {(activePerspectiveIndex % exploration.perspectives.length) + 1} / {exploration.perspectives.length}
-                  </span>
-                </div>
-              </div>
-            </div>;
-          })() : <p className="text-sm leading-relaxed text-ink-secondary">{t.exploreEmpty}</p>}
         </div>}
       </section>
     </main>
