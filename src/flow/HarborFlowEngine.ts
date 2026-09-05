@@ -69,7 +69,10 @@ export class HarborFlowEngine {
   }
 
   /** Present Companion reads one current Moment with in-session context, and no past cross-session history. */
-  public async requestPresentReply(moment: Moment, session?: HarborSession): Promise<string | null> {
+  public async requestPresentReply(moment: Moment, session?: HarborSession, force = false): Promise<string | null> {
+    if (force) {
+      this.presentReplyRequests.delete(moment.id);
+    }
     const existing = this.presentReplyRequests.get(moment.id);
     if (existing) return existing;
     const activeSession = session || this.snapshot.currentSession || undefined;

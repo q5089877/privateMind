@@ -18,7 +18,7 @@ export function useFlow() {
     request: snapshot.request,
     error: snapshot.error,
     submitText: (text: string, intent?: MomentIntent) => engine.submitText(text, intent),
-    requestPresentReply: (moment: Moment, session?: HarborSession) => engine.requestPresentReply(moment, session),
+    requestPresentReply: (moment: Moment, session?: HarborSession, force?: boolean) => engine.requestPresentReply(moment, session, force),
     requestExploration: (session: HarborSession, requestedGroup?: ExploreGroup) => engine.requestExploration(session, requestedGroup),
     saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
     beginLanding: (session: HarborSession) => engine.beginLanding(session),

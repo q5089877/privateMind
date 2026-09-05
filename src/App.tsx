@@ -17,7 +17,7 @@ const App: React.FC = () => {
       case 'HOME':
         return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={flow.openReview} onOpenBackup={flow.openBackup} />;
       case 'CHAT':
-        return <ChatScreen moment={flow.currentMoment} session={flow.currentSession} onLeave={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={(m, s) => flow.requestPresentReply(m, s || undefined)} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} onBeginLanding={flow.beginLanding} />;
+        return <ChatScreen moment={flow.currentMoment} session={flow.currentSession} onLeave={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={(m, s, force) => flow.requestPresentReply(m, s || undefined, force)} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} onBeginLanding={flow.beginLanding} />;
       case 'LAND':
         return <LandingScreen session={flow.currentSession} closure={flow.pendingClosure} onReturnToChat={flow.returnToChat} onSaveAndReturn={flow.completeLanding} />;
       case 'REVIEW':

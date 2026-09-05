@@ -9,7 +9,7 @@ interface Props {
   session: HarborSession | null;
   onLeave: () => void;
   onContinue: (content: string) => Promise<void>;
-  getPresentReply: (moment: Moment, session?: HarborSession | null) => Promise<string | null>;
+  getPresentReply: (moment: Moment, session?: HarborSession | null, force?: boolean) => Promise<string | null>;
   getExploration: (session: HarborSession, requestedGroup?: ExploreGroup) => Promise<ExploreResult | null>;
   onSaveReply: (momentId: string, reply: string) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
@@ -35,7 +35,7 @@ const groupCopy: Record<ExploreGroup, { label: string; detail: string }> = {
 export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding }) => {
   const [reply, setReply] = useState('');
   const [replyUnavailable, setReplyUnavailable] = useState(false);
-  const [replyAttempt, setReplyAttempt] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [continuation, setContinuation] = useState('');
   const [continuationGuide, setContinuationGuide] = useState('');
   const [showComposer, setShowComposer] = useState(false);
@@ -49,7 +49,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     const hasValidReply = moment?.immediateReply && !isFallbackReply(moment.immediateReply);
     setReply(hasValidReply ? normalizeCompanionResponse(moment!.immediateReply!) : '');
     setReplyUnavailable(Boolean(moment?.immediateReply && isFallbackReply(moment.immediateReply)));
-    setReplyAttempt(0);
+    setIsRetrying(false);
     setContinuation('');
     setContinuationGuide('');
     setShowComposer(false);
@@ -73,7 +73,28 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
       await onSaveReply(moment.id, clean);
     });
     return () => { alive = false; };
-  }, [moment?.id, replyAttempt, getPresentReply, onSaveReply, session]);
+  }, [moment?.id, getPresentReply, onSaveReply, session]);
+
+  const handleRetry = async () => {
+    if (!moment || isRetrying) return;
+    setIsRetrying(true);
+    setReplyUnavailable(false);
+    try {
+      const value = await getPresentReply(moment, session, true);
+      if (value) {
+        const clean = normalizeCompanionResponse(value);
+        setReply(clean);
+        await onSaveReply(moment.id, clean);
+        setReplyUnavailable(false);
+      } else {
+        setReplyUnavailable(true);
+      }
+    } catch {
+      setReplyUnavailable(true);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   if (!moment || !session) return null;
 
@@ -135,11 +156,28 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
               <p className="mt-2 whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-secondary">{turn.content}</p>
             </article>
         )}
-        {!hasCurrentAssistant && !reply && !replyUnavailable && <article className="mr-5 border-l-2 border-accent/25 py-1 pl-4 sm:mr-12 sm:pl-5"><p className="text-sm text-ink-muted">{t.loadingHint}</p></article>}
-        {replyUnavailable && <article className="mr-5 border-l-2 border-border-base py-1 pl-4">
-          <p className="text-sm leading-relaxed text-ink-secondary">{t.errorHint}</p>
-          <button onClick={() => setReplyAttempt(value => value + 1)} className="mt-2 text-sm font-medium text-accent hover:text-ink">{t.retryBtn}</button>
-        </article>}
+        {!hasCurrentAssistant && !reply && !replyUnavailable && !isRetrying && (
+          <article className="mr-5 border-l-2 border-accent/25 py-1 pl-4 sm:mr-12 sm:pl-5">
+            <p className="flex items-center gap-2 text-sm text-ink-muted">
+              <RotateCw size={14} className="animate-spin text-accent/70" />
+              {t.loadingHint}
+            </p>
+          </article>
+        )}
+        {(replyUnavailable || isRetrying) && (
+          <article className="mr-5 border-l-2 border-border-base py-1 pl-4 sm:mr-12 sm:pl-5">
+            <p className="text-sm leading-relaxed text-ink-secondary">{t.errorHint}</p>
+            <button
+              type="button"
+              disabled={isRetrying}
+              onClick={() => void handleRetry()}
+              className="mt-2.5 inline-flex min-h-[38px] items-center gap-2 rounded-full border border-border-base bg-surface px-4 py-1.5 text-xs font-medium text-ink-secondary shadow-xs transition-all hover:border-accent/40 hover:text-ink active:scale-98 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RotateCw size={13} className={isRetrying ? 'animate-spin text-accent' : ''} />
+              <span>{isRetrying ? '連線重試中……' : t.retryBtn}</span>
+            </button>
+          </article>
+        )}
       </section>
 
       <section className="mt-10 border-t border-border-base pt-6">
