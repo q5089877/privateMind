@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Anchor, ArrowUp, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
+import { Anchor, ArrowDown, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
 
@@ -287,7 +287,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_5px_12px_rgba(47,91,71,0.2)] transition-all hover:-translate-y-px hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"
           >
             <span>{UI_TEXT.home.submitBtn}</span>
-            <ArrowUp size={16} strokeWidth={2}/>
+            <ArrowDown size={16} strokeWidth={2}/>
           </button>
         </div>
       </section>

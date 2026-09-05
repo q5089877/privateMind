@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, Compass, MessageCircle, RotateCw, Waves } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Compass, MessageCircle, RotateCw, Waves } from 'lucide-react';
 import { ConversationTurn, ExploreGroup, ExploreResult, HarborSession, Moment } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { UI_TEXT } from '../config/textConfig';
@@ -157,7 +157,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
           }} placeholder={continuationGuide ? t.composerPlaceholderGuide : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
           <div className="mt-3 flex items-center justify-between border-t border-border-base pt-3">
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="text-sm text-ink-muted hover:text-ink">{t.composerCancelBtn}</button>
-            <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">{t.composerSubmitBtn} <ArrowUp size={15}/></button>
+            <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
           </div>
         </div> : <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <button type="button" onClick={() => openComposer()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px">
@@ -201,7 +201,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
                     onClick={() => openComposer(currentPerspective.followUp)}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-ink transition-colors"
                   >
-                    {t.exploreAdoptBtn} <ArrowUp size={13}/>
+                    {t.exploreAdoptBtn} <ArrowDown size={13}/>
                   </button>
                   <span className="text-[11px] text-ink-muted">
                     {(activePerspectiveIndex % exploration.perspectives.length) + 1} / {exploration.perspectives.length}
