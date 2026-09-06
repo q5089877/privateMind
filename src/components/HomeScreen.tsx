@@ -9,7 +9,9 @@ interface Props {
   onReview: () => void;
   onOpenBackup: () => void;
   getContinuityCandidate?: () => Promise<Moment | null>;
-  onResolveContinuity?: (momentId: string, state: CarryState | null) => Promise<void>;
+  onResolveContinuity?: (momentId: string, state: CarryState) => Promise<void>;
+  onSuppressContinuity?: (momentId: string) => Promise<void>;
+  onDismissContinuity?: (momentId: string) => Promise<void>;
 }
 
 const quickStates = UI_TEXT.home.quickDrafts;
@@ -25,13 +27,16 @@ export const HomeScreen: React.FC<Props> = ({
   onReview,
   onOpenBackup,
   getContinuityCandidate,
-  onResolveContinuity
+  onResolveContinuity,
+  onSuppressContinuity,
+  onDismissContinuity
 }) => {
   const [input, setInput] = useState('');
   const [ventCount, setVentCount] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [isEbbing, setIsEbbing] = useState(false);
+  const [afterAnchor, setAfterAnchor] = useState(false); // 退潮結束後顯示極輕文字提示
   const [isTapping, setIsTapping] = useState(false);
   const [isHeartSustaining, setIsHeartSustaining] = useState(false);
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
@@ -81,9 +86,15 @@ export const HomeScreen: React.FC<Props> = ({
     if (!continuityMoment) return;
     const id = continuityMoment.id;
     setContinuityDismissed(true);
-    if (onResolveContinuity) {
-      void onResolveContinuity(id, choice);
-    }
+    if (onResolveContinuity) void onResolveContinuity(id, choice);
+    inputRef.current?.focus();
+  };
+
+  const handleContinuitySuppress = () => {
+    if (!continuityMoment) return;
+    const id = continuityMoment.id;
+    setContinuityDismissed(true);
+    if (onSuppressContinuity) void onSuppressContinuity(id);
     inputRef.current?.focus();
   };
 
@@ -180,6 +191,7 @@ export const HomeScreen: React.FC<Props> = ({
       ebbTimerRef.current = window.setTimeout(() => {
         setIsHolding(false);
         setIsEbbing(false);
+        setAfterAnchor(true); // 退潮結束後浮現極輕文字，不強迫選擇
         ebbTimerRef.current = null;
       }, 2000);
       return;
@@ -203,10 +215,14 @@ export const HomeScreen: React.FC<Props> = ({
     const text = input.trim();
     if (!text || submittingState !== 'idle') return;
 
-    if (continuityMoment && !continuityDismissed && onResolveContinuity) {
-      void onResolveContinuity(continuityMoment.id, null);
+    // 直接略過：使用者開始輸入，自然跳過 continuity probe
+    // 只記 shownAt，不寫任何狀態（"沒有回答" 不是一種回答）
+    if (continuityMoment && !continuityDismissed) {
+      if (onDismissContinuity) void onDismissContinuity(continuityMoment.id);
       setContinuityDismissed(true);
     }
+
+    setAfterAnchor(false); // 開始輸入時收起退潮後提示
 
     triggerHaptic('docking');
     setSubmittingState('submitting');
@@ -295,20 +311,33 @@ export const HomeScreen: React.FC<Props> = ({
             onPointerLeave={clearHold}
             onPointerCancel={clearHold}
             onContextMenu={e => e.preventDefault()}
-            className={`group relative flex h-11 items-center gap-2 rounded-full bg-surface px-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] border border-border-base/70 select-none touch-none transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0.5 active:scale-95 cursor-pointer ${
-              isTapping ? 'scale-90 border-accent bg-accent/10' : ''
+            className={`group relative flex h-12 items-center gap-2.5 rounded-full px-5 select-none touch-none transition-all duration-200 cursor-pointer border-2 ${
+              isHolding
+                ? 'bg-accent border-accent text-white shadow-[0_4px_20px_rgba(19,66,48,0.35)] scale-105'
+                : isTapping
+                  ? 'bg-accent/10 border-accent scale-95'
+                  : 'bg-surface border-accent/40 hover:border-accent hover:bg-accent/5 hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(19,66,48,0.12)]'
             }`}
             title="按住隨心跳定錨呼吸"
             type="button"
           >
-            <Anchor size={17} className={`text-accent transition-transform duration-300 ${isHolding ? 'rotate-12 scale-110' : 'group-hover:rotate-12'}`} />
-            <span className="text-sm font-medium text-ink whitespace-nowrap">定錨</span>
-            <span className="rounded-full bg-paper-sunken px-2 py-0.5 text-[10px] font-mono text-ink-muted">
+            <Anchor
+              size={19}
+              className={`transition-all duration-300 ${
+                isHolding ? 'text-white rotate-12 scale-110' : 'text-accent group-hover:rotate-12'
+              }`}
+            />
+            <span className={`text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${isHolding ? 'text-white' : 'text-ink'}`}>
+              定錨
+            </span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono transition-colors duration-200 ${
+              isHolding ? 'bg-white/20 text-white' : 'bg-paper-sunken text-ink-muted'
+            }`}>
               {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
             </span>
           </button>
           {ventCount > 0 && (
-            <span className="mt-1 text-[11px] text-ink-muted">
+            <span className="mt-1.5 text-[11px] text-ink-muted">
               {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
             </span>
           )}
@@ -362,11 +391,11 @@ export const HomeScreen: React.FC<Props> = ({
               onClick={() => handleContinuityChoice('faded')}
               className="px-3.5 py-1.5 rounded-full bg-surface-subtle text-ink-secondary border border-border-base text-xs font-medium hover:bg-surface-hover active:scale-95 transition-all cursor-pointer"
             >
-              不在了
+              淡掉了
             </button>
             <button
               type="button"
-              onClick={() => handleContinuityChoice('dont_ask')}
+              onClick={handleContinuitySuppress}
               className="px-2.5 py-1 text-xs text-ink-muted hover:text-ink transition-colors ml-auto cursor-pointer"
             >
               先不提
@@ -374,6 +403,21 @@ export const HomeScreen: React.FC<Props> = ({
           </div>
         </section>
       )}
+
+      {/* 退潮後極輕文字提示（無按鈕，靜默是被允許的答案） */}
+      <div
+        style={{
+          opacity: afterAnchor ? 1 : 0,
+          transform: afterAnchor ? 'translateY(0px)' : 'translateY(8px)',
+          transition: 'opacity 800ms ease-out, transform 800ms ease-out',
+          pointerEvents: afterAnchor ? 'none' : 'none'
+        }}
+        aria-hidden={!afterAnchor}
+      >
+        <p className="px-1 text-[13px] text-ink-muted text-center tracking-wide leading-relaxed">
+          想留一句的話，就寫在這裡。
+        </p>
+      </div>
 
       {/* 核心輸入卡片 (Core Expression Card) */}
       <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_8px_24px_rgba(36,40,38,0.06)] border border-border-base/80 transition-all duration-300">

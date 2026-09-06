@@ -100,11 +100,39 @@ export class MindHarborRepository {
     }));
   }
 
-  /** Update continuity probe state and ensure carryPromptShownAt is recorded */
-  public async setMomentCarryState(momentId: string, carryState: CarryState | null, shownAt = Date.now()): Promise<MindHarborData> {
+  /**
+   * Records that the continuity probe was shown (without any user response — e.g. skipped / ignored).
+   * Only carryPromptShownAt is written. carryState and carrySuppressed are NOT touched.
+   * "No answer" is not an answer — do not infer meaning from silence.
+   */
+  public async markContinuityPromptShown(momentId: string, shownAt = Date.now()): Promise<MindHarborData> {
+    return this.updateMoment(momentId, m => ({
+      ...m,
+      carryPromptShownAt: m.carryPromptShownAt ?? shownAt
+    }));
+  }
+
+  /**
+   * Records the user's explicit continuity response (still | faded).
+   * Also stamps carryPromptShownAt if not already set.
+   */
+  public async setMomentCarryState(momentId: string, carryState: CarryState, shownAt = Date.now()): Promise<MindHarborData> {
     return this.updateMoment(momentId, m => ({
       ...m,
       carryState,
+      carryPromptShownAt: m.carryPromptShownAt ?? shownAt
+    }));
+  }
+
+  /**
+   * Records "先不提這個": sets carrySuppressed=true so this Moment is never proactively surfaced again.
+   * carryState is deliberately left null — we only know "don't ask", not that it's resolved or still present.
+   * Semantics: user preference about system behavior, NOT a psychological inference about the user's state.
+   */
+  public async suppressContinuityMoment(momentId: string, shownAt = Date.now()): Promise<MindHarborData> {
+    return this.updateMoment(momentId, m => ({
+      ...m,
+      carrySuppressed: true,
       carryPromptShownAt: m.carryPromptShownAt ?? shownAt
     }));
   }

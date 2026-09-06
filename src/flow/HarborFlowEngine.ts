@@ -174,7 +174,7 @@ export class HarborFlowEngine {
 
   /**
    * Continuity Probe: Selects the last active Moment from a prior calendar usage day
-   * that has never been probed before.
+   * that has never been probed AND is not suppressed by the user.
    */
   public async getContinuityCandidate(): Promise<Moment | null> {
     const data = await this.storage.getData();
@@ -183,6 +183,7 @@ export class HarborFlowEngine {
     const candidates = data.moments
       .filter(m => !m.deletedAt && !m.settledAt)
       .filter(m => m.carryPromptShownAt == null)
+      .filter(m => !m.carrySuppressed)                          // "先不提這個" moments never resurface
       .filter(m => new Date(m.createdAt).toDateString() !== todayStr)
       .filter(m => m.content.trim().length >= 4)
       .sort((a, b) => b.createdAt - a.createdAt);
@@ -191,10 +192,28 @@ export class HarborFlowEngine {
   }
 
   /**
-   * Resolves the continuity probe with still / faded / dont_ask, recording shownAt timestamp.
+   * User answered "還在" or "淡掉了" — records explicit carry state.
+   * faded = user's state at this moment, NOT a permanent closure. New Continuity round is possible.
    */
-  public async resolveContinuityProbe(momentId: string, state: CarryState | null): Promise<void> {
+  public async resolveContinuityProbe(momentId: string, state: CarryState): Promise<void> {
     await this.storage.setMomentCarryState(momentId, state, Date.now());
+  }
+
+  /**
+   * User chose "先不提這個" — suppresses this Moment from future probes.
+   * We only know: user doesn't want to be asked about this one right now.
+   * We do NOT know: whether it's resolved, avoided, or anything psychological.
+   */
+  public async suppressContinuityProbe(momentId: string): Promise<void> {
+    await this.storage.suppressContinuityMoment(momentId, Date.now());
+  }
+
+  /**
+   * User ignored/skipped the probe (直接略過) — only stamps the shown timestamp.
+   * "No answer" is not an answer. No carryState or carrySuppressed is written.
+   */
+  public async dismissContinuityProbe(momentId: string): Promise<void> {
+    await this.storage.markContinuityPromptShown(momentId, Date.now());
   }
 
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }

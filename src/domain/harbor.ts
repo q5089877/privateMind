@@ -3,7 +3,13 @@ export type FlowState = 'HOME' | 'CHAT' | 'LAND' | 'REVIEW' | 'BACKUP';
 /** Why a moment was written. It is inferred from its entry point, never requested as a field. */
 export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_added';
 
-export type CarryState = 'still' | 'faded' | 'dont_ask';
+/**
+ * Continuity probe outcome — only what we actually know.
+ * still  = user says it is still present this moment (stops further probing this round)
+ * faded  = user says it has faded this moment (ends this Continuity round; new round possible if user writes about it again)
+ * NOTE: "先不提這個" is NOT a CarryState value — it is stored as carrySuppressed: true on the Moment.
+ */
+export type CarryState = 'still' | 'faded';
 
 /** The indivisible, user-authored unit. It is never rewritten by AI. */
 export interface Moment {
@@ -16,9 +22,19 @@ export interface Moment {
   settledAt?: number;
   /** Set when the user hard-deletes: hidden everywhere. Backup still exports it. */
   deletedAt?: number;
-  /** Continuity probe response: still / faded / dont_ask */
+  /**
+   * Continuity probe response: still | faded | null (not yet answered).
+   * Semantics: describes the user's state at the moment they answered — not a permanent verdict.
+   * faded does NOT mean "resolved forever". A new Continuity round can start if the user writes about it again.
+   */
   carryState?: CarryState | null;
-  /** Nullable timestamp when the continuity probe was surfaced to user */
+  /**
+   * true = user chose "先不提這個" — do not proactively surface this Moment again.
+   * Semantics: "please don't ask me about this one" — NOT "the user is avoiding it".
+   * Reason could be anything: busy, tired, irrelevant. No inference allowed.
+   */
+  carrySuppressed?: boolean;
+  /** Timestamp when the continuity probe was first shown to user. null = never shown. */
   carryPromptShownAt?: number | null;
 }
 

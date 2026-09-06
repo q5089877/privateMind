@@ -47,6 +47,7 @@ export const UI_TEXT = {
       { id: 'tired', label: '有些疲倦', text: '今天整個人電量見底，只剩下身體的重與累。' }
     ] as const,
     reviewPast: '回看以前留下的事',
+    footerPromise: '這裡的每一句，都只屬於你。不分析、不評價、不傳送到任何地方。',
     backup: '內容只保存在這台裝置'
   },
   chat: {
