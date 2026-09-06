@@ -165,7 +165,7 @@ export const HomeScreen: React.FC<Props> = ({
       return;
     }
 
-    // 只要有長按（充飽中或已維持心跳），放開時啟動 360ms 餘韻慣性退潮
+    // 只要有長按（充飽中或已維持心跳），放開時啟動 650ms 餘韻慣性退潮
     if (isHolding) {
       setVentCount(prev => prev + 1);
       triggerHaptic('release');
@@ -175,13 +175,13 @@ export const HomeScreen: React.FC<Props> = ({
       setIsHeartSustaining(false);
       setHeartBeatPhase(false);
       setIsEbbing(true);
-      setHoldProgress(0); // 觸發 360ms cubic-bezier 慣性滑落至 0%
+      setHoldProgress(0); // 觸發 650ms cubic-bezier 慣性滑落至 0%
 
       ebbTimerRef.current = window.setTimeout(() => {
         setIsHolding(false);
         setIsEbbing(false);
         ebbTimerRef.current = null;
-      }, 360);
+      }, 650);
       return;
     }
 
@@ -225,30 +225,39 @@ export const HomeScreen: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-4 sm:py-7 flex flex-col space-y-6">
-      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat with 360ms Ebb Resonance) */}
+      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat with 650ms Ebb Resonance) */}
       <div
-        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-360 ease-out ${
-          isHolding || isEbbing ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="fixed inset-0 z-50 pointer-events-none"
+        style={{
+          opacity: isHolding || isEbbing ? 1 : 0,
+          transition: isEbbing ? 'opacity 650ms ease-out' : 'opacity 200ms ease-out'
+        }}
         aria-hidden="true"
       >
         <div
-          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/90 via-accent/55 to-transparent backdrop-blur-[6px] transition-[height] ${
-            isEbbing
-              ? 'duration-360 ease-[cubic-bezier(0.22,1,0.36,1)]'
-              : 'duration-150 ease-linear'
-          }`}
-          style={{ height: `${holdProgress}%` }}
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/90 via-accent/55 to-transparent backdrop-blur-[6px]"
+          style={{
+            height: `${holdProgress}%`,
+            transition: isEbbing
+              ? 'height 650ms cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'height 150ms linear'
+          }}
         >
           <div
-            className={`absolute inset-x-0 top-0 h-[2px] bg-emerald-300 transition-opacity duration-300 ${
-              isEbbing ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(188,238,211,0.9)]'
-            }`}
+            className="absolute inset-x-0 top-0 h-[2px] bg-emerald-300"
+            style={{
+              opacity: isEbbing ? 0 : 1,
+              boxShadow: isEbbing ? 'none' : '0 0 20px rgba(188,238,211,0.9)',
+              transition: 'opacity 400ms ease-out'
+            }}
           />
           <div
-            className={`absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6 transition-all duration-300 ${
-              isEbbing ? 'opacity-0 translate-y-3 scale-95' : 'opacity-100 translate-y-0 scale-100'
-            }`}
+            className="absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6"
+            style={{
+              opacity: isEbbing ? 0 : 1,
+              transform: isEbbing ? 'translateY(16px) scale(0.96)' : 'translateY(0px) scale(1)',
+              transition: isEbbing ? 'opacity 450ms ease-out, transform 450ms ease-out' : 'none'
+            }}
           >
             <span
               className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white shadow-lg backdrop-blur-md transition-transform duration-150 ${
