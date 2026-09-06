@@ -155,6 +155,23 @@ export class HarborFlowEngine {
     return (await this.storage.getData()).sessions.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
+  /** Settle: hide from Review feed, keep in Pattern pool. Reversible. */
+  public async settleItem(kind: 'moment' | 'session', id: string): Promise<void> {
+    await this.storage.settleItem(kind, id);
+  }
+
+  public async unsettleItem(kind: 'moment' | 'session', id: string): Promise<void> {
+    await this.storage.unsettleItem(kind, id);
+  }
+
+  /**
+   * Hard delete. If the item is part of the current Pattern Mirror result,
+   * callers should warn the user first. Engine does not gate — UI gates.
+   */
+  public async deleteItem(kind: 'moment' | 'session', id: string): Promise<void> {
+    await this.storage.deleteItem(kind, id);
+  }
+
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 
   public async getBackupOverview(): Promise<BackupOverview> {

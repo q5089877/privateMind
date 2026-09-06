@@ -141,6 +141,35 @@ export class MindHarborRepository {
     }));
   }
 
+  /** Settle: hide from Review feed, keep in Pattern pool. Reversible. */
+  public async settleItem(kind: 'moment' | 'session', id: string): Promise<MindHarborData> {
+    const now = Date.now();
+    return this.update(data => kind === 'moment'
+      ? { ...data, moments: data.moments.map(m => m.id === id ? { ...m, settledAt: now } : m), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
+      : { ...data, sessions: data.sessions.map(s => s.id === id ? { ...s, settledAt: now } : s), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
+    );
+  }
+
+  /** Unsettle: restore item back to Review feed. */
+  public async unsettleItem(kind: 'moment' | 'session', id: string): Promise<MindHarborData> {
+    return this.update(data => kind === 'moment'
+      ? { ...data, moments: data.moments.map(m => m.id === id ? { ...m, settledAt: undefined } : m), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
+      : { ...data, sessions: data.sessions.map(s => s.id === id ? { ...s, settledAt: undefined } : s), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
+    );
+  }
+
+  /**
+   * Hard delete: sets deletedAt, hides everywhere including Pattern pool.
+   * Backup JSON still exports it so the user can recover from file.
+   */
+  public async deleteItem(kind: 'moment' | 'session', id: string): Promise<MindHarborData> {
+    const now = Date.now();
+    return this.update(data => kind === 'moment'
+      ? { ...data, moments: data.moments.map(m => m.id === id ? { ...m, deletedAt: now } : m), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
+      : { ...data, sessions: data.sessions.map(s => s.id === id ? { ...s, deletedAt: now } : s), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
+    );
+  }
+
   public async mergeImported(incoming: MindHarborData): Promise<MindHarborData> {
     return this.update(current => {
       // Existing device data wins when ids collide: import is a merge, never an overwrite.

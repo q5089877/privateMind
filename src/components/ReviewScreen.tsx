@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, HardDrive, Waves } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, HardDrive, Waves } from 'lucide-react';
 import { HarborSession, Moment, PatternMirror } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -8,47 +8,57 @@ interface Props {
   getMoments: () => Promise<Moment[]>;
   getSessions: () => Promise<HarborSession[]>;
   onOpenSession: (sessionId: string) => Promise<void>;
-  /** Eligibility check — no AI call, result used only to show/hide the faint hint */
   canShowPatternMirror: () => Promise<boolean>;
-  /** Trigger literal-anchor AI selection and return original Moments. Zero AI text output. */
   onRequestPatternMirror: () => Promise<PatternMirror | null>;
+  onSettleItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
+  onUnsettleItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
+  onDeleteItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
   onOpenBackup: () => void;
 }
 
-type TimelineItem =
-  | { kind: 'session'; session: HarborSession; primaryMoment: Moment; startedAt: number }
-  | { kind: 'moment'; moment: Moment; startedAt: number };
+type FeedItem =
+  | { kind: 'session'; session: HarborSession; primaryMoment: Moment; ts: number }
+  | { kind: 'moment'; moment: Moment; ts: number };
 
-const day = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(stamp));
-const time = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(stamp));
+const dayLabel = (stamp: number) =>
+  new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(stamp));
+const timeLabel = (stamp: number) =>
+  new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(stamp));
+const preview = (text: string, max = 32) =>
+  text.replace(/\s+/g, ' ').trim().slice(0, max) + (text.length > max ? '…' : '');
 
 /**
- * REVIEW: One true chronological timeline.
- * Pattern Passive Mirroring floats as a faint hint when 4-gate conditions are met.
- * AI output: zero. Only original user text is ever shown.
+ * REVIEW: Lightweight text feed — each item is one line until tapped.
+ * No structured cards, no repeated headers, no exam-paper energy.
+ * Settled items are hidden from feed but preserved for Pattern analysis.
+ * Deleted items are soft-deleted (backup file still contains them).
  */
 export const ReviewScreen: React.FC<Props> = ({
   onClose, getMoments, getSessions, onOpenSession,
-  canShowPatternMirror, onRequestPatternMirror, onOpenBackup
+  canShowPatternMirror, onRequestPatternMirror,
+  onSettleItem, onUnsettleItem, onDeleteItem, onOpenBackup
 }) => {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [sessions, setSessions] = useState<HarborSession[]>([]);
-  const [expanded, setExpanded] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   // Pattern Passive Mirroring state
   const [patternEligible, setPatternEligible] = useState(false);
   const [mirror, setMirror] = useState<PatternMirror | null>(null);
   const [mirrorOpen, setMirrorOpen] = useState(false);
   const [mirrorLoading, setMirrorLoading] = useState(false);
+  const [patternIds, setPatternIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    void Promise.all([getMoments(), getSessions()]).then(([savedMoments, savedSessions]) => {
-      setMoments(savedMoments);
-      setSessions(savedSessions);
+  const reload = useCallback(() => {
+    void Promise.all([getMoments(), getSessions()]).then(([m, s]) => {
+      setMoments(m);
+      setSessions(s);
     });
   }, [getMoments, getSessions]);
 
-  // Deterministic eligibility check on load — zero AI call
+  useEffect(() => { reload(); }, [reload]);
+
   useEffect(() => {
     void canShowPatternMirror().then(setPatternEligible);
   }, [canShowPatternMirror]);
@@ -58,63 +68,238 @@ export const ReviewScreen: React.FC<Props> = ({
     setMirrorLoading(true);
     const result = await onRequestPatternMirror();
     setMirrorLoading(false);
-    if (result) { setMirror(result); setMirrorOpen(true); }
+    if (result) {
+      setMirror(result);
+      setPatternIds(new Set(result.moments.map(m => m.id)));
+      setMirrorOpen(true);
+    }
   };
 
-  const timeline = useMemo(() => {
-    const byId = new Map(moments.map(moment => [moment.id, moment]));
-    const sessionMomentIds = new Set(sessions.flatMap(session => session.momentIds));
-    const items: TimelineItem[] = [
-      ...sessions.map(session => {
-        const primaryMoment = byId.get(session.originMomentId) || session.momentIds.map(id => byId.get(id)).find((moment): moment is Moment => Boolean(moment));
-        return primaryMoment ? { kind: 'session' as const, session, primaryMoment, startedAt: primaryMoment.createdAt } : null;
-      }).filter((item): item is Extract<TimelineItem, { kind: 'session' }> => Boolean(item)),
-      ...moments.filter(moment => !sessionMomentIds.has(moment.id)).map(moment => ({ kind: 'moment' as const, moment, startedAt: moment.createdAt }))
-    ].sort((left, right) => right.startedAt - left.startedAt);
-    return items.reduce<Record<string, TimelineItem[]>>((groups, item) => {
-      const key = day(item.startedAt);
-      (groups[key] ||= []).push(item);
-      return groups;
+  const handleSettle = async (kind: 'moment' | 'session', id: string) => {
+    await onSettleItem(kind, id);
+    setExpanded(null);
+    reload();
+  };
+
+  const handleUnsettle = async (kind: 'moment' | 'session', id: string) => {
+    await onUnsettleItem(kind, id);
+    reload();
+  };
+
+  const handleDelete = async (kind: 'moment' | 'session', id: string) => {
+    await onDeleteItem(kind, id);
+    setExpanded(null);
+    setConfirming(null);
+    reload();
+  };
+
+  // Build feed: filter out settled + deleted, sort newest first, group by day
+  const feed = useMemo(() => {
+    const byId = new Map(moments.map(m => [m.id, m]));
+    const sessionMomentIds = new Set(sessions.flatMap(s => s.momentIds));
+    const items: FeedItem[] = [
+      ...sessions
+        .filter(s => !s.settledAt && !s.deletedAt)
+        .map(s => {
+          const primary = byId.get(s.originMomentId)
+            || s.momentIds.map(id => byId.get(id)).find((m): m is Moment => Boolean(m));
+          return primary ? { kind: 'session' as const, session: s, primaryMoment: primary, ts: primary.createdAt } : null;
+        })
+        .filter((x): x is Extract<FeedItem, { kind: 'session' }> => Boolean(x)),
+      ...moments
+        .filter(m => !sessionMomentIds.has(m.id) && !m.settledAt && !m.deletedAt)
+        .map(m => ({ kind: 'moment' as const, moment: m, ts: m.createdAt }))
+    ].sort((a, b) => b.ts - a.ts);
+
+    // Group by calendar day
+    return items.reduce<Record<string, FeedItem[]>>((acc, item) => {
+      const key = dayLabel(item.ts);
+      (acc[key] ||= []).push(item);
+      return acc;
     }, {});
   }, [moments, sessions]);
 
+  // Settled items (for a collapsed "已安放" section)
+  const settled = useMemo(() => [
+    ...sessions.filter(s => s.settledAt && !s.deletedAt).map(s => ({ kind: 'session' as const, id: s.id, preview: preview(sessions.find(x => x.id === s.id)?.turns.find(t => t.role === 'user')?.content || '（對話）') })),
+    ...moments.filter(m => m.settledAt && !m.deletedAt).map(m => ({ kind: 'moment' as const, id: m.id, preview: preview(m.content) }))
+  ], [moments, sessions]);
+
+  const [settledOpen, setSettledOpen] = useState(false);
+
   const t = UI_TEXT.review;
-  const toggle = (id: string) => setExpanded(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
 
-  return <div className="w-full max-w-[640px] pb-20">
-    <header className="flex h-12 items-center justify-between"><button onClick={onClose} className="flex min-h-11 items-center gap-1.5 px-1 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>{t.backBtn}</button><button onClick={onOpenBackup} className="flex min-h-11 items-center gap-1.5 px-1 text-xs text-ink-muted hover:text-ink"><HardDrive size={15}/>{t.backupBtn}</button></header>
-    <main>
-      <div className="mt-10"><div className="flex items-center gap-2 text-accent"><Waves size={18}/><span className="text-sm font-medium">{t.tag}</span></div><h1 className="mt-5 text-[32px] font-medium tracking-[-0.05em] text-ink sm:text-[40px]">{t.heroTitle}</h1><p className="mt-3 max-w-md text-[16px] leading-relaxed text-ink-secondary">{t.heroSubtitle}</p></div>
+  const itemId = (item: FeedItem) => item.kind === 'session' ? item.session.id : item.moment.id;
 
-      {/* Pattern Passive Mirroring — 平常 100% 隱形 */}
-      {patternEligible && <div className="mt-8">
-        {!mirrorOpen
-          ? <button
-              onClick={() => void handleOpenMirror()}
-              disabled={mirrorLoading}
-              className="text-sm text-ink-muted/60 hover:text-ink-muted transition-colors duration-300 disabled:opacity-40"
-            >
-              {mirrorLoading ? t.patternLoading : t.patternHint}
-            </button>
-          : mirror && <div className="rounded-[24px] border border-accent/15 bg-accent/5 p-5">
-              <div className="space-y-5">
-                {mirror.moments.map(m => <article key={m.id} className="border-l-2 border-accent/30 pl-4">
-                  <time className="text-xs text-ink-muted">{day(m.createdAt)} · {time(m.createdAt)}</time>
-                  <p className="mt-2 whitespace-pre-wrap text-[17px] leading-relaxed text-ink">「{m.content}」</p>
-                </article>)}
+  const renderFeedItem = (item: FeedItem) => {
+    const id = itemId(item);
+    const isExpanded = expanded === id;
+    const isConfirming = confirming === id;
+    const inPattern = patternIds.has(item.kind === 'moment' ? item.moment.id : (item as Extract<FeedItem, { kind: 'session' }>).primaryMoment.id);
+    const hasClosure = item.kind === 'session' && Boolean(item.session.closure);
+    const content = item.kind === 'moment' ? item.moment.content : item.primaryMoment.content;
+    const takeaway = item.kind === 'session' ? item.session.closure?.takeaway : undefined;
+
+    return (
+      <div key={id} className="border-b border-border-subtle/50 last:border-0">
+        {/* Single-line collapsed view */}
+        <button
+          onClick={() => setExpanded(isExpanded ? null : id)}
+          className="flex w-full items-baseline gap-3 py-2.5 text-left"
+        >
+          <time className="shrink-0 text-xs text-ink-muted tabular-nums">{timeLabel(item.ts)}</time>
+          <span className="min-w-0 flex-1 truncate text-[15px] leading-snug text-ink">{preview(content)}</span>
+          {hasClosure && <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-accent/50 mt-1" aria-label="已收束" />}
+        </button>
+
+        {/* Expanded view */}
+        {isExpanded && (
+          <div className="pb-4 pl-10">
+            <p className="whitespace-pre-wrap text-[16px] leading-[1.75] text-ink">{content}</p>
+            {takeaway && (
+              <p className="mt-3 text-[14px] leading-[1.7] text-ink-secondary">{takeaway}</p>
+            )}
+
+            {/* Actions */}
+            {!isConfirming ? (
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
+                {item.kind === 'session' && (
+                  <button
+                    onClick={() => void onOpenSession(item.session.id)}
+                    className="text-sm font-medium text-accent hover:text-ink"
+                  >
+                    {t.continueBtnLabel}
+                  </button>
+                )}
+                <button
+                  onClick={() => void handleSettle(item.kind, id)}
+                  className="text-sm text-ink-secondary hover:text-ink"
+                >
+                  {t.settleBtn}
+                </button>
+                <button
+                  onClick={() => setConfirming(id)}
+                  className="text-sm text-ink-muted hover:text-red-500"
+                >
+                  {t.deleteBtn}
+                </button>
               </div>
-              <button onClick={() => setMirrorOpen(false)} className="mt-5 text-xs text-ink-muted hover:text-ink">{t.patternCollapseBtn}</button>
-            </div>
-        }
-      </div>}
+            ) : (
+              <div className="mt-4">
+                <p className="text-sm leading-relaxed text-ink-secondary">
+                  {inPattern ? t.deletePatternWarning : t.deleteWarning}
+                </p>
+                <div className="mt-3 flex gap-4">
+                  <button
+                    onClick={() => void handleDelete(item.kind, id)}
+                    className="text-sm font-medium text-red-500 hover:text-red-700"
+                  >
+                    確定刪除
+                  </button>
+                  <button
+                    onClick={() => setConfirming(null)}
+                    className="text-sm text-ink-muted hover:text-ink"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
-      {moments.length === 0 ? <p className="mt-12 border-t border-border-base py-16 text-sm text-ink-muted">{t.emptyTimeline}</p> : <div className="mt-12 space-y-10">{(Object.entries(timeline) as Array<[string, TimelineItem[]]>).map(([date, items]) => <section key={date} className="relative border-l border-accent/25 pl-5"><span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-accent ring-4 ring-canvas"/><p className="text-sm text-ink-secondary">{date}</p><div className="mt-4 space-y-5">{items.map(item => {
-        if (item.kind === 'moment') return <article key={item.moment.id} className="border-l border-border-subtle py-1 pl-4"><time className="text-xs text-ink-muted">{time(item.moment.createdAt)}</time><p className="mt-1 whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{item.moment.content}</p></article>;
-        const isExpanded = expanded.includes(item.session.id);
-        const closure = item.session.closure;
-        const turnCount = item.session.turns.length;
-        return <article key={item.session.id} className="rounded-[26px] border border-border-base bg-surface px-5 py-5 shadow-[0_3px_10px_rgba(47,70,54,0.06)]"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-xs text-ink-muted"><span>{time(item.startedAt)}</span><span className={`rounded-full px-2 py-0.5 ${closure ? 'bg-accent/10 text-accent' : 'bg-surface-subtle text-ink-secondary'}`}>{closure ? t.statusConcluded : t.statusPending}</span></div><span className="text-xs text-ink-muted">{turnCount} {t.turnCountSuffix}</span></div><p className="mt-4 whitespace-pre-wrap text-[19px] leading-[1.65] tracking-[-0.02em] text-ink">{item.primaryMoment.content}</p>{closure ? <div className="mt-5 rounded-2xl bg-surface-subtle px-4 py-4"><p className="text-xs font-medium text-accent">{t.takeawayHeader}</p><p className="mt-2 text-[15px] leading-[1.75] text-ink-secondary">{closure.takeaway}</p><p className="mt-3 border-l-2 border-accent/35 pl-3 text-sm leading-relaxed text-ink-muted">{closure.unresolved}</p></div> : <p className="mt-4 text-sm leading-relaxed text-ink-secondary">{t.pendingHint}</p>}<div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2"><button onClick={() => void onOpenSession(item.session.id)} className="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-accent hover:text-ink"><Waves size={15}/>{closure ? t.continueSessionBtn : t.revisitSessionBtn}</button><button onClick={() => toggle(item.session.id)} className="inline-flex min-h-9 items-center gap-1.5 text-sm text-ink-secondary hover:text-ink">{isExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}{isExpanded ? t.collapseTurnsBtn : `${t.expandTurnsPrefix}${turnCount} ${t.turnCountSuffix}`}</button></div>{isExpanded && <div className="mt-5 space-y-4 border-t border-border-base pt-5">{item.session.turns.map(turn => turn.role === 'user' ? <div key={turn.id} className="ml-4 rounded-2xl bg-surface-subtle px-4 py-3"><p className="text-xs text-ink-muted">{t.userTurnLabel}</p><p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-[1.7] text-ink">{turn.content}</p></div> : <div key={turn.id} className="mr-4 border-l-2 border-accent/45 py-1 pl-3"><p className="text-xs text-accent">{t.aiTurnLabel}</p><p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-[1.75] text-ink-secondary">{turn.content}</p></div>)}</div>}</article>;
-      })}</div></section>)}</div>}
-    </main>
-  </div>;
+  return (
+    <div className="w-full max-w-[640px] pb-20">
+      <header className="flex h-12 items-center justify-between">
+        <button onClick={onClose} className="flex min-h-11 items-center gap-1.5 px-1 text-sm text-ink-secondary hover:text-ink">
+          <ArrowLeft size={16}/>{t.backBtn}
+        </button>
+        <button onClick={onOpenBackup} className="flex min-h-11 items-center gap-1.5 px-1 text-xs text-ink-muted hover:text-ink">
+          <HardDrive size={15}/>{t.backupBtn}
+        </button>
+      </header>
+
+      <main>
+        {/* Hero */}
+        <div className="mt-10">
+          <div className="flex items-center gap-2 text-accent"><Waves size={18}/><span className="text-sm font-medium">{t.tag}</span></div>
+          <h1 className="mt-4 text-[28px] font-medium tracking-[-0.04em] text-ink">{t.heroTitle}</h1>
+          <p className="mt-2 text-[15px] text-ink-secondary">{t.heroSubtitle}</p>
+        </div>
+
+        {/* Pattern Passive Mirroring — 平常 100% 隱形 */}
+        {patternEligible && (
+          <div className="mt-8">
+            {!mirrorOpen
+              ? (
+                <button
+                  onClick={() => void handleOpenMirror()}
+                  disabled={mirrorLoading}
+                  className="text-sm text-ink-muted/60 hover:text-ink-muted transition-colors duration-300 disabled:opacity-40"
+                >
+                  {mirrorLoading ? t.patternLoading : t.patternHint}
+                </button>
+              )
+              : mirror && (
+                <div className="rounded-[20px] border border-accent/15 bg-accent/5 p-4 space-y-4">
+                  {mirror.moments.map(m => (
+                    <article key={m.id} className="border-l-2 border-accent/30 pl-3">
+                      <time className="text-xs text-ink-muted">{dayLabel(m.createdAt)} · {timeLabel(m.createdAt)}</time>
+                      <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">「{m.content}」</p>
+                    </article>
+                  ))}
+                  <button onClick={() => setMirrorOpen(false)} className="text-xs text-ink-muted hover:text-ink">{t.patternCollapseBtn}</button>
+                </div>
+              )
+            }
+          </div>
+        )}
+
+        {/* Main feed */}
+        {Object.keys(feed).length === 0 && settled.length === 0
+          ? <p className="mt-16 text-sm text-ink-muted">{t.emptyTimeline}</p>
+          : (
+            <div className="mt-10 space-y-8">
+              {(Object.entries(feed) as [string, FeedItem[]][]).map(([date, items]) => (
+                <section key={date}>
+                  <p className="mb-1 text-xs font-medium text-ink-muted">{date}</p>
+                  <div>{items.map(renderFeedItem)}</div>
+                </section>
+              ))}
+            </div>
+          )
+        }
+
+        {/* Settled items — collapsed by default */}
+        {settled.length > 0 && (
+          <div className="mt-10 border-t border-border-subtle pt-6">
+            <button
+              onClick={() => setSettledOpen(v => !v)}
+              className="text-xs text-ink-muted hover:text-ink"
+            >
+              {settledOpen ? '▾' : '▸'} 已安放 · {settled.length} 筆
+            </button>
+            {settledOpen && (
+              <div className="mt-3 space-y-1.5">
+                {settled.map(item => (
+                  <div key={item.id} className="flex items-center justify-between gap-4 py-1">
+                    <span className="min-w-0 flex-1 truncate text-[14px] text-ink-muted">{item.preview}</span>
+                    <button
+                      onClick={() => void handleUnsettle(item.kind, item.id)}
+                      className="shrink-0 text-xs text-ink-muted hover:text-ink"
+                    >
+                      {t.unsettleBtn}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
 };

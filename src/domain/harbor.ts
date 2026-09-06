@@ -10,6 +10,10 @@ export interface Moment {
   createdAt: number;
   intent: MomentIntent;
   immediateReply?: string;
+  /** Set when the user settles a moment: hidden from Review feed, still in Pattern pool. */
+  settledAt?: number;
+  /** Set when the user hard-deletes: hidden everywhere. Backup still exports it. */
+  deletedAt?: number;
 }
 
 export type ConversationRole = 'user' | 'assistant';
@@ -110,6 +114,10 @@ export interface HarborSession {
   createdAt: number;
   updatedAt: number;
   closure?: SessionClosure;
+  /** Set when the user settles a session: hidden from Review feed, still in Pattern pool. */
+  settledAt?: number;
+  /** Set when the user hard-deletes: hidden everywhere. Backup still exports it. */
+  deletedAt?: number;
 }
 
 /** Legacy relationship shapes remain for import compatibility only. */

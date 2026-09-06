@@ -30,11 +30,11 @@ export interface PatternMirror {
  */
 export class PatternService {
     public canMirror(moments: Moment[]): boolean {
-        return patternEligibility(moments) !== null;
+        return patternEligibility(moments.filter(m => !m.deletedAt)) !== null;
     }
 
     public async findMirror(moments: Moment[]): Promise<PatternMirror | null> {
-        const pool = patternEligibility(moments);
+        const pool = patternEligibility(moments.filter(m => !m.deletedAt));
         if (!pool) return null;
 
         const indexed = pool.map((m, i) => ({
