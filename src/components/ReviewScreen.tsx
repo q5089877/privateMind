@@ -302,7 +302,7 @@ export const ReviewScreen: React.FC<Props> = ({
           <section className="w-full mb-6 rounded-2xl bg-white p-5 border border-[#E9E6DE] shadow-xs" data-purpose="temporal-sedimentation">
             <div className="flex items-center justify-between text-[12px] font-medium text-[#5E7066] mb-3">
               <span>時間留下的事實</span>
-              <span className="font-mono text-[#86968E]">共留存 {temporalStats.total} 件</span>
+              <span className="font-mono text-[#86968E]">共 {allCount + settledCount} 筆記錄（{temporalStats.total} 則思緒）</span>
             </div>
 
             <div className="space-y-2 text-[14px] text-[#1E2923]">
@@ -316,7 +316,14 @@ export const ReviewScreen: React.FC<Props> = ({
               </div>
               <div className="flex items-center justify-between py-1">
                 <span className="text-[#465950]">持續作為生活背景</span>
-                <span className="font-mono font-medium text-[#697B72]">{temporalStats.still} 件</span>
+                <span className="font-mono font-medium text-[#697B72]">
+                  {temporalStats.still} 件
+                  {temporalStats.stillSettled > 0 && (
+                    <span className="text-[12px] text-[#86968E] font-normal ml-1.5">
+                      （{temporalStats.stillSettled} 件已安放{temporalStats.stillActive > 0 ? `，${temporalStats.stillActive} 件在日常` : ''}）
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
 
@@ -327,7 +334,13 @@ export const ReviewScreen: React.FC<Props> = ({
                 {' '}已不再構成當初的主觀張力。
                 {temporalStats.still > 0 && (
                   <span className="block mt-1 text-[12px] text-[#86968E]">
-                    其餘 {temporalStats.still} 件事項已成為生活常態背景，允許其存在，不必急著有結論。
+                    {temporalStats.stillActive === 0 ? (
+                      `其餘 ${temporalStats.still} 件事項已全數安放至封存區，日常無多餘負擔。`
+                    ) : temporalStats.stillSettled > 0 ? (
+                      `其餘 ${temporalStats.still} 件事項中，${temporalStats.stillSettled} 件已安放，日常尚餘 ${temporalStats.stillActive} 件背景事項，允許其存在，不必急著有結論。`
+                    ) : (
+                      `其餘 ${temporalStats.still} 件事項已成為生活常態背景，允許其存在，不必急著有結論。`
+                    )}
                   </span>
                 )}
               </div>

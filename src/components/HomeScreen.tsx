@@ -682,18 +682,25 @@ export const HomeScreen: React.FC<Props> = ({
             </span>
           </div>
           
-          <div className="mb-4">
-            {!dockedAiReply ? (
-              <div className="flex items-center gap-2 text-ink-muted text-[13px] py-1">
-                <Loader2 size={14} className="animate-spin" />
-                <span>正在沉澱...</span>
-              </div>
-            ) : (
-              <p className="text-[15px] text-ink font-medium leading-relaxed whitespace-pre-wrap">
-                {dockedAiReply}
-              </p>
-            )}
-          </div>
+          {/* 使用者原始輸入（定錨主體，不可侵犯） */}
+          <p className="text-[15.5px] text-ink font-medium leading-relaxed whitespace-pre-wrap mb-3">
+            「{dockedMoment.content}」
+          </p>
+
+          {/* 客觀沉澱映照（若有 AI 分析且非預設值） */}
+          {dockedAiReply && dockedAiReply !== '已留下。' && (
+            <div className="mb-3.5 rounded-xl bg-paper-sunken/70 border border-border-base/50 p-3 text-[13.5px] text-ink-secondary leading-relaxed">
+              <span className="text-[11px] font-semibold text-accent/80 block mb-1">客觀邊界</span>
+              {dockedAiReply}
+            </div>
+          )}
+
+          {!dockedAiReply && requestPresentReply && (
+            <div className="flex items-center gap-2 text-ink-muted text-[12px] py-1 mb-3">
+              <Loader2 size={13} className="animate-spin text-accent" />
+              <span>正在沉澱客觀邊界...</span>
+            </div>
+          )}
 
           <div className="flex justify-end gap-5 text-[13px] font-medium text-ink-secondary">
             <button
