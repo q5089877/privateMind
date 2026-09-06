@@ -1,4 +1,4 @@
-import { CarryState, HarborSession, LinkDecision, MindHarborData, Moment, ThoughtThread, ThreadLine } from '../types';
+import { CarryState, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, TemporalGlobalState, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 1;
@@ -6,12 +6,18 @@ const STORE_NAME = 'app_state';
 const STATE_KEY = 'current';
 const LEGACY_THREADS_KEY = 'mind_harbor_threads_v3';
 
+const MS_12H = 12 * 60 * 60 * 1000;
+const MS_48H = 48 * 60 * 60 * 1000;
+const MS_5D = 5 * 24 * 60 * 60 * 1000;
+const MS_7D = 7 * 24 * 60 * 60 * 1000;
+
 const emptyData = (): MindHarborData => ({
   version: 2,
   moments: [],
   sessions: [],
   lines: [],
   linkDecisions: [],
+  temporalState: { consecutiveStillCount: 0 },
   backup: { pendingChanges: 0 }
 });
 
@@ -23,37 +29,107 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
  */
 export class MindHarborRepository {
   private database: Promise<IDBDatabase> | null = null;
+  private memoryCache: MindHarborData | null = null;
+  private isIndexedDBBroken = false;
+
+  public getPersistenceStatus(): PersistenceState {
+    if (this.isIndexedDBBroken) {
+      return this.memoryCache ? 'volatile' : 'failed';
+    }
+    return 'persisted';
+  }
+
+  private readLocalStorage(): MindHarborData | null {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = localStorage.getItem(STATE_KEY + '_emergency');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.moments)) return null;
+      return {
+        version: parsed.version || 2,
+        moments: parsed.moments || [],
+        sessions: parsed.sessions || [],
+        lines: [],
+        linkDecisions: []
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private writeLocalStorage(data: MindHarborData): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      // 僅備份最新 10 則 Moments 與 3 個 Sessions，嚴格限制在 50KB 內，杜絕主線程卡頓與 QuotaExceededError
+      const emergencySnapshot = {
+        version: data.version,
+        moments: data.moments.slice(-10),
+        sessions: data.sessions.slice(-3),
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(STATE_KEY + '_emergency', JSON.stringify(emergencySnapshot));
+    } catch { /* Quota exceeded or private mode */ }
+  }
 
   private open(): Promise<IDBDatabase> {
     if (this.database) return this.database;
     this.database = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error('無法開啟本機資料庫'));
+      try {
+        if (typeof indexedDB === 'undefined') {
+          return reject(new Error('IndexedDB unavailable'));
+        }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('無法開啟本機資料庫'));
+      } catch (err) {
+        reject(err);
+      }
     });
     return this.database;
   }
 
   private async readRaw(): Promise<MindHarborData | null> {
-    const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(STATE_KEY);
-      request.onsuccess = () => resolve((request.result as MindHarborData | undefined) || null);
-      request.onerror = () => reject(request.error || new Error('無法讀取本機資料'));
-    });
+    if (this.isIndexedDBBroken || typeof indexedDB === 'undefined') {
+      return this.memoryCache || this.readLocalStorage();
+    }
+    try {
+      const db = await this.open();
+      return await new Promise<MindHarborData | null>((resolve, reject) => {
+        const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(STATE_KEY);
+        request.onsuccess = () => resolve((request.result as MindHarborData | undefined) || null);
+        request.onerror = () => reject(request.error || new Error('無法讀取本機資料'));
+      });
+    } catch (err) {
+      console.warn('[MindHarborRepository] IndexedDB read failed, falling back to localStorage/memory:', err);
+      this.isIndexedDBBroken = true;
+      return this.memoryCache || this.readLocalStorage();
+    }
   }
 
   private async writeRaw(data: MindHarborData): Promise<void> {
-    const db = await this.open();
-    await new Promise<void>((resolve, reject) => {
-      const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(clone(data), STATE_KEY);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error || new Error('無法寫入本機資料'));
-    });
+    // 記憶體與 localStorage 雙重鏡像落盤
+    this.memoryCache = clone(data);
+    this.writeLocalStorage(data);
+
+    if (this.isIndexedDBBroken || typeof indexedDB === 'undefined') {
+      return;
+    }
+    try {
+      const db = await this.open();
+      await new Promise<void>((resolve, reject) => {
+        const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(clone(data), STATE_KEY);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error || new Error('無法寫入本機資料'));
+      });
+    } catch (err) {
+      console.warn('[MindHarborRepository] IndexedDB write failed, persisted to memory/localStorage:', err);
+      this.isIndexedDBBroken = true;
+    }
   }
 
   public async getData(): Promise<MindHarborData> {
@@ -135,6 +211,89 @@ export class MindHarborRepository {
       carrySuppressed: true,
       carryPromptShownAt: m.carryPromptShownAt ?? shownAt
     }));
+  }
+
+  /**
+   * 48-Hour Temporal Delta Candidate Filter.
+   * Short-circuit priority:
+   * 1. 5-day Frustration Silence line
+   * 2. 12-hour session frequency defense (anti-cascade bombing)
+   * 3. Candidate criteria: length >= 4, age >= 48h, not suppressed/settled/deleted
+   * 4. LIFO: pick the most recent eligible past moment
+   */
+  public async getTemporalCandidate(): Promise<Moment | null> {
+    const data = await this.getData();
+    const now = Date.now();
+    const state = data.temporalState || { consecutiveStillCount: 0 };
+
+    // 1. 全域靜默檢查 (5天防線)
+    if (state.silencedUntil && now < state.silencedUntil) return null;
+
+    // 2. 12 小時頻率防線 (禁止連環索取 / 防追債清單)
+    if (state.lastEvaluatedAt && (now - state.lastEvaluatedAt) < MS_12H) return null;
+
+    // 3. 候選過濾
+    const candidates = data.moments.filter(m => {
+      if (m.deletedAt || m.settledAt || m.carrySuppressed) return false;
+      if (!m.content || m.content.trim().length < 4) return false;
+      if (now - m.createdAt < MS_48H) return false;
+
+      const tv = m.temporalValidation;
+      if (!tv || tv.status === 'pending') return true;
+      if (tv.status === 'still' && tv.nextEligibleAt && now >= tv.nextEligibleAt) return true;
+
+      return false;
+    });
+
+    if (candidates.length === 0) return null;
+
+    // 4. LIFO: 優先取時間最近的一筆（離當下最近的過去）
+    return candidates.sort((a, b) => b.createdAt - a.createdAt)[0];
+  }
+
+  /**
+   * Resolves Temporal Delta validation state with zero AI tokens.
+   * Updates Moment status, sets 12h cooldown, and updates Frustration Silencing counter.
+   */
+  public async resolveTemporalDelta(momentId: string, choice: 'still' | 'faded' | 'resolved'): Promise<MindHarborData> {
+    const now = Date.now();
+    return this.update(data => {
+      const state: TemporalGlobalState = {
+        consecutiveStillCount: data.temporalState?.consecutiveStillCount || 0,
+        silencedUntil: data.temporalState?.silencedUntil,
+        lastEvaluatedAt: now
+      };
+
+      const moments = data.moments.map(m => {
+        if (m.id !== momentId) return m;
+        return {
+          ...m,
+          temporalValidation: {
+            status: choice,
+            validatedAt: now,
+            ...(choice === 'still' ? { nextEligibleAt: now + MS_7D } : {})
+          }
+        };
+      });
+
+      if (choice === 'still') {
+        state.consecutiveStillCount += 1;
+        if (state.consecutiveStillCount >= 2) {
+          state.silencedUntil = now + MS_5D;
+          state.consecutiveStillCount = 0; // 觸發後重置計數
+        }
+      } else {
+        // 只要選擇淡化或結案，連續累積計數立即歸零
+        state.consecutiveStillCount = 0;
+      }
+
+      return {
+        ...data,
+        moments,
+        temporalState: state,
+        backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+      };
+    });
   }
 
   public async saveSession(session: HarborSession): Promise<MindHarborData> {
@@ -236,6 +395,11 @@ export class MindHarborRepository {
       })) : [],
       lines: Array.isArray(data.lines) ? data.lines : [],
       linkDecisions: Array.isArray(data.linkDecisions) ? data.linkDecisions : [],
+      temporalState: data.temporalState ? {
+        consecutiveStillCount: typeof data.temporalState.consecutiveStillCount === 'number' ? data.temporalState.consecutiveStillCount : 0,
+        silencedUntil: data.temporalState.silencedUntil,
+        lastEvaluatedAt: data.temporalState.lastEvaluatedAt
+      } : { consecutiveStillCount: 0 },
       backup: { pendingChanges: 0, ...(data.backup || {}) }
     };
   }

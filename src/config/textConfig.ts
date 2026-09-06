@@ -17,7 +17,12 @@ export const UI_TEXT = {
     vignetteTopText: '現在這一刻，是安靜的',
     vignetteBottomText: '「允許每一種狀態存在，也是給自己的寬容。」',
     submittingBtn: '正在安放……',
-    settledBtn: '已安穩停靠',
+    settledBtn: '已安放',
+    dockedCard: {
+      statusIndicator: '已安放',
+      continueLink: '順著這句往下寫',
+      exploreLink: '換個角度看看'
+    },
     counterListening: '準備傾聽',
     counterSuffixInjected: '字已注入',
     vaultSubtext: '存於本機',
@@ -163,6 +168,7 @@ export const CORE_PHILOSOPHY = {
   principles: [
     'Level 0 消波：急性混亂時，先給身體出口，不必面對文字。',
     'Level 1 草稿：低摩擦膠囊，降低啟動阻抗。',
+    '微溫停靠：句號取代問號，純陳述不索取。觸碰暫停的自然淡出，零清理債務。',
     '客觀手術刀：切開客觀張力與物理邊界，嚴禁心理診斷與套話。',
     '雙軌解耦：事件軌道（人事地）與狀態軌道（身心感受）分離，捕捉跨情境溢出與跨時間重現。',
     '心智封裝：指認今晚運算無效的外部變數，履約下班。',

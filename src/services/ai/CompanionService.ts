@@ -7,9 +7,9 @@ import { DEFAULT_EXPLORE_GROUP } from './roles/exploreRouterRole';
  * It deliberately receives one Moment, never an implicit dump of personal history.
  */
 export class CompanionService {
-  public replyToPresentMoment(moment: Moment, session?: HarborSession): Promise<string | null> {
+  public replyToPresentMoment(moment: Moment, session?: HarborSession, signal?: AbortSignal): Promise<string | null> {
     const priorTurns = session?.turns.filter(t => t.momentId !== moment.id) || [];
-    return GeminiProxyClient.getCompanionResponse(moment.content, priorTurns);
+    return GeminiProxyClient.getCompanionResponse(moment.content, priorTurns, signal);
   }
 
   /** A closing reflection may see only this explicit conversation, never the wider history. */

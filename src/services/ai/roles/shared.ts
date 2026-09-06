@@ -20,8 +20,11 @@ export const normalizeCompanionResponse = (value: string): string => {
     if (typeof parsed?.reading === 'string') return parsed.reading.trim();
     if (typeof parsed?.content === 'string') return parsed.content.trim();
     if (typeof parsed?.message === 'string') return parsed.message.trim();
+    if (typeof parsed?.output === 'string') return parsed.output.trim();
+    if (typeof parsed?.result === 'string') return parsed.result.trim();
+    if (typeof parsed?.data === 'string') return parsed.data.trim();
   } catch { /* Plain text is the expected shape. */ }
-  return text;
+  return text.replace(/^"|"$/g, '').trim();
 };
 
 export const parseJson = (raw: string): unknown => {

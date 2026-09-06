@@ -1,5 +1,7 @@
 export type FlowState = 'HOME' | 'CHAT' | 'LAND' | 'REVIEW' | 'BACKUP';
 
+export type PersistenceState = 'accepted' | 'persisted' | 'volatile' | 'failed';
+
 /** Why a moment was written. It is inferred from its entry point, never requested as a field. */
 export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_added';
 
@@ -10,6 +12,19 @@ export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_ad
  * NOTE: "先不提這個" is NOT a CarryState value — it is stored as carrySuppressed: true on the Moment.
  */
 export type CarryState = 'still' | 'faded';
+export type TemporalStatus = 'pending' | 'still' | 'faded' | 'resolved';
+
+export interface TemporalValidation {
+  status: TemporalStatus;
+  validatedAt?: number;
+  nextEligibleAt?: number; // 針對 'still'，設定為 Date.now() + 7 * 86400000
+}
+
+export interface TemporalGlobalState {
+  consecutiveStillCount: number;
+  silencedUntil?: number;       // 連續 2 次 still 觸發 5 天冷卻
+  lastEvaluatedAt?: number;     // 任意操作觸發 12 小時全域冷卻
+}
 
 /** The indivisible, user-authored unit. It is never rewritten by AI. */
 export interface Moment {
@@ -23,9 +38,12 @@ export interface Moment {
   /** Set when the user hard-deletes: hidden everywhere. Backup still exports it. */
   deletedAt?: number;
   /**
-   * Continuity probe response: still | faded | null (not yet answered).
-   * Semantics: describes the user's state at the moment they answered — not a permanent verdict.
-   * faded does NOT mean "resolved forever". A new Continuity round can start if the user writes about it again.
+   * 48-Hour Temporal Delta Validation.
+   * Tracks user-reported status after time decay.
+   */
+  temporalValidation?: TemporalValidation;
+  /**
+   * Continuity probe response: still | faded | null (legacy, superseded by temporalValidation).
    */
   carryState?: CarryState | null;
   /**
@@ -184,6 +202,7 @@ export interface MindHarborData {
   sessions: HarborSession[];
   lines: ThreadLine[];
   linkDecisions: LinkDecision[];
+  temporalState?: TemporalGlobalState;
   backup: BackupStatus;
 }
 

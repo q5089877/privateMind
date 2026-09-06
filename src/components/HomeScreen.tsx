@@ -1,26 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Anchor, ArrowDown, ArrowRight, Check, Heart, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
-import { CarryState, Moment } from '../types';
+import { CarryState, Moment, PersistenceState } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
-
-interface Props {
-  onStartInput: (text: string) => void;
-  onReview: () => void;
-  onOpenBackup: () => void;
-  getContinuityCandidate?: () => Promise<Moment | null>;
-  onResolveContinuity?: (momentId: string, state: CarryState) => Promise<void>;
-  onSuppressContinuity?: (momentId: string) => Promise<void>;
-  onDismissContinuity?: (momentId: string) => Promise<void>;
-  /** Transient: non-null when a Moment was just docked. Triggers "✓ 停好了" card. */
-  dockedMoment?: Moment | null;
-  /** User chose "接著說" on the docked card → navigate to CHAT. */
-  onOpenChat?: () => void;
-  /** Auto-dismiss or ignored → clear dockedMoment, stay HOME. */
-  onDismissDockedMoment?: () => void;
-}
-
-const quickStates = UI_TEXT.home.quickDrafts;
+import { CRISIS_RESOURCES, evaluateSafetyRisk, SafetyEvaluation } from '../services/ai/roles/safetyRoute';
 
 import topZenImage from '../assets/zen-stones.jpg';
 import bottomMistImage from '../assets/mist-forest.jpg';
@@ -28,20 +11,55 @@ import bottomMistImage from '../assets/mist-forest.jpg';
 const TOP_ZEN_IMAGE = topZenImage;
 const BOTTOM_MIST_IMAGE = bottomMistImage;
 
+interface Props {
+  onStartInput: (text: string) => void;
+  onReview: () => void;
+  onOpenBackup: () => void;
+  getTemporalCandidate?: () => Promise<Moment | null>;
+  onResolveTemporalDelta?: (momentId: string, choice: 'still' | 'faded' | 'resolved') => Promise<void>;
+  getContinuityCandidate?: () => Promise<Moment | null>;
+  onResolveContinuity?: (momentId: string, state: CarryState) => Promise<void>;
+  onSuppressContinuity?: (momentId: string) => Promise<void>;
+  onDismissContinuity?: (momentId: string) => Promise<void>;
+  /** Jump directly to Chat for this moment's session */
+  onResumeContinuity?: (momentId: string) => Promise<void>;
+  /** Transient: non-null when a Moment was just docked. */
+  dockedMoment?: Moment | null;
+  /** User chose "接著說" on the docked card → navigate to CHAT. */
+  onOpenChat?: () => void;
+  /** Auto-dismiss or ignored → clear dockedMoment, stay HOME. */
+  onDismissDockedMoment?: () => void;
+  /** Request the AI reply for the docked moment */
+  requestPresentReply?: (moment: Moment) => Promise<string | null>;
+  /** Honest local storage status */
+  persistenceState?: PersistenceState;
+}
+
+const quickStates = UI_TEXT.home.quickDrafts;
+
 export const HomeScreen: React.FC<Props> = ({
   onStartInput,
   onReview,
   onOpenBackup,
+  getTemporalCandidate,
+  onResolveTemporalDelta,
   getContinuityCandidate,
   onResolveContinuity,
   onSuppressContinuity,
   onDismissContinuity,
+  onResumeContinuity,
   dockedMoment,
   onOpenChat,
-  onDismissDockedMoment
+  onDismissDockedMoment,
+  requestPresentReply,
+  persistenceState = 'persisted'
 }) => {
   const [input, setInput] = useState('');
-  const [ventCount, setVentCount] = useState(0);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [temporalCandidate, setTemporalCandidate] = useState<Moment | null>(null);
+  const [temporalFeedback, setTemporalFeedback] = useState<string | null>(null);
+  const [safetyCheck, setSafetyCheck] = useState<SafetyEvaluation | null>(null);
+  const [showCrisisHelp, setShowCrisisHelp] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [isEbbing, setIsEbbing] = useState(false);
@@ -53,28 +71,25 @@ export const HomeScreen: React.FC<Props> = ({
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
   const [continuityMoment, setContinuityMoment] = useState<Moment | null>(null);
   const [continuityDismissed, setContinuityDismissed] = useState(false);
-  // dockedVisible drives the CSS opacity for fade-out before calling onDismissDockedMoment
+  
   const [dockedVisible, setDockedVisible] = useState(false);
+  const [dockedAiReply, setDockedAiReply] = useState<string | null>(null);
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const progressTimerRef = useRef<number | null>(null);
   const holdDelayTimerRef = useRef<number | null>(null);
   const heartbeatLoopTimerRef = useRef<number | null>(null);
   const ebbTimerRef = useRef<number | null>(null);
   const pressStartTimeRef = useRef<number>(0);
+  const dockedFadeTimerRef = useRef<number | null>(null);
+  const pendingDismissTimerRef = useRef<number | null>(null);
+  const temporalFadeTimerRef = useRef<number | null>(null);
 
   const clearTimers = () => {
-    if (holdDelayTimerRef.current) {
-      clearTimeout(holdDelayTimerRef.current);
-      holdDelayTimerRef.current = null;
-    }
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
-    }
-    if (heartbeatLoopTimerRef.current) {
-      clearInterval(heartbeatLoopTimerRef.current);
-      heartbeatLoopTimerRef.current = null;
-    }
+    if (holdDelayTimerRef.current) clearTimeout(holdDelayTimerRef.current);
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    if (heartbeatLoopTimerRef.current) clearInterval(heartbeatLoopTimerRef.current);
+    if (ebbTimerRef.current) clearTimeout(ebbTimerRef.current);
   };
 
   useEffect(() => {
@@ -82,39 +97,162 @@ export const HomeScreen: React.FC<Props> = ({
     return () => {
       clearTimers();
       cancelHaptics();
+      if (dockedFadeTimerRef.current) clearTimeout(dockedFadeTimerRef.current);
+      if (pendingDismissTimerRef.current) clearTimeout(pendingDismissTimerRef.current);
+      if (temporalFadeTimerRef.current) clearTimeout(temporalFadeTimerRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (getContinuityCandidate) {
+    if (getTemporalCandidate) {
+      void getTemporalCandidate().then(candidate => {
+        if (candidate) {
+          setTemporalCandidate(candidate);
+        }
+      });
+    } else if (getContinuityCandidate) {
       void getContinuityCandidate().then(candidate => {
-        if (candidate) setContinuityMoment(candidate);
+        if (candidate) {
+          setContinuityMoment(candidate);
+        }
       });
     }
-  }, [getContinuityCandidate]);
+  }, [getTemporalCandidate, getContinuityCandidate]);
 
-  // Handle transient dockedMoment (No auto-dismiss timer - stays until next action)
+  const handleTemporalChoice = async (choice: 'still' | 'faded' | 'resolved') => {
+    if (!temporalCandidate) return;
+    const id = temporalCandidate.id;
+
+    const feedbackMap = {
+      still: '知道了，那就先放著。',
+      faded: '好。',
+      resolved: '已結案。'
+    };
+
+    setTemporalFeedback(feedbackMap[choice]);
+    if (onResolveTemporalDelta) {
+      void onResolveTemporalDelta(id, choice);
+    }
+
+    if (temporalFadeTimerRef.current) clearTimeout(temporalFadeTimerRef.current);
+    temporalFadeTimerRef.current = window.setTimeout(() => {
+      setTemporalCandidate(null);
+      setTemporalFeedback(null);
+    }, choice === 'still' ? 1500 : 1200);
+  };
+
+  // Handle transient dockedMoment
   useEffect(() => {
+    if (pendingDismissTimerRef.current) {
+      clearTimeout(pendingDismissTimerRef.current);
+      pendingDismissTimerRef.current = null;
+    }
+    
     if (dockedMoment) {
+      // 若當前頁面已被使用者隱藏/鎖屏，靜默落盤，不浮現卡片打擾
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        setDockedVisible(false);
+        return;
+      }
+
       setDockedVisible(true);
+      setDockedAiReply(null);
+      if (requestPresentReply) {
+        requestPresentReply(dockedMoment).then(reply => {
+          if (reply) {
+            // 再次檢查：如果生成回傳時已鎖屏，直接不浮現
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+              setDockedVisible(false);
+              return;
+            }
+
+            setDockedAiReply(reply);
+            // 動態展示時長：基礎 6 秒 + 每 10 個字增加 0.5 秒
+            const durationMs = 6000 + Math.floor(reply.length / 10) * 500;
+            if (dockedFadeTimerRef.current) clearTimeout(dockedFadeTimerRef.current);
+            dockedFadeTimerRef.current = window.setTimeout(() => {
+              triggerDockedDismiss(false);
+            }, durationMs);
+          }
+        });
+      }
     } else {
       setDockedVisible(false);
+      setDockedAiReply(null);
+      if (dockedFadeTimerRef.current) {
+        clearTimeout(dockedFadeTimerRef.current);
+        dockedFadeTimerRef.current = null;
+      }
     }
-  }, [dockedMoment]);
+  }, [dockedMoment, requestPresentReply]);
 
-  const triggerDockedDismiss = () => {
-    if (dockedMoment && onDismissDockedMoment) {
+  const triggerDockedDismiss = (immediate = false) => {
+    if (dockedFadeTimerRef.current) {
+      clearTimeout(dockedFadeTimerRef.current);
+      dockedFadeTimerRef.current = null;
+    }
+    if (!dockedMoment || !onDismissDockedMoment) return;
+    
+    if (immediate) {
       setDockedVisible(false);
       onDismissDockedMoment();
+    } else {
+      setDockedVisible(false);
+      if (pendingDismissTimerRef.current) clearTimeout(pendingDismissTimerRef.current);
+      pendingDismissTimerRef.current = window.setTimeout(() => {
+        onDismissDockedMoment();
+      }, 600);
     }
+  };
+
+  const handleDockedPointerEnter = () => {
+    if (dockedFadeTimerRef.current) {
+      clearTimeout(dockedFadeTimerRef.current);
+      dockedFadeTimerRef.current = null;
+    }
+  };
+
+  const handleDockedPointerLeave = () => {
+    if (dockedFadeTimerRef.current) {
+      clearTimeout(dockedFadeTimerRef.current);
+    }
+    // 滑鼠移開後寬限 2 秒淡出
+    dockedFadeTimerRef.current = window.setTimeout(() => {
+      triggerDockedDismiss(false);
+    }, 2000);
+  };
+
+  const handleDockedTouchStart = () => {
+    if (dockedFadeTimerRef.current) {
+      clearTimeout(dockedFadeTimerRef.current);
+      dockedFadeTimerRef.current = null;
+    }
+  };
+
+  const handleDockedTouchEnd = () => {
+    if (dockedFadeTimerRef.current) {
+      clearTimeout(dockedFadeTimerRef.current);
+    }
+    // 手機觸控放開後，延遲 3 秒重啟倒數，防止移動端 pointerleave 遺失導致卡片永久滯留
+    dockedFadeTimerRef.current = window.setTimeout(() => {
+      triggerDockedDismiss(false);
+    }, 3000);
   };
 
   const handleContinuityChoice = (choice: CarryState) => {
     if (!continuityMoment) return;
     const id = continuityMoment.id;
-    setContinuityDismissed(true);
-    if (onResolveContinuity) void onResolveContinuity(id, choice);
-    inputRef.current?.focus();
+    
+    if (choice === 'still') {
+      // jump right to the chat for this old session
+      setContinuityDismissed(true);
+      if (onResumeContinuity) void onResumeContinuity(id);
+    } else {
+      // faded
+      setContinuityDismissed(true);
+      if (onResolveContinuity) void onResolveContinuity(id, choice);
+      inputRef.current?.focus();
+    }
   };
 
   const handleContinuitySuppress = () => {
@@ -123,6 +261,12 @@ export const HomeScreen: React.FC<Props> = ({
     setContinuityDismissed(true);
     if (onSuppressContinuity) void onSuppressContinuity(id);
     inputRef.current?.focus();
+  };
+
+  const handleInputFocus = () => {
+    if (dockedMoment && dockedVisible) {
+      triggerDockedDismiss(true);
+    }
   };
 
   const clearHold = () => {
@@ -147,7 +291,7 @@ export const HomeScreen: React.FC<Props> = ({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
-    triggerDockedDismiss(); // 任何新動作立即清除 docked card
+    triggerDockedDismiss(true); // 任何新動作立即清除 docked card
     clearTimers();
     if (ebbTimerRef.current) {
       clearTimeout(ebbTimerRef.current);
@@ -158,22 +302,18 @@ export const HomeScreen: React.FC<Props> = ({
     triggerHaptic('unlatch');
     setIsTapping(true);
 
-    // 延遲 240ms：若 240ms 內放開，判定為純「輕點 (Tap)」；持續按住超過 240ms 啟動全螢幕注水與平靜心跳
     holdDelayTimerRef.current = window.setTimeout(() => {
       setIsHolding(true);
       setHoldProgress(0);
       setIsHeartSustaining(false);
-
-      // 立即敲擊第一下平靜心跳
       triggerBeatPulse();
 
-      // 每 1000ms（~60 BPM，深沉平靜生理心率）維持心跳循環
       heartbeatLoopTimerRef.current = window.setInterval(() => {
         triggerBeatPulse();
       }, 1000);
 
-      const duration = 2500; // 2.5 秒注水充飽
-      const interval = 30; // 30ms 刷新
+      const duration = 2500;
+      const interval = 30;
       const step = (interval / duration) * 100;
       let current = 0;
 
@@ -185,7 +325,6 @@ export const HomeScreen: React.FC<Props> = ({
           setIsHeartSustaining(true);
           clearInterval(progressTimerRef.current!);
           progressTimerRef.current = null;
-          // 水滿後不自動中斷！持續維持 heartbeatLoopTimerRef 直到使用者手指放開
           return;
         }
         setHoldProgress(current);
@@ -197,32 +336,28 @@ export const HomeScreen: React.FC<Props> = ({
     const pressDuration = Date.now() - pressStartTimeRef.current;
     window.setTimeout(() => setIsTapping(false), 120);
 
-    // 小於 240ms：純輕點（戳戳樂模式）
     if (pressDuration < 240) {
       clearTimers();
       setVentCount(prev => prev + 1);
       return;
     }
 
-    // 只要有長按（充飽中或已維持心跳），放開時啟動 2000ms 餘韻慣性退潮
     if (isHolding) {
       setVentCount(prev => prev + 1);
       triggerHaptic('release');
-
-      // 立即停止心跳循環與充水計時器，啟動帶物理慣性的退潮過渡
       clearTimers();
       setIsHeartSustaining(false);
       setHeartBeatPhase(false);
       setIsEbbing(true);
-      setHoldProgress(0); // 觸發 2000ms cubic-bezier 慣性滑落至 0%
+      setHoldProgress(0); 
 
       ebbTimerRef.current = window.setTimeout(() => {
         setIsHolding(false);
         setIsEbbing(false);
-        triggerHaptic('settle'); // P2: 退潮完成的結束感
-        setEbbPhase('ending'); // 顯示「好。」
+        triggerHaptic('settle'); 
+        setEbbPhase('ending'); 
         ebbTimerRef.current = window.setTimeout(() => {
-          setEbbPhase('done'); // 淡出變為「想留一句的話...」
+          setEbbPhase('done'); 
           ebbTimerRef.current = null;
         }, 1200);
       }, 2000);
@@ -233,7 +368,7 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const handleQuickState = (state: (typeof quickStates)[number]) => {
-    triggerDockedDismiss(); // 開始互動立即清除 docked card
+    triggerDockedDismiss(true);
     if (activeQuickState === state.id && input === state.text) {
       setActiveQuickState(null);
       setInput('');
@@ -245,18 +380,29 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const beginConversation = () => {
-    triggerDockedDismiss(); // 雖然 submit 會清，但防呆呼叫一次
+    triggerDockedDismiss(true); 
     const text = input.trim();
     if (!text || submittingState !== 'idle') return;
 
-    // 直接略過：使用者開始輸入，自然跳過 continuity probe
-    // 只記 shownAt，不寫任何狀態（"沒有回答" 不是一種回答）
+    // 前置生命安全檢測 (依據指引，安全優先於所有零問號憲法)
+    const safetyEval = evaluateSafetyRisk(text);
+    if (safetyEval.decision === 'imminent_risk') {
+      // 依舊落盤，確保不漏掉求助者的真實紀錄
+      onStartInput(text);
+      setInput('');
+      setActiveQuickState(null);
+      setSubmittingState('idle');
+      setSafetyCheck(safetyEval);
+      setShowCrisisHelp(false);
+      return;
+    }
+
     if (continuityMoment && !continuityDismissed) {
       if (onDismissContinuity) void onDismissContinuity(continuityMoment.id);
       setContinuityDismissed(true);
     }
 
-    setEbbPhase(null); // 開始輸入時收起退潮後提示
+    setEbbPhase(null); 
 
     triggerHaptic('docking');
     setSubmittingState('submitting');
@@ -275,7 +421,6 @@ export const HomeScreen: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-4 sm:py-7 flex flex-col space-y-6">
-      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat with 2000ms Ebb Resonance) */}
       <div
         className="fixed inset-0 z-50 pointer-events-none"
         style={{
@@ -326,7 +471,6 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 頂部 Header & 定錨按鈕 */}
       <header className="flex items-center justify-between gap-4 pt-1">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_6px_16px_rgba(19,66,48,0.22)] transition-transform duration-300 active:scale-95">
@@ -340,7 +484,6 @@ export const HomeScreen: React.FC<Props> = ({
 
         <div className="flex flex-col items-end">
           <div className="relative">
-            {/* 微弱呼吸光暈 */}
             {!isHolding && !isTapping && (
               <div className="absolute inset-0 rounded-full bg-accent/20 animate-ping" style={{ animationDuration: '3s', opacity: 0.4 }} />
             )}
@@ -373,19 +516,13 @@ export const HomeScreen: React.FC<Props> = ({
               <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono transition-colors duration-200 ${
                 isHolding ? 'bg-white/20 text-white' : 'bg-paper-sunken text-ink-muted'
               }`}>
-                {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
+                {isHolding ? (isHeartSustaining ? '已定錨' : '定錨中') : '長按'}
               </span>
             </button>
           </div>
-          {ventCount > 0 && (
-            <span className="mt-1.5 text-[11px] text-ink-muted">
-              {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
-            </span>
-          )}
         </div>
       </header>
 
-      {/* 頂部靜謐寫真切片 (Visual Calm Vignette) */}
       <div className="relative w-full h-24 rounded-2xl overflow-hidden shadow-xs border border-border-base/50">
         <img
           src={TOP_ZEN_IMAGE}
@@ -403,7 +540,6 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 核心標題引導 */}
       <section className="flex flex-col space-y-2 px-1">
         <h1 className="text-[28px] sm:text-[36px] font-medium tracking-[-0.04em] text-ink leading-tight">
           把卡在心裡的事，<br />先說出來。
@@ -413,7 +549,76 @@ export const HomeScreen: React.FC<Props> = ({
         </p>
       </section>
 
-      {/* 跨次承接感極簡探針 (Continuity Sensitivity Probe) */}
+      {/* Safety Route Crisis Intervention Card (突破零問號憲法，安全第一) */}
+      {safetyCheck && (
+        <section className="w-full rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 p-5 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2 mb-2 text-amber-800 dark:text-amber-200">
+            <ShieldCheck size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="font-semibold text-sm">安全確認</span>
+          </div>
+          <p className="text-[15px] font-medium text-ink leading-relaxed">
+            這句話可能表示你現在不只是心煩。我需要先確認你此刻是否安全。
+          </p>
+          
+          {!showCrisisHelp ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSafetyCheck(null)}
+                className="px-4 py-2 rounded-full bg-accent text-white text-xs font-medium hover:bg-accent-hover active:scale-95 transition-all cursor-pointer shadow-xs"
+              >
+                我目前安全
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCrisisHelp(true)}
+                className="px-4 py-2 rounded-full bg-red-600 text-white text-xs font-medium hover:bg-red-700 active:scale-95 transition-all cursor-pointer shadow-xs"
+              >
+                我可能會傷害自己
+              </button>
+              <button
+                type="button"
+                onClick={() => setSafetyCheck(null)}
+                className="px-3.5 py-2 rounded-full bg-surface-subtle text-ink-secondary border border-border-base text-xs font-medium hover:bg-surface-hover active:scale-95 transition-all cursor-pointer"
+              >
+                這句不是在說我
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 pt-3 border-t border-amber-500/20 space-y-3">
+              <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+                請先停一下，讓專業資源接住你。你不需要一個人硬撐：
+              </p>
+              <div className="space-y-2">
+                {CRISIS_RESOURCES.map(r => (
+                  <a
+                    key={r.contact}
+                    href={r.contact.includes('/') ? `tel:${r.contact.split('/')[0].trim()}` : `tel:${r.contact}`}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-surface border border-red-500/30 hover:border-red-500 transition-colors"
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-ink">{r.name}</div>
+                      <div className="text-[11px] text-ink-muted">{r.description}</div>
+                    </div>
+                    <div className="text-sm font-mono font-bold text-red-600 shrink-0 ml-3">
+                      {r.contact}
+                    </div>
+                  </a>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setSafetyCheck(null); setShowCrisisHelp(false); }}
+                className="w-full mt-2 py-2 rounded-xl bg-surface-subtle text-ink-secondary text-xs font-medium hover:text-ink transition-colors text-center cursor-pointer"
+              >
+                我已經聯繫支援 / 返回首頁
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Continuity Sensitivity Probe */}
       {continuityMoment && !continuityDismissed && (
         <section className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_2px_12px_rgba(19,66,48,0.05)] transition-all duration-300">
           <p className="text-[15.5px] font-medium text-ink leading-relaxed">
@@ -445,45 +650,67 @@ export const HomeScreen: React.FC<Props> = ({
         </section>
       )}
 
-      {/* Transient: Docked Confirmation Card */}
+      {/* Docked Confirmation Card */}
       {dockedMoment && (
         <section
+          onPointerEnter={handleDockedPointerEnter}
+          onPointerLeave={handleDockedPointerLeave}
+          onTouchStart={handleDockedTouchStart}
+          onTouchEnd={handleDockedTouchEnd}
           style={{
             opacity: dockedVisible ? 1 : 0,
             transform: dockedVisible ? 'translateY(0px)' : 'translateY(-8px)',
             transition: 'opacity 600ms ease-out, transform 600ms ease-out'
           }}
-          className="w-full rounded-2xl bg-accent text-white p-4.5 shadow-[0_4px_16px_rgba(19,66,48,0.15)] mb-2"
+          className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_4px_16px_rgba(19,66,48,0.08)] mb-2 relative overflow-hidden"
         >
           <div className="flex items-center gap-2 mb-3">
-            <Check size={18} className="text-white/90" />
-            <span className="font-medium text-[15px]">停好了</span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/60 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
+            </span>
+            <span className="font-medium text-[13px] text-accent tracking-wide">
+              {persistenceState === 'volatile' ? '已暫存於此畫面（關閉可能遺失）' : (UI_TEXT.home.dockedCard?.statusIndicator || '已留下。')}
+            </span>
           </div>
-          <div className="flex gap-2">
+          
+          <div className="mb-4">
+            {!dockedAiReply ? (
+              <div className="flex items-center gap-2 text-ink-muted text-[13px] py-1">
+                <Loader2 size={14} className="animate-spin" />
+                <span>正在沉澱...</span>
+              </div>
+            ) : (
+              <p className="text-[15px] text-ink font-medium leading-relaxed whitespace-pre-wrap">
+                {dockedAiReply}
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-5 text-[13px] font-medium text-ink-secondary">
             <button
-              onClick={() => { triggerDockedDismiss(); if (onOpenChat) onOpenChat(); }}
-              className="px-4 py-2 rounded-xl bg-white text-accent text-sm font-semibold hover:bg-white/90 active:scale-95 transition-all cursor-pointer"
+              onClick={() => { triggerDockedDismiss(true); if (onOpenChat) onOpenChat(); }}
+              className="hover:text-accent transition-colors cursor-pointer"
             >
-              接著說
+              {UI_TEXT.home.dockedCard?.continueLink || '順著這句往下寫'}
             </button>
             <button
-              onClick={() => { triggerDockedDismiss(); if (onOpenChat) onOpenChat(); /* Explore will be handled inside CHAT for now */ }}
-              className="px-4 py-2 rounded-xl bg-white/20 text-white text-sm font-medium hover:bg-white/30 active:scale-95 transition-all cursor-pointer"
+              onClick={() => { triggerDockedDismiss(true); if (onOpenChat) onOpenChat(); }}
+              className="hover:text-accent transition-colors cursor-pointer"
             >
-              換個角度
+              {UI_TEXT.home.dockedCard?.exploreLink || '換個角度看看'}
             </button>
           </div>
         </section>
       )}
 
-      {/* 退潮後極輕文字提示（兩階段：先「好。」，再變為「想留一句的話...」） */}
       <div
         style={{
           opacity: ebbPhase !== null ? 1 : 0,
           transform: ebbPhase !== null ? 'translateY(0px)' : 'translateY(8px)',
           transition: 'opacity 800ms ease-out, transform 800ms ease-out',
           pointerEvents: ebbPhase !== null ? 'none' : 'none',
-          display: dockedMoment ? 'none' : 'block' // 如果停靠卡片存在，先藏起這個
+          display: dockedMoment ? 'none' : 'block' 
         }}
         aria-hidden={ebbPhase === null}
       >
@@ -496,7 +723,7 @@ export const HomeScreen: React.FC<Props> = ({
           {ebbPhase === 'ending' ? '好。' : '想留一句的話，就寫在這裡。'}
         </p>
       </div>
-      {/* 核心輸入卡片 (Core Expression Card) */}
+
       <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_8px_24px_rgba(36,40,38,0.06)] border border-border-base/80 transition-all duration-300">
         <div className="flex items-center justify-between pb-3">
           <div className="flex items-center gap-2.5">
@@ -510,7 +737,6 @@ export const HomeScreen: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* 6 態心情膠囊 */}
         <div className="flex flex-wrap gap-2 pt-1 pb-3.5">
           {quickStates.map(state => {
             const isSelected = activeQuickState === state.id && input === state.text;
@@ -531,12 +757,18 @@ export const HomeScreen: React.FC<Props> = ({
           })}
         </div>
 
-        {/* 文字輸入區 */}
         <div className="relative py-1">
           <textarea
             ref={inputRef}
             rows={5}
             value={input}
+            onFocus={() => {
+              setIsInputFocused(true);
+              handleInputFocus();
+            }}
+            onBlur={() => {
+              setIsInputFocused(false);
+            }}
             onChange={e => {
               setInput(e.target.value);
               if (activeQuickState) setActiveQuickState(null);
@@ -552,7 +784,6 @@ export const HomeScreen: React.FC<Props> = ({
           />
         </div>
 
-        {/* 卡片底部操作列 */}
         <div className="mt-3 pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border-base/60">
           <div className="flex items-center gap-1.5 text-xs text-ink-muted">
             <Sprout size={14} className="text-accent" />
@@ -573,7 +804,7 @@ export const HomeScreen: React.FC<Props> = ({
             ) : submittingState === 'settled' ? (
               <>
                 <Check size={16} />
-                <span>已安穩停靠</span>
+                <span>已安放</span>
               </>
             ) : (
               <>
@@ -585,14 +816,53 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* 溫暖承諾提示 */}
+      {/* 48-Hour Temporal Delta Card */}
+      {temporalCandidate && !isInputFocused && input.trim().length === 0 && (
+        <section className="w-full rounded-2xl border border-border-base/70 bg-surface/40 p-4 transition-all duration-300">
+          <span className="text-[12px] font-medium tracking-wide text-ink-muted">
+            48 小時前留下的那件事
+          </span>
+          <p className="mt-1.5 text-[14px] leading-relaxed text-ink line-clamp-3">
+            「{temporalCandidate.content}」
+          </p>
+
+          {temporalFeedback ? (
+            <div className="mt-3 text-xs font-medium text-accent">
+              {temporalFeedback}
+            </div>
+          ) : (
+            <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-2.5 border-t border-border-base/40">
+              <button
+                type="button"
+                onClick={() => handleTemporalChoice('still')}
+                className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
+              >
+                [ 還在 ]
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemporalChoice('faded')}
+                className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
+              >
+                [ 淡了一些 ]
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemporalChoice('resolved')}
+                className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
+              >
+                [ 已經過去了 ]
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
       <p className="px-2 text-sm leading-relaxed text-ink-secondary">
         {UI_TEXT.home.footerPromise}
       </p>
 
-      {/* 導航與本機保證區 */}
       <nav className="flex flex-col space-y-3 pt-1">
-        {/* 回看卡片 */}
         <button
           onClick={onReview}
           type="button"
@@ -613,7 +883,6 @@ export const HomeScreen: React.FC<Props> = ({
           <ArrowRight size={16} className="text-ink-muted transition-transform group-hover:translate-x-1" />
         </button>
 
-        {/* 隱私保證膠囊 */}
         <div
           onClick={onOpenBackup}
           className="flex items-center gap-2.5 rounded-xl bg-paper-sunken px-3.5 py-2.5 text-xs text-ink-secondary border border-border-base/50 cursor-pointer hover:text-ink transition-colors"
@@ -625,7 +894,6 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </nav>
 
-      {/* 底部晨霧松林照片切片 (Grounding Photo Slice) */}
       <div className="w-full rounded-2xl overflow-hidden shadow-xs relative h-28 my-1 border border-border-base/50">
         <img
           src={BOTTOM_MIST_IMAGE}

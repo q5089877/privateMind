@@ -1,4 +1,4 @@
-import { HarborSession, Moment, SessionClosure } from '../domain/harbor';
+import { HarborSession, Moment, PersistenceState, SessionClosure } from '../domain/harbor';
 
 export type HarborRequestState = 'idle' | 'saving' | 'thinking' | 'restoring';
 
@@ -9,13 +9,14 @@ export interface HarborAppState {
   currentSession: HarborSession | null;
   /**
    * Transient UI state: the Moment just saved via submitText().
-   * Present = show "✓ 停好了" confirmation card on HOME.
+   * Present = show confirmation card on HOME.
    * Cleared on: auto-dismiss timer, OPEN_CHAT, RESET_TO_HOME.
    */
   dockedMoment: Moment | null;
   pendingClosure: SessionClosure | null;
   ready: boolean;
   request: HarborRequestState;
+  persistenceState: PersistenceState;
   error?: string;
 }
 
@@ -26,5 +27,6 @@ export const initialHarborState: HarborAppState = {
   dockedMoment: null,
   pendingClosure: null,
   ready: false,
-  request: 'restoring'
+  request: 'restoring',
+  persistenceState: 'persisted'
 };

@@ -11,16 +11,21 @@ import { exploreRole } from '../services/ai/roles/exploreRole';
 import { exploreRouterRole } from '../services/ai/roles/exploreRouterRole';
 import { landingRole } from '../services/ai/roles/landingRole';
 import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
-import { presentFallback, presentRole } from '../services/ai/roles/presentRole';
+import { presentFallback, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
 import { normalizeCompanionResponse } from '../services/ai/roles/shared';
 import { timelineRole, type TimelineSource } from '../services/ai/roles/timelineRole';
 
 export { normalizeCompanionResponse } from '../services/ai/roles/shared';
 
-const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: number): Promise<Response> => {
+const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: number, externalSignal?: AbortSignal): Promise<Response> => {
   const doFetch = async () => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+      if (externalSignal.aborted) throw new DOMException('Aborted', 'AbortError');
+      externalSignal.addEventListener('abort', onExternalAbort);
+    }
     try {
       return await fetch(url, {
         method: 'POST',
@@ -30,6 +35,7 @@ const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: num
       });
     } finally {
       window.clearTimeout(timeoutId);
+      if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
     }
   };
 
@@ -40,7 +46,8 @@ const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: num
       return await doFetch();
     }
     return res;
-  } catch {
+  } catch (err) {
+    if (externalSignal?.aborted) throw err;
     await new Promise(r => window.setTimeout(r, 600));
     return await doFetch();
   }
@@ -73,16 +80,22 @@ export class GeminiProxyClient {
     return !!this.getProxyUrl().trim();
   }
 
-  /** Present Companion: one current Moment, with in-session context if available, no cross-session historical retrieval. */
-  public static async getCompanionResponse(current: string, priorTurns?: ConversationTurn[]): Promise<string | null> {
-    const task = presentRole.create(current, priorTurns);
+  /** Present Companion (Circuit Breaker): one current Moment, with in-session context if available. */
+  public static async getCompanionResponse(current: string, priorTurns?: ConversationTurn[], signal?: AbortSignal): Promise<string | null> {
+    const clean = current.trim();
+    // 本地短路過濾：長度過短、純髒話/虛詞、純符號、或高重複字元，直接短路返回熔斷文字
+    if (shouldShortCircuitLocally(clean)) {
+      return presentFallback();
+    }
+    const task = presentRole.create(clean, priorTurns);
     const proxyUrl = this.getProxyUrl();
-    if (!proxyUrl) return null;
+    if (!proxyUrl) return presentFallback();
     try {
-      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
-      return raw ? presentRole.read(raw, current) : null;
-    } catch {
-      return null;
+      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs, signal));
+      return raw ? presentRole.read(raw, clean) : presentFallback();
+    } catch (err) {
+      if (signal?.aborted) return null;
+      return presentFallback();
     }
   }
 

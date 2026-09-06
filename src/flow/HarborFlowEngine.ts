@@ -19,8 +19,26 @@ export class HarborFlowEngine {
   private readonly backup = new BackupService();
   private listeners: Array<() => void> = [];
   private readonly presentReplyRequests = new Map<string, Promise<string | null>>();
+  private activePresentAbortController: AbortController | null = null;
 
-  constructor() { void this.initialise(); }
+  constructor() {
+    void this.initialise();
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        // 使用者鎖屏或切換頁面時，立即中斷正在執行的背景推論，省下無效回呼與記憶體
+        if (document.visibilityState === 'hidden') {
+          this.cancelActivePresentRequest();
+        }
+      });
+    }
+  }
+
+  public cancelActivePresentRequest() {
+    if (this.activePresentAbortController) {
+      this.activePresentAbortController.abort();
+      this.activePresentAbortController = null;
+    }
+  }
 
   public subscribe(listener: () => void) {
     this.listeners.push(listener);
@@ -43,8 +61,8 @@ export class HarborFlowEngine {
       case 'BEGIN_LANDING': return this.beginLanding(intent.session);
       case 'SAVE_LANDING': return this.completeLanding(intent.sessionId, intent.closure);
       case 'OPEN_BACKUP': return this.openBackup();
-      case 'RETURN_HOME': return this.reset();
-      default: return undefined;
+      case 'RESET_HARBOR': return this.reset();
+      default: return null;
     }
   }
 
@@ -65,9 +83,10 @@ export class HarborFlowEngine {
     const moment: Moment = { id: this.id('moment'), content: clean, createdAt: Date.now(), intent };
     const session = this.createOrContinueSession(moment);
     await this.storage.saveMomentWithSession(moment, session);
+    const persistenceState = this.storage.getPersistenceStatus();
     // Stay on HOME — dispatch MOMENT_DOCKED, not MOMENT_CAPTURED.
     // Screen transition to CHAT is opt-in via openChat().
-    this.dispatch({ type: 'MOMENT_DOCKED', moment, session });
+    this.dispatch({ type: 'MOMENT_DOCKED', moment, session, persistenceState });
   }
 
   /** User chose "接著說" on the docked card. Moves to CHAT. */
@@ -87,14 +106,25 @@ export class HarborFlowEngine {
     }
     const existing = this.presentReplyRequests.get(moment.id);
     if (existing) return existing;
+
+    // 連擊 (Burst) 熔斷防禦：若有前一個推論正在跑，立即 abort 掉，不賽跑、不浪費 Token
+    this.cancelActivePresentRequest();
+    const abortController = new AbortController();
+    this.activePresentAbortController = abortController;
+
     const activeSession = session || this.snapshot.currentSession || undefined;
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const request = this.companion.replyToPresentMoment(moment, activeSession).then(reply => {
+    const request = this.companion.replyToPresentMoment(moment, activeSession, abortController.signal).then(reply => {
       this.dispatch(reply
         ? { type: 'SET_REQUEST', request: 'idle' }
         : { type: 'SET_REQUEST', request: 'idle', error: '回應暫時沒有連上。' });
       return reply;
-    }).finally(() => this.presentReplyRequests.delete(moment.id));
+    }).catch(() => null).finally(() => {
+      if (this.activePresentAbortController === abortController) {
+        this.activePresentAbortController = null;
+      }
+      this.presentReplyRequests.delete(moment.id);
+    });
     this.presentReplyRequests.set(moment.id, request);
     return request;
   }
@@ -185,30 +215,44 @@ export class HarborFlowEngine {
   }
 
   /**
-   * Continuity Probe: Selects the last active Moment from a prior calendar usage day
-   * that has never been probed AND is not suppressed by the user.
+   * 48-Hour Temporal Delta: Selects the most recent unvalidated Moment >= 48h old.
+   */
+  public async getTemporalCandidate(): Promise<Moment | null> {
+    return this.storage.getTemporalCandidate();
+  }
+
+  /**
+   * Resolves Temporal Delta validation state with zero AI tokens.
+   */
+  public async resolveTemporalDelta(momentId: string, choice: 'still' | 'faded' | 'resolved'): Promise<void> {
+    await this.storage.resolveTemporalDelta(momentId, choice);
+  }
+
+  /**
+   * Continuity Probe: Legacy prototype. Superseded by 48-hour Temporal Delta.
    */
   public async getContinuityCandidate(): Promise<Moment | null> {
-    const data = await this.storage.getData();
-    const todayStr = new Date().toDateString();
-
-    const candidates = data.moments
-      .filter(m => !m.deletedAt && !m.settledAt)
-      .filter(m => m.carryPromptShownAt == null)
-      .filter(m => !m.carrySuppressed)                          // "先不提這個" moments never resurface
-      .filter(m => new Date(m.createdAt).toDateString() !== todayStr)
-      .filter(m => m.content.trim().length >= 4)
-      .sort((a, b) => b.createdAt - a.createdAt);
-
-    return candidates[0] || null;
+    return this.getTemporalCandidate();
   }
 
   /**
    * User answered "還在" or "淡掉了" — records explicit carry state.
-   * faded = user's state at this moment, NOT a permanent closure. New Continuity round is possible.
    */
   public async resolveContinuityProbe(momentId: string, state: CarryState): Promise<void> {
-    await this.storage.setMomentCarryState(momentId, state, Date.now());
+    await this.resolveTemporalDelta(momentId, state === 'still' ? 'still' : 'faded');
+  }
+
+  public async resumeContinuityMoment(momentId: string): Promise<void> {
+    const data = await this.storage.getData();
+    const session = this.findSessionForMoment(data, momentId);
+    
+    // Write carry state
+    await this.storage.setMomentCarryState(momentId, 'still', Date.now());
+
+    // Jump to chat
+    if (session) {
+      await this.openSession(session.id);
+    }
   }
 
   /**

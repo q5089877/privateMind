@@ -10,9 +10,11 @@ export const harborReducer = (state: HarborAppState, intent: HarborIntent): Harb
       return { ...state, screen: intent.screen };
     case 'SET_REQUEST':
       return { ...state, request: intent.request, error: intent.error };
+    case 'SET_PERSISTENCE_STATE':
+      return { ...state, persistenceState: intent.state };
     case 'MOMENT_DOCKED':
-      // Moment saved. Stay on HOME; show transient "✓ 停好了" card.
-      return { ...state, screen: 'HOME', request: 'idle', dockedMoment: intent.moment, currentMoment: intent.moment, currentSession: intent.session, pendingClosure: null };
+      // Moment saved. Stay on HOME; show transient card with honest persistence status.
+      return { ...state, screen: 'HOME', request: 'idle', dockedMoment: intent.moment, currentMoment: intent.moment, currentSession: intent.session, pendingClosure: null, persistenceState: intent.persistenceState || 'persisted' };
     case 'DISMISS_DOCKED_MOMENT':
       // Auto-dismiss or user ignored. Clear card, stay HOME.
       return { ...state, dockedMoment: null };

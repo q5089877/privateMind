@@ -13,6 +13,7 @@ interface Props {
   onUnsettleItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
   onDeleteItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
   onOpenBackup: () => void;
+  onResolveTemporalDelta?: (momentId: string, choice: 'still' | 'faded' | 'resolved') => Promise<void>;
 }
 
 type FeedItem =
@@ -47,14 +48,16 @@ export const ReviewScreen: React.FC<Props> = ({
   onSettleItem,
   onUnsettleItem,
   onDeleteItem,
-  onOpenBackup
+  onOpenBackup,
+  onResolveTemporalDelta
 }) => {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [sessions, setSessions] = useState<HarborSession[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'expanded' | 'settled'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'expanded' | 'settled' | 'background'>('all');
   const [sortDesc, setSortDesc] = useState(true);
+  const [settleAllNotice, setSettleAllNotice] = useState<string | null>(null);
 
   // Pattern Passive Mirroring state
   const [patternEligible, setPatternEligible] = useState(false);
@@ -128,6 +131,24 @@ export const ReviewScreen: React.FC<Props> = ({
     reload();
   };
 
+  const handleResolveMoment = async (momentId: string, choice: 'faded' | 'resolved') => {
+    if (onResolveTemporalDelta) {
+      await onResolveTemporalDelta(momentId, choice);
+      reload();
+    }
+  };
+
+  const handleSettleAllStill = async () => {
+    const stillMoments = moments.filter(m => !m.deletedAt && !m.settledAt && (m.temporalValidation?.status === 'still' || m.carryState === 'still'));
+    if (stillMoments.length === 0) return;
+    for (const m of stillMoments) {
+      await onSettleItem('moment', m.id);
+    }
+    setSettleAllNotice(`已將 ${stillMoments.length} 件生活背景事項全數安放至封存區。`);
+    setTimeout(() => setSettleAllNotice(null), 3000);
+    reload();
+  };
+
   // Convert raw data into feed items
   const allFeedItems = useMemo(() => {
     const byId = new Map(moments.map(m => [m.id, m]));
@@ -141,11 +162,11 @@ export const ReviewScreen: React.FC<Props> = ({
           kind: 'session' as const,
           session: s,
           primaryMoment: primary,
-          ts: primary.createdAt,
+          ts: s.updatedAt || s.createdAt,
           settled: Boolean(s.settledAt),
           deleted: Boolean(s.deletedAt)
         } : null;
-      }).filter((item): item is Extract<FeedItem, { kind: 'session' }> => Boolean(item)),
+      }).filter((i): i is FeedItem => i !== null),
       ...moments.filter(m => !sessionMomentIds.has(m.id)).map(m => ({
         kind: 'moment' as const,
         moment: m,
@@ -161,6 +182,22 @@ export const ReviewScreen: React.FC<Props> = ({
   // Counts for pills
   const allCount = useMemo(() => allFeedItems.filter(i => !i.settled).length, [allFeedItems]);
   const settledCount = useMemo(() => allFeedItems.filter(i => i.settled).length, [allFeedItems]);
+  const backgroundCount = useMemo(() => allFeedItems.filter(i => !i.settled && (i.kind === 'moment' ? (i.moment.temporalValidation?.status === 'still' || i.moment.carryState === 'still') : false)).length, [allFeedItems]);
+
+  // Objective temporal sedimentation facts
+  const temporalStats = useMemo(() => {
+    const validMoments = moments.filter(m => !m.deletedAt);
+    const total = validMoments.length;
+    if (total === 0) return null;
+
+    const faded = validMoments.filter(m => m.temporalValidation?.status === 'faded' || m.carryState === 'faded').length;
+    const resolved = validMoments.filter(m => m.temporalValidation?.status === 'resolved').length;
+    const still = validMoments.filter(m => m.temporalValidation?.status === 'still' || m.carryState === 'still').length;
+    const validated = faded + resolved + still;
+    const rate = validated > 0 ? Math.round(((faded + resolved) / validated) * 100) : 0;
+
+    return { total, faded, resolved, still, validated, rate };
+  }, [moments]);
 
   // Filtered and sorted feed
   const timelineGroups = useMemo(() => {
@@ -175,6 +212,8 @@ export const ReviewScreen: React.FC<Props> = ({
       });
     } else if (activeFilter === 'settled') {
       filtered = filtered.filter(i => i.settled);
+    } else if (activeFilter === 'background') {
+      filtered = filtered.filter(i => !i.settled && (i.kind === 'moment' ? (i.moment.temporalValidation?.status === 'still' || i.moment.carryState === 'still') : false));
     }
 
     filtered = [...filtered].sort((a, b) => sortDesc ? b.ts - a.ts : a.ts - b.ts);
@@ -244,6 +283,69 @@ export const ReviewScreen: React.FC<Props> = ({
         </section>
         {/* END: PageHeader */}
 
+        {/* BEGIN: Temporal Sedimentation Summary */}
+        {temporalStats && (
+          <section className="w-full mb-6 rounded-2xl bg-white p-5 border border-[#E9E6DE] shadow-xs" data-purpose="temporal-sedimentation">
+            <div className="flex items-center justify-between text-[12px] font-medium text-[#5E7066] mb-3">
+              <span>時間留下的事實</span>
+              <span className="font-mono text-[#86968E]">共留存 {temporalStats.total} 件</span>
+            </div>
+
+            <div className="space-y-2 text-[14px] text-[#1E2923]">
+              <div className="flex items-center justify-between py-1 border-b border-[#F0EDE6]/60">
+                <span className="text-[#465950]">隨時間經過自然淡掉</span>
+                <span className="font-mono font-medium text-[#387358]">{temporalStats.faded} 件</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-[#F0EDE6]/60">
+                <span className="text-[#465950]">在現實中已經過去</span>
+                <span className="font-mono font-medium text-[#387358]">{temporalStats.resolved} 件</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-[#465950]">持續作為生活背景</span>
+                <span className="font-mono font-medium text-[#697B72]">{temporalStats.still} 件</span>
+              </div>
+            </div>
+
+            {temporalStats.validated > 0 ? (
+              <div className="mt-3.5 pt-3 border-t border-[#E9E6DE] text-[13px] text-[#5E7066] leading-relaxed">
+                在已驗證事項中，
+                <span className="font-semibold text-[#1E3E31]">{temporalStats.rate}%</span>
+                {' '}已不再構成當初的主觀張力。
+                {temporalStats.still > 0 && (
+                  <span className="block mt-1 text-[12px] text-[#86968E]">
+                    其餘 {temporalStats.still} 件事項已成為生活常態背景，允許其存在，不必急著有結論。
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3.5 pt-3 border-t border-[#E9E6DE] text-[12px] text-[#86968E]">
+                尚無滿 48 小時之驗證項目，時間差統計將在沉澱後自動成形。
+              </div>
+            )}
+
+            {/* Settle All Background Still Button */}
+            {temporalStats.still > 0 && (
+              <div className="mt-4 pt-3 border-t border-[#F0EDE6] flex items-center justify-between gap-3">
+                <span className="text-xs text-[#86968E]">不想在日常清單看見背景瑣事？</span>
+                <button
+                  type="button"
+                  onClick={() => void handleSettleAllStill()}
+                  className="px-3 py-1.5 rounded-xl bg-[#F3F1EC] hover:bg-[#E8E4DB] text-[#4A5C52] hover:text-[#1E2923] text-xs font-medium transition-colors cursor-pointer shrink-0"
+                >
+                  一鍵全數安放
+                </button>
+              </div>
+            )}
+
+            {settleAllNotice && (
+              <div className="mt-2.5 text-xs text-[#387358] font-medium">
+                {settleAllNotice}
+              </div>
+            )}
+          </section>
+        )}
+        {/* END: Temporal Sedimentation Summary */}
+
         {/* BEGIN: Pattern Passive Mirroring Hint */}
         {patternEligible && (
           <section className="w-full mb-6">
@@ -309,6 +411,18 @@ export const ReviewScreen: React.FC<Props> = ({
           >
             已安放 {settledCount > 0 ? `(${settledCount})` : ''}
           </button>
+          {backgroundCount > 0 && (
+            <button
+              onClick={() => setActiveFilter('background')}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors cursor-pointer ${
+                activeFilter === 'background'
+                  ? 'bg-[#1E3E31] text-white shadow-sm'
+                  : 'bg-[#ECE9E2] hover:bg-[#E3DFD6] text-[#4A5D53]'
+              }`}
+            >
+              生活背景 ({backgroundCount})
+            </button>
+          )}
           <button
             onClick={() => setSortDesc(prev => !prev)}
             className="shrink-0 px-3.5 py-1.5 rounded-full bg-[#ECE9E2] hover:bg-[#E3DFD6] text-[#4A5D53] text-[13px] font-medium transition-colors inline-flex items-center gap-1 cursor-pointer"
@@ -428,7 +542,7 @@ export const ReviewScreen: React.FC<Props> = ({
 
                           {/* Interactive Action Buttons */}
                           <div className="mt-5 pt-3.5 border-t border-[#F2F0EC] flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               {item.kind === 'session' && (
                                 <button
                                   onClick={() => void onOpenSession(item.session.id)}
@@ -437,6 +551,24 @@ export const ReviewScreen: React.FC<Props> = ({
                                   <span>繼續這裡</span>
                                   <ArrowRight size={13} />
                                 </button>
+                              )}
+                              {item.kind === 'moment' && onResolveTemporalDelta && (!item.moment.temporalValidation || item.moment.temporalValidation.status === 'still' || item.moment.carryState === 'still') && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleResolveMoment(item.moment.id, 'faded')}
+                                    className="px-3 py-1.5 rounded-full bg-[#EAF2ED] hover:bg-[#DCEAE1] text-[#387358] text-[12px] font-medium transition-colors cursor-pointer"
+                                  >
+                                    標記已淡化
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleResolveMoment(item.moment.id, 'resolved')}
+                                    className="px-3 py-1.5 rounded-full bg-[#EAF2ED] hover:bg-[#DCEAE1] text-[#387358] text-[12px] font-medium transition-colors cursor-pointer"
+                                  >
+                                    標記已結案
+                                  </button>
+                                </>
                               )}
                               <button
                                 onClick={() => item.settled ? void handleUnsettle(item.kind, id) : void handleSettle(item.kind, id)}

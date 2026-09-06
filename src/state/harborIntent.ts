@@ -23,7 +23,8 @@ export type HarborIntent =
    * for the transient "✓ 停好了" confirmation card.
    * Replaces the old MOMENT_CAPTURED which forced an immediate jump to CHAT.
    */
-  | { type: 'MOMENT_DOCKED'; moment: Moment; session: HarborSession }
+  | { type: 'SET_PERSISTENCE_STATE'; state: PersistenceState }
+  | { type: 'MOMENT_DOCKED'; moment: Moment; session: HarborSession; persistenceState?: PersistenceState }
   /** Auto-dismiss or user ignored the docked card. Clears dockedMoment, stays HOME. */
   | { type: 'DISMISS_DOCKED_MOMENT' }
   /** User explicitly chose to continue talking. Moves to CHAT with the docked Moment/Session. */
