@@ -1,4 +1,4 @@
-import { CarryState, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, TemporalGlobalState, ThoughtThread, ThreadLine } from '../types';
+import { AnchorEvent, AnchorEventType, CarryState, DailyAnchorStats, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, TemporalGlobalState, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 1;
@@ -17,6 +17,7 @@ const emptyData = (): MindHarborData => ({
   sessions: [],
   lines: [],
   linkDecisions: [],
+  anchorEvents: [],
   temporalState: { consecutiveStillCount: 0 },
   backup: { pendingChanges: 0 }
 });
@@ -52,6 +53,7 @@ export class MindHarborRepository {
         sessions: parsed.sessions || [],
         lines: [],
         linkDecisions: [],
+        anchorEvents: Array.isArray(parsed.anchorEvents) ? parsed.anchorEvents : [],
         backup: parsed.backup || {
           lastExportAt: undefined,
           pendingChanges: 0,
@@ -71,6 +73,7 @@ export class MindHarborRepository {
         version: data.version,
         moments: data.moments.slice(-10),
         sessions: data.sessions.slice(-3),
+        anchorEvents: data.anchorEvents.slice(-500),
         updatedAt: Date.now()
       };
       localStorage.setItem(STATE_KEY + '_emergency', JSON.stringify(emergencySnapshot));
@@ -155,6 +158,35 @@ export class MindHarborRepository {
     return next;
   }
 
+  public async recordAnchorEvent(type: AnchorEventType, durationMs?: number): Promise<DailyAnchorStats> {
+    const event: AnchorEvent = {
+      id: `anchor-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      type,
+      occurredAt: Date.now(),
+      ...(type === 'hold' && typeof durationMs === 'number' ? { durationMs: Math.max(0, Math.round(durationMs)) } : {})
+    };
+    const data = await this.update(current => ({
+      ...current,
+      anchorEvents: [...current.anchorEvents, event],
+      backup: { ...current.backup, pendingChanges: current.backup.pendingChanges + 1 }
+    }));
+    return this.todayAnchorStats(data.anchorEvents);
+  }
+
+  public async getTodayAnchorStats(): Promise<DailyAnchorStats> {
+    return this.todayAnchorStats((await this.getData()).anchorEvents);
+  }
+
+  private todayAnchorStats(events: AnchorEvent[], now = new Date()): DailyAnchorStats {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+    return events.reduce((stats, event) => {
+      if (event.occurredAt < start || event.occurredAt >= end) return stats;
+      if (event.type === 'tap') stats.tapCount += 1;
+      if (event.type === 'hold') stats.holdCount += 1;
+      return stats;
+    }, { tapCount: 0, holdCount: 0 });
+  }
   public async saveMoment(moment: Moment): Promise<MindHarborData> {
     return this.update(data => ({
       ...data,
@@ -451,6 +483,7 @@ export class MindHarborRepository {
         sessions: byId(current.sessions, incoming.sessions).sort((a, b) => a.createdAt - b.createdAt),
         lines: byId(current.lines, incoming.lines),
         linkDecisions: byFingerprint,
+        anchorEvents: byId(current.anchorEvents, incoming.anchorEvents),
         backup: { ...current.backup, lastImportedAt: Date.now(), pendingChanges: current.backup.pendingChanges }
       };
     });
@@ -469,6 +502,7 @@ export class MindHarborRepository {
       })) : [],
       lines: Array.isArray(data.lines) ? data.lines : [],
       linkDecisions: Array.isArray(data.linkDecisions) ? data.linkDecisions : [],
+      anchorEvents: Array.isArray(data.anchorEvents) ? data.anchorEvents.filter(event => event && (event.type === 'tap' || event.type === 'hold') && typeof event.occurredAt === 'number') : [],
       temporalState: data.temporalState ? {
         consecutiveStillCount: typeof data.temporalState.consecutiveStillCount === 'number' ? data.temporalState.consecutiveStillCount : 0,
         silencedUntil: data.temporalState.silencedUntil,

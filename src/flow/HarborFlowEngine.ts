@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { BackupOverview, BackupStatus, CarryState, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { AnchorEventType, BackupOverview, BackupStatus, CarryState, DailyAnchorStats, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
 import { PatternService } from '../services/memory/PatternService';
@@ -276,6 +276,13 @@ export class HarborFlowEngine {
     await this.storage.markContinuityPromptShown(momentId, Date.now());
   }
 
+  public async getTodayAnchorStats(): Promise<DailyAnchorStats> {
+    return this.storage.getTodayAnchorStats();
+  }
+
+  public async recordAnchorEvent(type: AnchorEventType, durationMs?: number): Promise<DailyAnchorStats> {
+    return this.storage.recordAnchorEvent(type, durationMs);
+  }
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 
   public async getBackupOverview(): Promise<BackupOverview> {
@@ -287,7 +294,8 @@ export class HarborFlowEngine {
       turns: data.sessions.reduce((total, session) => total + session.turns.length, 0),
       closures: data.sessions.filter(session => Boolean(session.closure)).length,
       lines: data.lines.length,
-      decisions: data.linkDecisions.length
+      decisions: data.linkDecisions.length,
+      anchorEvents: data.anchorEvents.length
     };
   }
 

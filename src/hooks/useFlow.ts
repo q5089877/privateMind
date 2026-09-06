@@ -43,6 +43,8 @@ export function useFlow() {
     dismissContinuityProbe: (momentId: string) => engine.dismissContinuityProbe(momentId),
     getMoments: () => engine.getMoments(),
     getSessions: () => engine.getSessions(),
+    getTodayAnchorStats: () => engine.getTodayAnchorStats(),
+    recordAnchorEvent: (type: 'tap' | 'hold', durationMs?: number) => engine.recordAnchorEvent(type, durationMs),
     getBackupStatus: () => engine.getBackupStatus(),
     getBackupOverview: () => engine.getBackupOverview(),
     openSession: (sessionId: string) => engine.openSession(sessionId),

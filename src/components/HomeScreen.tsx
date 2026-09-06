@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Anchor, ArrowDown, ArrowRight, Check, Heart, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
-import { CarryState, Moment, PersistenceState } from '../types';
+import { CarryState, DailyAnchorStats, Moment, PersistenceState } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
 import { CRISIS_RESOURCES, evaluateSafetyRisk, SafetyEvaluation } from '../services/ai/roles/safetyRoute';
@@ -33,6 +33,8 @@ interface Props {
   requestPresentReply?: (moment: Moment) => Promise<string | null>;
   /** Honest local storage status */
   persistenceState?: PersistenceState;
+  getTodayAnchorStats?: () => Promise<DailyAnchorStats>;
+  onRecordAnchorEvent?: (type: 'tap' | 'hold', durationMs?: number) => Promise<DailyAnchorStats>;
 }
 
 const quickStates = UI_TEXT.home.quickDrafts;
@@ -52,7 +54,9 @@ export const HomeScreen: React.FC<Props> = ({
   onOpenChat,
   onDismissDockedMoment,
   requestPresentReply,
-  persistenceState = 'persisted'
+  persistenceState = 'persisted',
+  getTodayAnchorStats,
+  onRecordAnchorEvent
 }) => {
   const [input, setInput] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -71,6 +75,7 @@ export const HomeScreen: React.FC<Props> = ({
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
   const [continuityMoment, setContinuityMoment] = useState<Moment | null>(null);
   const [continuityDismissed, setContinuityDismissed] = useState(false);
+  const [todayAnchorStats, setTodayAnchorStats] = useState<DailyAnchorStats>({ tapCount: 0, holdCount: 0 });
   
   const [dockedVisible, setDockedVisible] = useState(false);
   const [dockedAiReply, setDockedAiReply] = useState<string | null>(null);
@@ -81,6 +86,7 @@ export const HomeScreen: React.FC<Props> = ({
   const heartbeatLoopTimerRef = useRef<number | null>(null);
   const ebbTimerRef = useRef<number | null>(null);
   const pressStartTimeRef = useRef<number>(0);
+  const holdActivatedRef = useRef(false);
   const dockedFadeTimerRef = useRef<number | null>(null);
   const pendingDismissTimerRef = useRef<number | null>(null);
   const temporalFadeTimerRef = useRef<number | null>(null);
@@ -103,6 +109,10 @@ export const HomeScreen: React.FC<Props> = ({
       if (temporalFadeTimerRef.current) clearTimeout(temporalFadeTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (getTodayAnchorStats) void getTodayAnchorStats().then(setTodayAnchorStats);
+  }, [getTodayAnchorStats]);
 
   useEffect(() => {
     if (getTemporalCandidate) {
@@ -279,6 +289,7 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const clearHold = () => {
+    holdActivatedRef.current = false;
     clearTimers();
     if (ebbTimerRef.current) {
       clearTimeout(ebbTimerRef.current);
@@ -299,6 +310,7 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    holdActivatedRef.current = false;
     if (e.button !== 0) return;
     triggerDockedDismiss(true); // 任何新動作立即清除 docked card
     clearTimers();
@@ -312,6 +324,7 @@ export const HomeScreen: React.FC<Props> = ({
     setIsTapping(true);
 
     holdDelayTimerRef.current = window.setTimeout(() => {
+      holdActivatedRef.current = true;
       setIsHolding(true);
       setHoldProgress(0);
       setIsHeartSustaining(false);
@@ -347,10 +360,13 @@ export const HomeScreen: React.FC<Props> = ({
 
     if (pressDuration < 240) {
       clearTimers();
+      if (onRecordAnchorEvent) void onRecordAnchorEvent('tap').then(setTodayAnchorStats);
       return;
     }
 
-    if (isHolding) {
+    if (holdActivatedRef.current) {
+      holdActivatedRef.current = false;
+      if (onRecordAnchorEvent) void onRecordAnchorEvent('hold', pressDuration).then(setTodayAnchorStats);
       triggerHaptic('release');
       clearTimers();
       setIsHeartSustaining(false);
@@ -527,6 +543,7 @@ export const HomeScreen: React.FC<Props> = ({
               </span>
             </button>
           </div>
+          <p className="mt-1 text-[10px] sm:text-[11px] tabular-nums text-ink-muted">今天輕點 {todayAnchorStats.tapCount} 次 · 定錨 {todayAnchorStats.holdCount} 次</p>
         </div>
       </header>
 

@@ -178,6 +178,20 @@ export interface LinkDecision {
   decidedAt: number;
 }
 
+export type AnchorEventType = 'tap' | 'hold';
+
+/** A factual, local-only record of the physical anchor interaction. */
+export interface AnchorEvent {
+  id: string;
+  type: AnchorEventType;
+  occurredAt: number;
+  durationMs?: number;
+}
+
+export interface DailyAnchorStats {
+  tapCount: number;
+  holdCount: number;
+}
 export interface BackupStatus {
   lastExportedAt?: number;
   lastImportedAt?: number;
@@ -193,6 +207,7 @@ export interface BackupOverview {
   closures: number;
   lines: number;
   decisions: number;
+  anchorEvents: number;
 }
 
 /** The complete local-first backup payload. */
@@ -202,6 +217,7 @@ export interface MindHarborData {
   sessions: HarborSession[];
   lines: ThreadLine[];
   linkDecisions: LinkDecision[];
+  anchorEvents: AnchorEvent[];
   temporalState?: TemporalGlobalState;
   backup: BackupStatus;
 }
