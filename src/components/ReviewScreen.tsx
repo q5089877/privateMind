@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, HardDrive, Sparkles, Waves } from 'lucide-react';
-import { HarborSession, Moment, ReviewReading } from '../types';
+import { ArrowLeft, ChevronDown, ChevronUp, HardDrive, Waves } from 'lucide-react';
+import { HarborSession, Moment } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
   getMoments: () => Promise<Moment[]>;
   getSessions: () => Promise<HarborSession[]>;
   onOpenSession: (sessionId: string) => Promise<void>;
-  onRequestReading: () => Promise<ReviewReading | null>;
+  onRequestReading?: () => Promise<any>;
   onOpenBackup: () => void;
 }
 
@@ -19,13 +19,11 @@ type TimelineItem =
 const day = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(stamp));
 const time = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(stamp));
 
-/** REVIEW keeps the one true timeline; AI reading is a deliberate, temporary layer over it. */
-export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions, onOpenSession, onRequestReading, onOpenBackup }) => {
+/** REVIEW keeps the one true timeline; passive and purely chronological. */
+export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions, onOpenSession, onOpenBackup }) => {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [sessions, setSessions] = useState<HarborSession[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
-  const [reading, setReading] = useState<ReviewReading | null>(null);
-  const [readingState, setReadingState] = useState<'idle' | 'loading' | 'empty'>('idle');
 
   useEffect(() => {
     void Promise.all([getMoments(), getSessions()]).then(([savedMoments, savedSessions]) => {
@@ -51,13 +49,6 @@ export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions
     }, {});
   }, [moments, sessions]);
 
-  const requestReading = async () => {
-    setReadingState('loading');
-    const next = await onRequestReading();
-    setReading(next);
-    setReadingState(next ? 'idle' : 'empty');
-  };
-
   const t = UI_TEXT.review;
   const toggle = (id: string) => setExpanded(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
 
@@ -65,11 +56,6 @@ export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions
     <header className="flex h-12 items-center justify-between"><button onClick={onClose} className="flex min-h-11 items-center gap-1.5 px-1 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>{t.backBtn}</button><button onClick={onOpenBackup} className="flex min-h-11 items-center gap-1.5 px-1 text-xs text-ink-muted hover:text-ink"><HardDrive size={15}/>{t.backupBtn}</button></header>
     <main>
       <div className="mt-10"><div className="flex items-center gap-2 text-accent"><Waves size={18}/><span className="text-sm font-medium">{t.tag}</span></div><h1 className="mt-5 text-[32px] font-medium tracking-[-0.05em] text-ink sm:text-[40px]">{t.heroTitle}</h1><p className="mt-3 max-w-md text-[16px] leading-relaxed text-ink-secondary">{t.heroSubtitle}</p></div>
-
-      <section className="mt-10 rounded-[28px] border border-accent/20 bg-accent/5 p-5"><div className="flex items-center gap-2 text-sm font-medium text-accent"><Sparkles size={16}/>{t.insightCardTitle}</div><p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-secondary">{t.insightCardDesc}</p>{readingState === 'loading' ? <p className="mt-5 text-sm text-ink-muted">{t.loadingHint}</p> : <button onClick={() => void requestReading()} className="mt-5 inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm">{t.triggerBtn}</button>}
-        {reading && <div className="mt-6 border-t border-accent/15 pt-5"><p className="text-sm font-medium text-accent">{t.evidenceHeader}</p><div className="mt-3 space-y-3 border-l border-accent/30 pl-4">{reading.evidence.map((item, index) => <p key={`${item.date}-${index}`} className="text-sm leading-relaxed text-ink-secondary"><span className="text-xs text-ink-muted">{item.date}</span><br/>「{item.phrase}」</p>)}</div><div className="mt-6"><p className="text-sm font-medium text-accent">{t.angleHeader}</p><p className="mt-2 text-[17px] leading-[1.8] text-ink">{reading.angle}</p></div><div className="mt-6 border-l-2 border-accent/40 pl-4"><p className="text-sm font-medium text-accent">{t.unresolvedHeader}</p><p className="mt-2 text-[16px] leading-[1.75] text-ink-secondary">{reading.unresolved}</p></div></div>}
-        {readingState === 'empty' && <p className="mt-5 border-l-2 border-border-base pl-4 text-sm leading-relaxed text-ink-secondary">{t.emptyInsight}</p>}
-      </section>
 
       {moments.length === 0 ? <p className="mt-12 border-t border-border-base py-16 text-sm text-ink-muted">{t.emptyTimeline}</p> : <div className="mt-12 space-y-10">{(Object.entries(timeline) as Array<[string, TimelineItem[]]>).map(([date, items]) => <section key={date} className="relative border-l border-accent/25 pl-5"><span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-accent ring-4 ring-canvas"/><p className="text-sm text-ink-secondary">{date}</p><div className="mt-4 space-y-5">{items.map(item => {
         if (item.kind === 'moment') return <article key={item.moment.id} className="border-l border-border-subtle py-1 pl-4"><time className="text-xs text-ink-muted">{time(item.moment.createdAt)}</time><p className="mt-1 whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{item.moment.content}</p></article>;
