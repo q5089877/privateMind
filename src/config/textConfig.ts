@@ -33,7 +33,9 @@ export const UI_TEXT = {
       { id: 'busy', label: '腦袋太吵', text: '好多念頭同時衝進來，不知道先顧哪一個，停不下來。' },
       { id: 'feeling', label: '心裡很悶', text: '說不上來是什麼感覺，但整個心裡很堵、很沉。' },
       { id: 'stuck', label: '事情卡住', text: '手上有件事懸在那裡，完全不知道下一步該怎麼走。' },
-      { id: 'keep', label: '先留著', text: '有個念頭我怕之後忘記，想先原封不動留在這裡。' }
+      { id: 'keep', label: '先留著', text: '有個念頭我怕之後忘記，想先原封不動留在這裡。' },
+      { id: 'wordless', label: '不知怎麼說', text: '腦中一片混亂，暫時找不到字詞形容當下的狀態。' },
+      { id: 'tired', label: '有些疲倦', text: '今天整個人電量見底，只剩下身體的重與累。' }
     ] as const,
     reviewPast: '回看以前留下的事',
     backup: '內容只保存在這台裝置'

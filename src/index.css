@@ -1,28 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* WCAG AA Compliant High-Contrast Calm Design Tokens (高對比沉靜無障礙色階) */
-  --canvas: #FAFBF9;
+  /* WCAG AA Compliant High-Contrast Calm Wabi-Sabi Tokens (侘寂和風無障礙色階) */
+  --canvas: #FAF9F7;
   --surface: #FFFFFF;
-  --surface-subtle: #F2F5F1;
-  --surface-muted: #E1E8E2;
-  --surface-hover: #E5ECE6;
+  --surface-subtle: #F4F3F1;
+  --surface-muted: #E9E8E6;
+  --surface-hover: #EDECE8;
+  --paper-sunken: #F2EFE9;
+  --paper-elevated: #FFFFFF;
 
-  --border-base: #DDE4DE;
-  --border-card: #E2E4E8;
-  --border-subtle: #ECEEF1;
-  --border-focus: #1F2937;
+  --border-base: #E7E3DC;
+  --border-card: #ECEAE4;
+  --border-subtle: #F0EEE8;
+  --border-focus: #134230;
 
-  --ink-primary: #1E293B;
-  --ink-heading: #1E293B;
-  --ink-body: #334155;
-  --ink-stem: #475569;
-  --ink-secondary: #475569;
-  --ink-muted: #59665E;
-  --ink-placeholder: #64748B;
+  --ink-primary: #242826;
+  --ink-heading: #1A1C1B;
+  --ink-body: #333A36;
+  --ink-stem: #4C5350;
+  --ink-secondary: #4C5350;
+  --ink-muted: #7E8682;
+  --ink-placeholder: #8C9490;
 
-  --accent: #346853;
-  --accent-hover: #2C3E35;
+  --accent: #134230;
+  --accent-hover: #244938;
   --accent-text: #FFFFFF;      /* 白字 */
 }
 
@@ -32,6 +34,8 @@
   --color-surface-subtle: var(--surface-subtle);
   --color-surface-muted: var(--surface-muted);
   --color-surface-hover: var(--surface-hover);
+  --color-paper-sunken: var(--paper-sunken);
+  --color-paper-elevated: var(--paper-elevated);
 
   --color-border-base: var(--border-base);
   --color-border-card: var(--border-card);

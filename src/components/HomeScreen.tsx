@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Anchor, ArrowDown, History, MessageCircle, ShieldCheck, Waves } from 'lucide-react';
+import { Anchor, ArrowDown, ArrowRight, Check, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
 
@@ -10,7 +10,12 @@ interface Props {
 }
 
 const quickStates = UI_TEXT.home.quickDrafts;
-const ventWords = UI_TEXT.home.pulseWords;
+
+const TOP_ZEN_IMAGE =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuDQh5kyggFcRV0ghkTqK3m7SIK99ukF7z6a5FTVil4LP-8TD4-kuoMAdz--RopIM0pye3Q5xtKf6qy5cHU-HTLHJ1pVKE110QOVp-kPdFCwEzzM3D9QxuPDoyg42Tqje7DpcpxBDnYt5X23O-CjLrbr_GjZV_BpluiJgTKIoqFZna7lHy17bbGJCcDxlaOUqCoqOQW6HlCf_DjxJJZQw0TVAKVNLHgw-xlYjZqBCsTTXk0pUn-3xC4z';
+
+const BOTTOM_MIST_IMAGE =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuDrneCCs85P9x9G5eTAmlINWiDqsiJiLM69_JE5LEHCv4VLlRNZVOlSpLg3opTS4WfyRgJR32hJPaKapnA2-yB0cOn-B2bvzMmkhy2WDGY1LkCB82CnB9diQM5qtT_0r46bhMwnrzzikWrJFZcfpV7xNrb9a5U5R_CqN1mavdtrluGt0IQjNeTuMGQalLiftxpCnILyXc8z5z2g8KGjKsy1ZfMlyVJfch4sr2EhqFDec29JcHQBGE2H';
 
 export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
   const [input, setInput] = useState('');
@@ -21,6 +26,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   const [isHeartSustaining, setIsHeartSustaining] = useState(false);
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
   const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
+  const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const progressTimerRef = useRef<number | null>(null);
   const holdDelayTimerRef = useRef<number | null>(null);
@@ -127,177 +133,275 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   };
 
   const handleQuickState = (state: (typeof quickStates)[number]) => {
-    setActiveQuickState(state.id);
-    setInput(state.text);
+    if (activeQuickState === state.id && input === state.text) {
+      setActiveQuickState(null);
+      setInput('');
+    } else {
+      setActiveQuickState(state.id);
+      setInput(state.text);
+    }
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   const beginConversation = () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || submittingState !== 'idle') return;
     triggerHaptic('docking');
-    onStartInput(text);
-    setInput('');
-    setActiveQuickState(null);
+    setSubmittingState('submitting');
+    window.setTimeout(() => {
+      setSubmittingState('settled');
+      window.setTimeout(() => {
+        onStartInput(text);
+        setInput('');
+        setActiveQuickState(null);
+        setSubmittingState('idle');
+      }, 450);
+    }, 550);
   };
 
-  return <div className="w-full max-w-[590px] min-h-[calc(100vh-104px)] px-1 py-6 sm:py-10">
-    {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat) */}
-    <div
-      className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 ${
-        isHolding || holdProgress > 0 ? 'opacity-100' : 'opacity-0'
-      }`}
-      aria-hidden="true"
-    >
-      {/* 湧升深水層 */}
+  const trimmedLength = input.trim().length;
+
+  return (
+    <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-4 sm:py-7 flex flex-col space-y-6">
+      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat) */}
       <div
-        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/80 via-accent/50 to-accent/20 backdrop-blur-[4px] transition-[height] duration-75 ease-linear"
-        style={{ height: `${holdProgress}%` }}
+        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-500 ease-out ${
+          isHolding || holdProgress > 0 ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden="true"
       >
-        {/* 潮水頂部發光水線 */}
-        <div className="absolute inset-x-0 top-0 h-1 bg-white/40 shadow-[0_0_16px_rgba(255,255,255,0.7)]" />
-      </div>
-
-      {/* 核心定心錨 ⚓ 與生理心跳共振進度 */}
-      {(isHolding || holdProgress > 0) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none">
-          <div
-            className="flex flex-col items-center gap-5 transition-transform duration-100"
-            style={{
-              transform: `scale(${heartBeatPhase ? 1.08 : 1.0})`
-            }}
-          >
-            <span className={`flex h-24 w-24 items-center justify-center rounded-full border shadow-[0_16px_40px_rgba(20,40,30,0.35)] backdrop-blur-md transition-all duration-300 ${
-              isHeartSustaining
-                ? 'border-white bg-accent text-white shadow-[0_0_35px_rgba(255,255,255,0.5)]'
-                : 'border-accent/40 bg-surface/90 text-accent'
-            }`}>
-              <Anchor
-                size={48}
-                strokeWidth={1.8}
-                className={`transition-transform duration-150 ${
-                  heartBeatPhase ? 'scale-115' : 'scale-100'
-                }`}
-              />
-            </span>
-
-            <div className="space-y-1 drop-shadow-md">
-              <p className="text-xl font-medium tracking-tight text-white sm:text-2xl">
-                {isHeartSustaining ? UI_TEXT.home.vent.sustainedState : UI_TEXT.home.vent.holdingState}
-              </p>
-              <p className="font-mono text-sm tracking-widest text-white/80">
-                {isHeartSustaining ? UI_TEXT.home.vent.sustainedSubtext : `${Math.round(holdProgress)}%`}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-
-    <header className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_8px_18px_rgba(47,91,71,0.16)]"><Waves size={25} strokeWidth={1.65}/></span>
-        <div><p className="text-[21px] font-semibold tracking-[-0.05em] text-ink sm:text-[24px]">思緒停靠</p><p className="mt-0.5 text-[10px] tracking-[0.18em] text-ink-muted sm:text-[11px]">MIND HARBOR</p></div>
-      </div>
-
-      <div className="flex flex-col items-end">
-        <button
-          type="button"
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={clearHold}
-          onPointerCancel={clearHold}
-          onContextMenu={e => e.preventDefault()}
-          className={`group relative flex h-11 items-center gap-2 rounded-full border px-3.5 text-xs font-medium shadow-xs select-none touch-none transition-all duration-100 ${
-            isTapping ? 'scale-90 border-accent bg-accent/15' : 'border-accent/30 bg-surface active:scale-95'
-          }`}
-          title={UI_TEXT.home.vent.buttonTitle}
+        <div
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/90 via-accent/55 to-transparent backdrop-blur-[6px] transition-[height] duration-150 ease-linear"
+          style={{ height: `${holdProgress}%` }}
         >
-          <Anchor size={17} className={`text-accent transition-transform duration-200 ${isHolding ? 'scale-115 text-accent-hover' : isTapping ? 'scale-90 rotate-[-10deg]' : 'group-hover:scale-110'}`} />
-          <span className="text-[13px] font-medium tracking-wide text-ink whitespace-nowrap">
-            {UI_TEXT.home.vent.buttonLabel}
-          </span>
-          <span className="text-[10px] font-mono text-ink-muted whitespace-nowrap">
-            {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : UI_TEXT.home.vent.idleHint}
-          </span>
-        </button>
-        {ventCount > 0 && (
-          <span className="mt-1.5 text-[11px] text-ink-muted transition-opacity">
-            {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
-          </span>
-        )}
-      </div>
-    </header>
-
-    <main className="pt-10 sm:pt-14">
-      <section className="px-1">
-        <p className="flex items-center gap-2 text-sm font-medium text-accent"><span className="h-2 w-2 rounded-full bg-accent"/>現在這一刻</p>
-        <h1 className="mt-5 max-w-[500px] text-[34px] font-medium leading-[1.2] tracking-[-0.055em] text-ink sm:text-[48px]">把卡在心裡的事，<br/>先說出來。</h1>
-        <p className="mt-4 max-w-[410px] text-[16px] leading-[1.7] text-ink-secondary sm:text-[18px]">不用整理，也不用現在就有答案。先從最想說的那一句開始。</p>
-      </section>
-
-      <section className="mt-9 rounded-[28px] border border-border-base bg-surface px-5 py-5 shadow-[0_10px_28px_rgba(47,70,54,0.08)] sm:mt-12 sm:rounded-[32px] sm:px-7 sm:py-7">
-        <div className="flex items-center gap-2 text-sm font-medium text-ink">
-          <MessageCircle size={17} className="text-accent" strokeWidth={1.8}/>{UI_TEXT.home.sectionTitle}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {quickStates.map(state => (
-            <button
-              key={state.id}
-              type="button"
-              onClick={() => handleQuickState(state)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeQuickState === state.id && input === state.text
-                  ? 'border-accent bg-accent text-white'
-                  : 'border-border-base bg-surface-subtle text-ink-secondary hover:border-accent/40 hover:text-ink'
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-emerald-300 shadow-[0_0_20px_rgba(188,238,211,0.9)]" />
+          <div className="absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6">
+            <span
+              className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white shadow-lg backdrop-blur-md transition-transform duration-150 ${
+                heartBeatPhase ? 'scale-115' : 'scale-100'
               }`}
             >
-              {state.label}
-            </button>
-          ))}
+              <Anchor size={28} className="text-white" />
+            </span>
+            <p className="mt-4 text-xl sm:text-2xl font-medium text-white tracking-wide">
+              {isHeartSustaining ? UI_TEXT.home.vent.sustainedState : '深呼吸，隨心定錨'}
+            </p>
+            <p className="mt-1 text-xs text-white/80">
+              {isHeartSustaining ? UI_TEXT.home.vent.sustainedSubtext : '讓腦海的浪潮在此刻緩下來……'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 頂部 Header & 定錨按鈕 */}
+      <header className="flex items-center justify-between gap-4 pt-1">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_6px_16px_rgba(19,66,48,0.22)] transition-transform duration-300 active:scale-95">
+            <Waves size={24} strokeWidth={1.8} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[20px] font-semibold tracking-[-0.03em] text-ink">{UI_TEXT.home.brandTitle}</span>
+            <span className="text-[10px] tracking-[0.18em] text-ink-muted uppercase">{UI_TEXT.home.brandSubtitle}</span>
+          </div>
         </div>
 
-        <textarea
-          ref={inputRef}
-          rows={5}
-          value={input}
-          onChange={event => {
-            setInput(event.target.value);
-            if (activeQuickState) setActiveQuickState(null);
-          }}
-          onKeyDown={event => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault();
-              beginConversation();
-            }
-          }}
-          placeholder={UI_TEXT.home.inputPlaceholder}
-          className="mt-4 min-h-[140px] w-full resize-none bg-transparent p-0 text-[18px] leading-[1.75] tracking-[-0.025em] text-ink caret-accent outline-none placeholder:text-ink-placeholder sm:min-h-[160px] sm:text-[20px]"
-        />
+        <div className="flex flex-col items-end">
+          <button
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={clearHold}
+            onPointerCancel={clearHold}
+            onContextMenu={e => e.preventDefault()}
+            className={`group relative flex h-11 items-center gap-2 rounded-full bg-surface px-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] border border-border-base/70 select-none touch-none transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0.5 active:scale-95 cursor-pointer ${
+              isTapping ? 'scale-90 border-accent bg-accent/10' : ''
+            }`}
+            title="按住隨心跳定錨呼吸"
+            type="button"
+          >
+            <Anchor size={17} className={`text-accent transition-transform duration-300 ${isHolding ? 'rotate-12 scale-110' : 'group-hover:rotate-12'}`} />
+            <span className="text-sm font-medium text-ink whitespace-nowrap">定錨</span>
+            <span className="rounded-full bg-paper-sunken px-2 py-0.5 text-[10px] font-mono text-ink-muted">
+              {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
+            </span>
+          </button>
+          {ventCount > 0 && (
+            <span className="mt-1 text-[11px] text-ink-muted">
+              {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
+            </span>
+          )}
+        </div>
+      </header>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-base pt-4">
-          <p className="text-xs leading-relaxed text-ink-muted">
-            {activeQuickState ? UI_TEXT.home.inputHintDraft : UI_TEXT.home.inputHintDefault}
-          </p>
+      {/* 頂部靜謐寫真切片 (Visual Calm Vignette) */}
+      <div className="relative w-full h-24 rounded-2xl overflow-hidden shadow-xs border border-border-base/50">
+        <img
+          src={TOP_ZEN_IMAGE}
+          alt="靜謐時光"
+          className="w-full h-full object-cover brightness-[0.98]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/75 to-transparent flex items-center px-4.5">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/60 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
+            </span>
+            <span className="text-sm font-medium text-accent tracking-wide">現在這一刻，是安靜的</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 核心標題引導 */}
+      <section className="flex flex-col space-y-2 px-1">
+        <h1 className="text-[28px] sm:text-[36px] font-medium tracking-[-0.04em] text-ink leading-tight">
+          把卡在心裡的事，<br />先說出來。
+        </h1>
+        <p className="text-[15px] sm:text-[16px] leading-relaxed text-ink-secondary max-w-[420px]">
+          不用整理，也不用現在就有答案。先從最想說的那一句開始。
+        </p>
+      </section>
+
+      {/* 核心輸入卡片 (Core Expression Card) */}
+      <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_8px_24px_rgba(36,40,38,0.06)] border border-border-base/80 transition-all duration-300">
+        <div className="flex items-center justify-between pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/12 text-accent">
+              <MessageSquare size={15} strokeWidth={2} />
+            </div>
+            <span className="text-sm font-medium text-ink">{UI_TEXT.home.sectionTitle}</span>
+          </div>
+          <span className="text-[11px] font-mono text-ink-muted">
+            {trimmedLength > 0 ? `${trimmedLength} 字已注入` : '準備傾聽'}
+          </span>
+        </div>
+
+        {/* 6 態心情膠囊 */}
+        <div className="flex flex-wrap gap-2 pt-1 pb-3.5">
+          {quickStates.map(state => {
+            const isSelected = activeQuickState === state.id && input === state.text;
+            return (
+              <button
+                key={state.id}
+                type="button"
+                onClick={() => handleQuickState(state)}
+                className={`min-h-[32px] px-3.5 rounded-full text-xs font-medium transition-all cursor-pointer active:scale-95 ${
+                  isSelected
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'bg-paper-sunken text-ink-secondary hover:text-ink hover:bg-surface-hover'
+                }`}
+              >
+                {state.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 文字輸入區 */}
+        <div className="relative py-1">
+          <textarea
+            ref={inputRef}
+            rows={5}
+            value={input}
+            onChange={e => {
+              setInput(e.target.value);
+              if (activeQuickState) setActiveQuickState(null);
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                beginConversation();
+              }
+            }}
+            placeholder={UI_TEXT.home.inputPlaceholder}
+            className="w-full resize-none bg-transparent p-0 text-[17px] sm:text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder focus:outline-none caret-accent"
+          />
+        </div>
+
+        {/* 卡片底部操作列 */}
+        <div className="mt-3 pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border-base/60">
+          <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+            <Sprout size={14} className="text-accent" />
+            <p>{activeQuickState ? UI_TEXT.home.inputHintDraft : UI_TEXT.home.inputHintDefault}</p>
+          </div>
+
           <button
             type="button"
-            disabled={!input.trim()}
+            disabled={!input.trim() || submittingState !== 'idle'}
             onClick={beginConversation}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_5px_12px_rgba(47,91,71,0.2)] transition-all hover:-translate-y-px hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-[0_4px_12px_rgba(19,66,48,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-hover active:translate-y-0.5 active:scale-95 disabled:opacity-35 disabled:pointer-events-none cursor-pointer"
           >
-            <span>{UI_TEXT.home.submitBtn}</span>
-            <ArrowDown size={16} strokeWidth={2}/>
+            {submittingState === 'submitting' ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>正在安放……</span>
+              </>
+            ) : submittingState === 'settled' ? (
+              <>
+                <Check size={16} />
+                <span>已安穩停靠</span>
+              </>
+            ) : (
+              <>
+                <span>{UI_TEXT.home.submitBtn}</span>
+                <ArrowDown size={16} strokeWidth={2} />
+              </>
+            )}
           </button>
         </div>
       </section>
 
-      <p className="mt-4 px-2 text-sm leading-relaxed text-ink-secondary">{UI_TEXT.home.footerPromise}</p>
-    </main>
+      {/* 溫暖承諾提示 */}
+      <p className="px-2 text-sm leading-relaxed text-ink-secondary">
+        {UI_TEXT.home.footerPromise}
+      </p>
 
-    <nav className="mt-10 border-t border-border-base pt-5 sm:mt-14">
-      <button type="button" onClick={onReview} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-[16px] text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink"><span className="flex items-center gap-3"><History size={19} strokeWidth={1.7}/>{UI_TEXT.home.reviewPast}</span><span aria-hidden="true" className="text-ink-muted">→</span></button>
-      <button type="button" onClick={onOpenBackup} className="mt-2 flex min-h-9 items-center gap-2 px-2 text-[13px] text-ink-muted transition-colors hover:text-ink"><ShieldCheck size={15} className="text-accent"/>{UI_TEXT.home.backup}</button>
-    </nav>
-  </div>;
+      {/* 導航與本機保證區 */}
+      <nav className="flex flex-col space-y-3 pt-1">
+        {/* 回看卡片 */}
+        <button
+          onClick={onReview}
+          type="button"
+          className="group flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] border border-border-base/70 transition-all hover:bg-surface-subtle hover:shadow-xs active:scale-[0.99] text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent">
+              <History size={18} strokeWidth={2} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium text-ink truncate">{UI_TEXT.home.reviewPast}</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                <span className="text-xs text-ink-muted truncate">存於本機</span>
+              </div>
+            </div>
+          </div>
+          <ArrowRight size={16} className="text-ink-muted transition-transform group-hover:translate-x-1" />
+        </button>
+
+        {/* 隱私保證膠囊 */}
+        <div
+          onClick={onOpenBackup}
+          className="flex items-center gap-2.5 rounded-xl bg-paper-sunken px-3.5 py-2.5 text-xs text-ink-secondary border border-border-base/50 cursor-pointer hover:text-ink transition-colors"
+        >
+          <ShieldCheck size={16} className="text-accent shrink-0" />
+          <span className="flex-1 leading-relaxed">
+            {UI_TEXT.home.backup}・不聯網・無帳號・完全無痕安全
+          </span>
+        </div>
+      </nav>
+
+      {/* 底部晨霧松林照片切片 (Grounding Photo Slice) */}
+      <div className="w-full rounded-2xl overflow-hidden shadow-xs relative h-28 my-1 border border-border-base/50">
+        <img
+          src={BOTTOM_MIST_IMAGE}
+          alt="晨霧松林"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-accent/80 via-accent/20 to-transparent flex items-end p-3.5">
+          <p className="text-xs font-medium text-white/95 tracking-wide">
+            「允許每一種狀態存在，也是給自己的寬容。」
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 };
