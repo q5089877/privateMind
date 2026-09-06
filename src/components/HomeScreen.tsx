@@ -84,6 +84,7 @@ export const HomeScreen: React.FC<Props> = ({
   const dockedFadeTimerRef = useRef<number | null>(null);
   const pendingDismissTimerRef = useRef<number | null>(null);
   const temporalFadeTimerRef = useRef<number | null>(null);
+  const lastHandledDockedIdRef = useRef<string | null>(null);
 
   const clearTimers = () => {
     if (holdDelayTimerRef.current) clearTimeout(holdDelayTimerRef.current);
@@ -149,6 +150,12 @@ export const HomeScreen: React.FC<Props> = ({
     }
     
     if (dockedMoment) {
+      // 核心防抖：避免父組件 re-render 導致重複重置與閃爍
+      if (lastHandledDockedIdRef.current === dockedMoment.id) {
+        return;
+      }
+      lastHandledDockedIdRef.current = dockedMoment.id;
+
       // 若當前頁面已被使用者隱藏/鎖屏，靜默落盤，不浮現卡片打擾
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         setDockedVisible(false);
@@ -159,6 +166,7 @@ export const HomeScreen: React.FC<Props> = ({
       setDockedAiReply(null);
       if (requestPresentReply) {
         requestPresentReply(dockedMoment).then(reply => {
+          if (lastHandledDockedIdRef.current !== dockedMoment.id) return;
           if (reply) {
             // 再次檢查：如果生成回傳時已鎖屏，直接不浮現
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
@@ -177,6 +185,7 @@ export const HomeScreen: React.FC<Props> = ({
         });
       }
     } else {
+      lastHandledDockedIdRef.current = null;
       setDockedVisible(false);
       setDockedAiReply(null);
       if (dockedFadeTimerRef.current) {
@@ -659,10 +668,11 @@ export const HomeScreen: React.FC<Props> = ({
           onTouchEnd={handleDockedTouchEnd}
           style={{
             opacity: dockedVisible ? 1 : 0,
-            transform: dockedVisible ? 'translateY(0px)' : 'translateY(-8px)',
-            transition: 'opacity 600ms ease-out, transform 600ms ease-out'
+            transform: dockedVisible ? 'translateY(0px)' : 'translateY(-6px)',
+            transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+            willChange: 'opacity, transform'
           }}
-          className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_4px_16px_rgba(19,66,48,0.08)] mb-2 relative overflow-hidden"
+          className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_4px_16px_rgba(19,66,48,0.08)] mb-2 relative overflow-hidden min-h-[96px]"
         >
           <div className="flex items-center gap-2 mb-3">
             <span className="relative flex h-2 w-2">
