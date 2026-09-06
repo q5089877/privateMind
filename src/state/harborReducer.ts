@@ -10,8 +10,15 @@ export const harborReducer = (state: HarborAppState, intent: HarborIntent): Harb
       return { ...state, screen: intent.screen };
     case 'SET_REQUEST':
       return { ...state, request: intent.request, error: intent.error };
-    case 'MOMENT_CAPTURED':
-      return { ...state, screen: 'CHAT', request: 'idle', currentMoment: intent.moment, currentSession: intent.session, pendingClosure: null };
+    case 'MOMENT_DOCKED':
+      // Moment saved. Stay on HOME; show transient "✓ 停好了" card.
+      return { ...state, screen: 'HOME', request: 'idle', dockedMoment: intent.moment, currentMoment: intent.moment, currentSession: intent.session, pendingClosure: null };
+    case 'DISMISS_DOCKED_MOMENT':
+      // Auto-dismiss or user ignored. Clear card, stay HOME.
+      return { ...state, dockedMoment: null };
+    case 'OPEN_CHAT':
+      // User chose "接著說". Move to CHAT with the already-saved Moment/Session.
+      return { ...state, screen: 'CHAT', request: 'idle', dockedMoment: null };
     case 'MOMENT_REPLY_SAVED':
       return { ...state, request: 'idle', currentMoment: intent.moment || state.currentMoment, currentSession: intent.session || state.currentSession };
     case 'SESSION_OPENED':
@@ -23,7 +30,7 @@ export const harborReducer = (state: HarborAppState, intent: HarborIntent): Harb
     case 'RETURN_TO_CHAT':
       return { ...state, screen: 'CHAT', request: 'idle', pendingClosure: null };
     case 'RESET_TO_HOME':
-      return { ...state, screen: 'HOME', currentMoment: null, currentSession: null, pendingClosure: null, request: 'idle' };
+      return { ...state, screen: 'HOME', currentMoment: null, currentSession: null, dockedMoment: null, pendingClosure: null, request: 'idle' };
     default:
       return state;
   }

@@ -12,6 +12,12 @@ interface Props {
   onResolveContinuity?: (momentId: string, state: CarryState) => Promise<void>;
   onSuppressContinuity?: (momentId: string) => Promise<void>;
   onDismissContinuity?: (momentId: string) => Promise<void>;
+  /** Transient: non-null when a Moment was just docked. Triggers "✓ 停好了" card. */
+  dockedMoment?: Moment | null;
+  /** User chose "接著說" on the docked card → navigate to CHAT. */
+  onOpenChat?: () => void;
+  /** Auto-dismiss or ignored → clear dockedMoment, stay HOME. */
+  onDismissDockedMoment?: () => void;
 }
 
 const quickStates = UI_TEXT.home.quickDrafts;
@@ -29,14 +35,17 @@ export const HomeScreen: React.FC<Props> = ({
   getContinuityCandidate,
   onResolveContinuity,
   onSuppressContinuity,
-  onDismissContinuity
+  onDismissContinuity,
+  dockedMoment,
+  onOpenChat,
+  onDismissDockedMoment
 }) => {
   const [input, setInput] = useState('');
   const [ventCount, setVentCount] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [isEbbing, setIsEbbing] = useState(false);
-  const [afterAnchor, setAfterAnchor] = useState(false); // 退潮結束後顯示極輕文字提示
+  const [afterAnchor, setAfterAnchor] = useState(false);
   const [isTapping, setIsTapping] = useState(false);
   const [isHeartSustaining, setIsHeartSustaining] = useState(false);
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
@@ -44,11 +53,14 @@ export const HomeScreen: React.FC<Props> = ({
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
   const [continuityMoment, setContinuityMoment] = useState<Moment | null>(null);
   const [continuityDismissed, setContinuityDismissed] = useState(false);
+  // dockedVisible drives the CSS opacity for fade-out before calling onDismissDockedMoment
+  const [dockedVisible, setDockedVisible] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const progressTimerRef = useRef<number | null>(null);
   const holdDelayTimerRef = useRef<number | null>(null);
   const heartbeatLoopTimerRef = useRef<number | null>(null);
   const ebbTimerRef = useRef<number | null>(null);
+  const dockedDismissTimerRef = useRef<number | null>(null);
   const pressStartTimeRef = useRef<number>(0);
 
   const clearTimers = () => {
@@ -81,6 +93,37 @@ export const HomeScreen: React.FC<Props> = ({
       });
     }
   }, [getContinuityCandidate]);
+
+  // Handle transient dockedMoment (3~4s auto-dismiss)
+  useEffect(() => {
+    if (dockedMoment) {
+      setDockedVisible(true);
+      dockedDismissTimerRef.current = window.setTimeout(() => {
+        setDockedVisible(false); // 開始淡出
+        window.setTimeout(() => {
+          if (onDismissDockedMoment) onDismissDockedMoment();
+        }, 600); // 配合 CSS transition 600ms
+      }, 3500); // 3.5秒後啟動淡出
+    } else {
+      setDockedVisible(false);
+      if (dockedDismissTimerRef.current) {
+        clearTimeout(dockedDismissTimerRef.current);
+        dockedDismissTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (dockedDismissTimerRef.current) {
+        clearTimeout(dockedDismissTimerRef.current);
+      }
+    };
+  }, [dockedMoment, onDismissDockedMoment]);
+
+  const triggerDockedDismiss = () => {
+    if (dockedMoment && onDismissDockedMoment) {
+      setDockedVisible(false);
+      onDismissDockedMoment();
+    }
+  };
 
   const handleContinuityChoice = (choice: CarryState) => {
     if (!continuityMoment) return;
@@ -120,6 +163,7 @@ export const HomeScreen: React.FC<Props> = ({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    triggerDockedDismiss(); // 任何新動作立即清除 docked card
     clearTimers();
     if (ebbTimerRef.current) {
       clearTimeout(ebbTimerRef.current);
@@ -201,6 +245,7 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const handleQuickState = (state: (typeof quickStates)[number]) => {
+    triggerDockedDismiss(); // 開始互動立即清除 docked card
     if (activeQuickState === state.id && input === state.text) {
       setActiveQuickState(null);
       setInput('');
@@ -212,6 +257,7 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const beginConversation = () => {
+    triggerDockedDismiss(); // 雖然 submit 會清，但防呆呼叫一次
     const text = input.trim();
     if (!text || submittingState !== 'idle') return;
 
@@ -404,13 +450,45 @@ export const HomeScreen: React.FC<Props> = ({
         </section>
       )}
 
+      {/* Transient: Docked Confirmation Card */}
+      {dockedMoment && (
+        <section
+          style={{
+            opacity: dockedVisible ? 1 : 0,
+            transform: dockedVisible ? 'translateY(0px)' : 'translateY(-8px)',
+            transition: 'opacity 600ms ease-out, transform 600ms ease-out'
+          }}
+          className="w-full rounded-2xl bg-accent text-white p-4.5 shadow-[0_4px_16px_rgba(19,66,48,0.15)] mb-2"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Check size={18} className="text-white/90" />
+            <span className="font-medium text-[15px]">停好了</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { triggerDockedDismiss(); if (onOpenChat) onOpenChat(); }}
+              className="px-4 py-2 rounded-xl bg-white text-accent text-sm font-semibold hover:bg-white/90 active:scale-95 transition-all cursor-pointer"
+            >
+              接著說
+            </button>
+            <button
+              onClick={() => { triggerDockedDismiss(); if (onOpenChat) onOpenChat(); /* Explore will be handled inside CHAT for now */ }}
+              className="px-4 py-2 rounded-xl bg-white/20 text-white text-sm font-medium hover:bg-white/30 active:scale-95 transition-all cursor-pointer"
+            >
+              換個角度
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* 退潮後極輕文字提示（無按鈕，靜默是被允許的答案） */}
       <div
         style={{
           opacity: afterAnchor ? 1 : 0,
           transform: afterAnchor ? 'translateY(0px)' : 'translateY(8px)',
           transition: 'opacity 800ms ease-out, transform 800ms ease-out',
-          pointerEvents: afterAnchor ? 'none' : 'none'
+          pointerEvents: afterAnchor ? 'none' : 'none',
+          display: dockedMoment ? 'none' : 'block' // 如果停靠卡片存在，先藏起這個
         }}
         aria-hidden={!afterAnchor}
       >
@@ -418,7 +496,6 @@ export const HomeScreen: React.FC<Props> = ({
           想留一句的話，就寫在這裡。
         </p>
       </div>
-
       {/* 核心輸入卡片 (Core Expression Card) */}
       <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_8px_24px_rgba(36,40,38,0.06)] border border-border-base/80 transition-all duration-300">
         <div className="flex items-center justify-between pb-3">

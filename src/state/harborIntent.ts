@@ -18,7 +18,16 @@ export type HarborIntent =
   | { type: 'HYDRATED' }
   | { type: 'SET_SCREEN'; screen: 'HOME' | 'CHAT' | 'LAND' | 'REVIEW' | 'BACKUP' }
   | { type: 'SET_REQUEST'; request: 'idle' | 'saving' | 'thinking' | 'restoring'; error?: string }
-  | { type: 'MOMENT_CAPTURED'; moment: Moment; session: HarborSession }
+  /**
+   * Moment saved to DB. Screen stays HOME; dockedMoment holds the saved Moment
+   * for the transient "✓ 停好了" confirmation card.
+   * Replaces the old MOMENT_CAPTURED which forced an immediate jump to CHAT.
+   */
+  | { type: 'MOMENT_DOCKED'; moment: Moment; session: HarborSession }
+  /** Auto-dismiss or user ignored the docked card. Clears dockedMoment, stays HOME. */
+  | { type: 'DISMISS_DOCKED_MOMENT' }
+  /** User explicitly chose to continue talking. Moves to CHAT with the docked Moment/Session. */
+  | { type: 'OPEN_CHAT' }
   | { type: 'MOMENT_REPLY_SAVED'; moment: Moment | null; session: HarborSession | null }
   | { type: 'SESSION_OPENED'; moment: Moment; session: HarborSession }
   | { type: 'SESSION_UPDATED'; session: HarborSession | null }

@@ -57,7 +57,7 @@ export class HarborFlowEngine {
     }
   }
 
-  /** A Moment is durable before CHAT is ever shown. */
+  /** A Moment is durable before any screen transition. Screen stays HOME after save. */
   public async submitText(content: string, intent: MomentIntent = 'captured') {
     const clean = content.trim();
     if (!clean) return;
@@ -65,7 +65,19 @@ export class HarborFlowEngine {
     const moment: Moment = { id: this.id('moment'), content: clean, createdAt: Date.now(), intent };
     const session = this.createOrContinueSession(moment);
     await this.storage.saveMomentWithSession(moment, session);
-    this.dispatch({ type: 'MOMENT_CAPTURED', moment, session });
+    // Stay on HOME — dispatch MOMENT_DOCKED, not MOMENT_CAPTURED.
+    // Screen transition to CHAT is opt-in via openChat().
+    this.dispatch({ type: 'MOMENT_DOCKED', moment, session });
+  }
+
+  /** User chose "接著說" on the docked card. Moves to CHAT. */
+  public openChat() {
+    this.dispatch({ type: 'OPEN_CHAT' });
+  }
+
+  /** Auto-dismiss or user ignored the docked card. */
+  public dismissDockedMoment() {
+    this.dispatch({ type: 'DISMISS_DOCKED_MOMENT' });
   }
 
   /** Present Companion reads one current Moment with in-session context, and no past cross-session history. */
