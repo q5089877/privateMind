@@ -427,7 +427,7 @@ export const HomeScreen: React.FC<Props> = ({
   const trimmedLength = input.trim().length;
 
   return (
-    <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-4 sm:py-7 flex flex-col space-y-6">
+    <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-1 sm:py-7 flex flex-col space-y-3 sm:space-y-6">
       <div
         className="fixed inset-0 z-50 pointer-events-none"
         style={{
@@ -478,14 +478,14 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </div>
 
-      <header className="flex items-center justify-between gap-4 pt-1">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_6px_16px_rgba(19,66,48,0.22)] transition-transform duration-300 active:scale-95">
-            <Waves size={24} strokeWidth={1.8} />
+      <header className="flex items-center justify-between gap-3 pt-0.5 sm:pt-1">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-accent text-white shadow-[0_4px_12px_rgba(19,66,48,0.2)] transition-transform duration-300 active:scale-95">
+            <Waves size={20} strokeWidth={1.8} className="sm:w-6 sm:h-6" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[20px] font-semibold tracking-[-0.03em] text-ink">{UI_TEXT.home.brandTitle}</span>
-            <span className="text-[10px] tracking-[0.18em] text-ink-muted uppercase">{UI_TEXT.home.brandSubtitle}</span>
+            <span className="text-[17px] sm:text-[20px] font-semibold tracking-[-0.03em] text-ink leading-tight">{UI_TEXT.home.brandTitle}</span>
+            <span className="text-[9px] sm:text-[10px] tracking-[0.18em] text-ink-muted uppercase">{UI_TEXT.home.brandSubtitle}</span>
           </div>
         </div>
 
@@ -500,7 +500,7 @@ export const HomeScreen: React.FC<Props> = ({
               onPointerLeave={clearHold}
               onPointerCancel={clearHold}
               onContextMenu={e => e.preventDefault()}
-              className={`group relative flex h-14 items-center gap-3 rounded-full px-6 select-none touch-none transition-all duration-300 cursor-pointer border-2 ${
+              className={`group relative flex h-11 sm:h-14 items-center gap-2 sm:gap-3 rounded-full px-4 sm:px-6 select-none touch-none transition-all duration-300 cursor-pointer border-2 ${
                 isHolding
                   ? 'bg-accent border-accent text-white shadow-[0_4px_24px_rgba(19,66,48,0.45)] scale-105'
                   : isTapping
@@ -511,16 +511,16 @@ export const HomeScreen: React.FC<Props> = ({
               type="button"
             >
               <Anchor
-                size={22}
+                size={18}
                 strokeWidth={2.2}
-                className={`transition-all duration-300 ${
+                className={`transition-all duration-300 sm:w-[22px] sm:h-[22px] ${
                   isHolding ? 'text-white rotate-12 scale-110' : 'text-accent group-hover:rotate-12'
                 }`}
               />
-              <span className={`text-[15px] font-semibold whitespace-nowrap transition-colors duration-200 ${isHolding ? 'text-white' : 'text-ink'}`}>
+              <span className={`text-[14px] sm:text-[15px] font-semibold whitespace-nowrap transition-colors duration-200 ${isHolding ? 'text-white' : 'text-ink'}`}>
                 定錨
               </span>
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono transition-colors duration-200 ${
+              <span className={`rounded-full px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-mono transition-colors duration-200 ${
                 isHolding ? 'bg-white/20 text-white' : 'bg-paper-sunken text-ink-muted'
               }`}>
                 {isHolding ? (isHeartSustaining ? '已定錨' : '定錨中') : '長按'}
@@ -530,28 +530,28 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </header>
 
-      <div className="relative w-full h-24 rounded-2xl overflow-hidden shadow-xs border border-border-base/50">
+      <div className="relative w-full h-14 sm:h-24 rounded-xl sm:rounded-2xl overflow-hidden shadow-xs border border-border-base/50">
         <img
           src={TOP_ZEN_IMAGE}
           alt="靜謐時光"
           className="w-full h-full object-cover brightness-[0.98]"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/75 to-transparent flex items-center px-4.5">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-2.5 w-2.5">
+        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/75 to-transparent flex items-center px-3.5 sm:px-4.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <span className="relative flex h-2 sm:h-2.5 w-2 sm:w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/60 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
+              <span className="relative inline-flex rounded-full h-2 sm:h-2.5 w-2 sm:w-2.5 bg-accent" />
             </span>
-            <span className="text-sm font-medium text-accent tracking-wide">現在這一刻，是安靜的</span>
+            <span className="text-[12.5px] sm:text-sm font-medium text-accent tracking-wide">現在這一刻，是安靜的</span>
           </div>
         </div>
       </div>
 
-      <section className="flex flex-col space-y-2 px-1">
-        <h1 className="text-[28px] sm:text-[36px] font-medium tracking-[-0.04em] text-ink leading-tight">
-          把卡在心裡的事，<br />先說出來。
+      <section className="flex flex-col space-y-0.5 sm:space-y-2 px-1">
+        <h1 className="text-[21px] sm:text-[36px] font-medium tracking-[-0.03em] text-ink leading-snug">
+          把卡在心裡的事，先說出來。
         </h1>
-        <p className="text-[15px] sm:text-[16px] leading-relaxed text-ink-secondary max-w-[420px]">
+        <p className="text-[13px] sm:text-[16px] leading-relaxed text-ink-secondary max-w-[420px]">
           不用整理，也不用現在就有答案。先從最想說的那一句開始。
         </p>
       </section>
@@ -719,40 +719,40 @@ export const HomeScreen: React.FC<Props> = ({
         </section>
       )}
 
-      <div
-        style={{
-          opacity: ebbPhase !== null ? 1 : 0,
-          transform: ebbPhase !== null ? 'translateY(0px)' : 'translateY(8px)',
-          transition: 'opacity 800ms ease-out, transform 800ms ease-out',
-          pointerEvents: ebbPhase !== null ? 'none' : 'none',
-          display: dockedMoment ? 'none' : 'block' 
-        }}
-        aria-hidden={ebbPhase === null}
-      >
-        <p
-          className="px-1 text-[13px] text-center tracking-wide leading-relaxed transition-colors duration-1000"
+      {ebbPhase !== null && !dockedMoment && (
+        <div
           style={{
-            color: ebbPhase === 'ending' ? 'var(--color-ink)' : 'var(--color-ink-muted)'
+            opacity: ebbPhase !== null ? 1 : 0,
+            transform: ebbPhase !== null ? 'translateY(0px)' : 'translateY(8px)',
+            transition: 'opacity 800ms ease-out, transform 800ms ease-out',
+            pointerEvents: 'none'
           }}
         >
-          {ebbPhase === 'ending' ? '好。' : '想留一句的話，就寫在這裡。'}
-        </p>
-      </div>
+          <p
+            className="px-1 text-[13px] text-center tracking-wide leading-relaxed transition-colors duration-1000"
+            style={{
+              color: ebbPhase === 'ending' ? 'var(--color-ink)' : 'var(--color-ink-muted)'
+            }}
+          >
+            {ebbPhase === 'ending' ? '好。' : '想留一句的話，就寫在這裡。'}
+          </p>
+        </div>
+      )}
 
-      <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_8px_24px_rgba(36,40,38,0.06)] border border-border-base/80 transition-all duration-300">
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/12 text-accent">
-              <MessageSquare size={15} strokeWidth={2} />
+      <section className="relative rounded-2xl sm:rounded-3xl bg-surface p-4 sm:p-7 shadow-[0_4px_20px_rgba(36,40,38,0.05)] border border-border-base/80 transition-all duration-300">
+        <div className="flex items-center justify-between pb-2.5 sm:pb-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-accent/12 text-accent">
+              <MessageSquare size={14} strokeWidth={2} className="sm:w-[15px] sm:h-[15px]" />
             </div>
-            <span className="text-sm font-medium text-ink">{UI_TEXT.home.sectionTitle}</span>
+            <span className="text-[13.5px] sm:text-sm font-medium text-ink">{UI_TEXT.home.sectionTitle}</span>
           </div>
-          <span className="text-[11px] font-mono text-ink-muted">
+          <span className="text-[10.5px] sm:text-[11px] font-mono text-ink-muted">
             {trimmedLength > 0 ? `${trimmedLength} 字已注入` : '準備傾聽'}
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-1 pb-3.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5 pb-2.5 sm:flex-wrap sm:gap-2">
           {quickStates.map(state => {
             const isSelected = activeQuickState === state.id && input === state.text;
             return (
@@ -760,7 +760,7 @@ export const HomeScreen: React.FC<Props> = ({
                 key={state.id}
                 type="button"
                 onClick={() => handleQuickState(state)}
-                className={`min-h-[32px] px-3.5 rounded-full text-xs font-medium transition-all cursor-pointer active:scale-95 ${
+                className={`shrink-0 min-h-[30px] sm:min-h-[32px] px-3 sm:px-3.5 rounded-full text-[11.5px] sm:text-xs font-medium transition-all cursor-pointer active:scale-95 ${
                   isSelected
                     ? 'bg-accent text-white shadow-xs'
                     : 'bg-paper-sunken text-ink-secondary hover:text-ink hover:bg-surface-hover'
@@ -772,10 +772,10 @@ export const HomeScreen: React.FC<Props> = ({
           })}
         </div>
 
-        <div className="relative py-1">
+        <div className="relative py-0.5 sm:py-1">
           <textarea
             ref={inputRef}
-            rows={5}
+            rows={3}
             value={input}
             onFocus={() => {
               setIsInputFocused(true);

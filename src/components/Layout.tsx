@@ -12,7 +12,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-[100dvh] bg-transparent text-ink flex flex-col font-sans selection:bg-accent/15 selection:text-ink">
-      <main className="flex-grow flex flex-col items-center px-4 sm:px-6 max-w-[640px] mx-auto w-full py-4 sm:py-6">
+      <main className="flex-grow flex flex-col items-center px-3.5 sm:px-6 max-w-[640px] mx-auto w-full py-2 sm:py-6">
         <div className="flex-grow flex flex-col items-center w-full">
           {children}
         </div>
