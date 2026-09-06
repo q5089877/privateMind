@@ -83,9 +83,18 @@ export interface TimelineInsight {
   unresolved: string;
 }
 
-/** A non-persistent result from one explicit review request. */
+/** @deprecated Legacy. Use PatternMirror instead. Kept only for backup import compatibility. */
 export interface ReviewReading extends TimelineInsight {
   momentIds: string[];
+}
+
+/**
+ * The result of Pattern Passive Mirroring.
+ * Contains only original user-authored text — zero AI-generated copy.
+ */
+export interface PatternMirror {
+  /** 3–4 original Moments selected by literal-anchor overlap. */
+  moments: Pick<Moment, 'id' | 'content' | 'createdAt'>[];
 }
 
 export type HarborSessionStatus = 'active' | 'landed';

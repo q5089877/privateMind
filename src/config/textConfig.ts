@@ -122,8 +122,15 @@ export const UI_TEXT = {
     collapseTurnsBtn: '收起對話',
     expandTurnsPrefix: '展開對話 · ',
     userTurnLabel: '你留下的話',
-    aiTurnLabel: '當時的映照'
+    aiTurnLabel: '當時的映照',
+    // Pattern Passive Mirroring — 平常 100% 隱形，條件符合才浮現
+    patternHint: '這幾件事，好像在碰同一個地方。',
+    patternLoading: '正在比對原文…',
+    patternCollapseBtn: '收起',
+    patternDateLabel: (date: string) => date  // 直接顯示日期，不加任何詮釋前綴
   },
+  // 舊的 patternInsights 已廢棄（對應舊 Spillover Engine）
+  // 現以 review.patternMirror 系列取代
   patternInsights: {
     sectionTitle: '跨時間與情境的線索',
     eventTrackTitle: '事件脈絡重現',

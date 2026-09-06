@@ -7,7 +7,17 @@ export interface MemorySource {
   content: string;
 }
 
-/** The retrieval role selects evidence only. It never writes an interpretation. */
+/**
+ * Literal-anchor retrieval role.
+ *
+ * The AI's sole job: select IDs whose content shares a concrete, word-level
+ * anchor (same name, place, recurring action, or recurring blocker). It must
+ * NOT group by theme, emotion, or inference. It returns an empty list when
+ * no literal overlap is found.
+ *
+ * Interpretation is strictly forbidden here. The display layer shows only
+ * the original quotes — no AI-generated text ever reaches the user.
+ */
 export const memoryRole = {
   create(entries: MemorySource[]): GeminiRoleRequest | null {
     if (entries.length < 3) return null;
@@ -17,10 +27,10 @@ export const memoryRole = {
       context: undefined,
       payload: {
         model: FLASH_LITE_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `以下是使用者近期留下的原文：\n${timeline}\n\n請優先挑出一組最值得回看的 3 到 5 段原文 id。它們必須跨至少兩個自然日、第一筆與最後一筆至少相隔 24 小時，而且能從原文看見具體的重複、轉折、缺口或拉扯。只負責選 id：不要解釋、不要命名、不要下結論。只在完全沒有可驗證共同脈絡時回傳 {"momentIds":[]}。` }] }],
+        contents: [{ role: 'user', parts: [{ text: `以下是使用者在不同時間留下的原文：\n${timeline}\n\n只選出 3 到 4 筆在**字面上**能看見共同具體錨點的記錄。\n\n「字面錨點」的定義：相同的人名、地名、事件名稱、或反覆出現的同一種做不到的動作。\n\n禁止：不可以用主題歸納（如「都在說壓力」），不可以用情緒歸納（如「都很煩」），不可以推論原因或模式。只看字面上出現相同的詞。\n\n找不到字面錨點時，回傳 {"momentIds":[]}。不要解釋選擇理由。` }] }],
         generationConfig: {
-          temperature: 0.1, maxOutputTokens: 96, responseMimeType: 'application/json',
-          responseSchema: { type: 'OBJECT', properties: { momentIds: { type: 'ARRAY', maxItems: 5, items: { type: 'STRING' } } }, required: ['momentIds'] },
+          temperature: 0.0, maxOutputTokens: 96, responseMimeType: 'application/json',
+          responseSchema: { type: 'OBJECT', properties: { momentIds: { type: 'ARRAY', maxItems: 4, items: { type: 'STRING' } } }, required: ['momentIds'] },
           thinkingConfig: FAST_THINKING_CONFIG
         }
       }
@@ -29,12 +39,14 @@ export const memoryRole = {
 
   read(raw: string, entries: MemorySource[]): string[] | null {
     const parsed = parseJson(raw) as { momentIds?: unknown } | null;
-    const ids: string[] = Array.isArray(parsed?.momentIds) ? [...new Set<string>(parsed.momentIds.filter((id: unknown): id is string => typeof id === 'string'))] : [];
-    const byId = new Map(entries.map(entry => [entry.id, entry]));
-    const selected = ids.map(id => byId.get(id)).filter((entry): entry is MemorySource => Boolean(entry));
-    const dates = new Set(selected.map(entry => new Date(entry.createdAt).toDateString()));
-    const timestamps = selected.map(entry => entry.createdAt);
-    const span = timestamps.length ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
-    return selected.length >= 3 && dates.size >= 2 && span >= 24 * 60 * 60 * 1000 ? ids : null;
+    const ids: string[] = Array.isArray(parsed?.momentIds)
+      ? [...new Set<string>(parsed.momentIds.filter((id: unknown): id is string => typeof id === 'string'))]
+      : [];
+    const byId = new Map(entries.map(e => [e.id, e]));
+    const selected = ids.map(id => byId.get(id)).filter((e): e is MemorySource => Boolean(e));
+    // Must span at least 2 distinct calendar days
+    const dates = new Set(selected.map(e => new Date(e.createdAt).toDateString()));
+    return selected.length >= 3 && dates.size >= 2 ? ids : null;
   }
 };
+

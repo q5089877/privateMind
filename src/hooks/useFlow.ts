@@ -24,7 +24,8 @@ export function useFlow() {
     beginLanding: (session: HarborSession) => engine.beginLanding(session),
     completeLanding: (sessionId: string, closure: SessionClosure) => engine.completeLanding(sessionId, closure),
     returnToChat: () => engine.returnToChat(),
-    requestReviewReading: () => engine.requestReviewReading(),
+    canShowPatternMirror: () => engine.canShowPatternMirror(),
+    requestPatternMirror: () => engine.requestPatternMirror(),
     getMoments: () => engine.getMoments(),
     getSessions: () => engine.getSessions(),
     getBackupStatus: () => engine.getBackupStatus(),
@@ -37,3 +38,4 @@ export function useFlow() {
     finish: () => engine.reset()
   };
 }
+

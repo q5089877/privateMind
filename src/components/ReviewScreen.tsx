@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, HardDrive, Waves } from 'lucide-react';
-import { HarborSession, Moment } from '../types';
+import { HarborSession, Moment, PatternMirror } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 
 interface Props {
@@ -8,7 +8,10 @@ interface Props {
   getMoments: () => Promise<Moment[]>;
   getSessions: () => Promise<HarborSession[]>;
   onOpenSession: (sessionId: string) => Promise<void>;
-  onRequestReading?: () => Promise<any>;
+  /** Eligibility check — no AI call, result used only to show/hide the faint hint */
+  canShowPatternMirror: () => Promise<boolean>;
+  /** Trigger literal-anchor AI selection and return original Moments. Zero AI text output. */
+  onRequestPatternMirror: () => Promise<PatternMirror | null>;
   onOpenBackup: () => void;
 }
 
@@ -19,11 +22,24 @@ type TimelineItem =
 const day = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(stamp));
 const time = (stamp: number) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(stamp));
 
-/** REVIEW keeps the one true timeline; passive and purely chronological. */
-export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions, onOpenSession, onOpenBackup }) => {
+/**
+ * REVIEW: One true chronological timeline.
+ * Pattern Passive Mirroring floats as a faint hint when 4-gate conditions are met.
+ * AI output: zero. Only original user text is ever shown.
+ */
+export const ReviewScreen: React.FC<Props> = ({
+  onClose, getMoments, getSessions, onOpenSession,
+  canShowPatternMirror, onRequestPatternMirror, onOpenBackup
+}) => {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [sessions, setSessions] = useState<HarborSession[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
+
+  // Pattern Passive Mirroring state
+  const [patternEligible, setPatternEligible] = useState(false);
+  const [mirror, setMirror] = useState<PatternMirror | null>(null);
+  const [mirrorOpen, setMirrorOpen] = useState(false);
+  const [mirrorLoading, setMirrorLoading] = useState(false);
 
   useEffect(() => {
     void Promise.all([getMoments(), getSessions()]).then(([savedMoments, savedSessions]) => {
@@ -31,6 +47,19 @@ export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions
       setSessions(savedSessions);
     });
   }, [getMoments, getSessions]);
+
+  // Deterministic eligibility check on load — zero AI call
+  useEffect(() => {
+    void canShowPatternMirror().then(setPatternEligible);
+  }, [canShowPatternMirror]);
+
+  const handleOpenMirror = async () => {
+    if (mirror) { setMirrorOpen(true); return; }
+    setMirrorLoading(true);
+    const result = await onRequestPatternMirror();
+    setMirrorLoading(false);
+    if (result) { setMirror(result); setMirrorOpen(true); }
+  };
 
   const timeline = useMemo(() => {
     const byId = new Map(moments.map(moment => [moment.id, moment]));
@@ -56,6 +85,28 @@ export const ReviewScreen: React.FC<Props> = ({ onClose, getMoments, getSessions
     <header className="flex h-12 items-center justify-between"><button onClick={onClose} className="flex min-h-11 items-center gap-1.5 px-1 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>{t.backBtn}</button><button onClick={onOpenBackup} className="flex min-h-11 items-center gap-1.5 px-1 text-xs text-ink-muted hover:text-ink"><HardDrive size={15}/>{t.backupBtn}</button></header>
     <main>
       <div className="mt-10"><div className="flex items-center gap-2 text-accent"><Waves size={18}/><span className="text-sm font-medium">{t.tag}</span></div><h1 className="mt-5 text-[32px] font-medium tracking-[-0.05em] text-ink sm:text-[40px]">{t.heroTitle}</h1><p className="mt-3 max-w-md text-[16px] leading-relaxed text-ink-secondary">{t.heroSubtitle}</p></div>
+
+      {/* Pattern Passive Mirroring — 平常 100% 隱形 */}
+      {patternEligible && <div className="mt-8">
+        {!mirrorOpen
+          ? <button
+              onClick={() => void handleOpenMirror()}
+              disabled={mirrorLoading}
+              className="text-sm text-ink-muted/60 hover:text-ink-muted transition-colors duration-300 disabled:opacity-40"
+            >
+              {mirrorLoading ? t.patternLoading : t.patternHint}
+            </button>
+          : mirror && <div className="rounded-[24px] border border-accent/15 bg-accent/5 p-5">
+              <div className="space-y-5">
+                {mirror.moments.map(m => <article key={m.id} className="border-l-2 border-accent/30 pl-4">
+                  <time className="text-xs text-ink-muted">{day(m.createdAt)} · {time(m.createdAt)}</time>
+                  <p className="mt-2 whitespace-pre-wrap text-[17px] leading-relaxed text-ink">「{m.content}」</p>
+                </article>)}
+              </div>
+              <button onClick={() => setMirrorOpen(false)} className="mt-5 text-xs text-ink-muted hover:text-ink">{t.patternCollapseBtn}</button>
+            </div>
+        }
+      </div>}
 
       {moments.length === 0 ? <p className="mt-12 border-t border-border-base py-16 text-sm text-ink-muted">{t.emptyTimeline}</p> : <div className="mt-12 space-y-10">{(Object.entries(timeline) as Array<[string, TimelineItem[]]>).map(([date, items]) => <section key={date} className="relative border-l border-accent/25 pl-5"><span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-accent ring-4 ring-canvas"/><p className="text-sm text-ink-secondary">{date}</p><div className="mt-4 space-y-5">{items.map(item => {
         if (item.kind === 'moment') return <article key={item.moment.id} className="border-l border-border-subtle py-1 pl-4"><time className="text-xs text-ink-muted">{time(item.moment.createdAt)}</time><p className="mt-1 whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{item.moment.content}</p></article>;

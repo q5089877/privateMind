@@ -1,8 +1,8 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { BackupOverview, BackupStatus, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { BackupOverview, BackupStatus, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
-import { MemoryService } from '../services/memory/MemoryService';
+import { PatternService } from '../services/memory/PatternService';
 import { HarborIntent, HarborUserIntent } from '../state/harborIntent';
 import { harborReducer } from '../state/harborReducer';
 import { HarborAppState, initialHarborState } from '../state/harborState';
@@ -14,7 +14,7 @@ import { HarborAppState, initialHarborState } from '../state/harborState';
 export class HarborFlowEngine {
   private snapshot: HarborAppState = initialHarborState;
   private readonly storage = new MindHarborRepository();
-  private readonly memory = new MemoryService();
+  private readonly pattern = new PatternService();
   private readonly companion = new CompanionService();
   private readonly backup = new BackupService();
   private listeners: Array<() => void> = [];
@@ -116,12 +116,17 @@ export class HarborFlowEngine {
 
   public returnToChat() { this.dispatch({ type: 'RETURN_TO_CHAT' }); }
 
-  /** Cross-time data is read only after this explicit REVIEW action. */
-  public async requestReviewReading(): Promise<ReviewReading | null> {
+  /** Pattern Passive Mirroring: deterministic gate first, then literal-anchor AI selection. */
+  public async requestPatternMirror(): Promise<PatternMirror | null> {
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const reading = await this.memory.readRecentTimeline((await this.storage.getData()).moments);
-    this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(reading ? {} : { error: undefined }) });
-    return reading;
+    const mirror = await this.pattern.findMirror((await this.storage.getData()).moments);
+    this.dispatch({ type: 'SET_REQUEST', request: 'idle' });
+    return mirror;
+  }
+
+  /** Eligibility check (no AI call). Use to gate the faint mirror hint in ReviewScreen. */
+  public async canShowPatternMirror(): Promise<boolean> {
+    return this.pattern.canMirror((await this.storage.getData()).moments);
   }
 
   public async saveImmediateReply(momentId: string, reply: string) {
