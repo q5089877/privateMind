@@ -57,7 +57,7 @@ export const ReviewScreen: React.FC<Props> = ({
   const [sessions, setSessions] = useState<HarborSession[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'expanded' | 'settled' | 'background'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'settled' | 'background'>('all');
   const [sortDesc, setSortDesc] = useState(true);
   const [settleAllNotice, setSettleAllNotice] = useState<string | null>(null);
 
@@ -219,11 +219,6 @@ export const ReviewScreen: React.FC<Props> = ({
 
     if (activeFilter === 'all') {
       filtered = filtered.filter(i => !i.settled);
-    } else if (activeFilter === 'expanded') {
-      filtered = filtered.filter(i => {
-        const id = i.kind === 'session' ? i.session.id : i.moment.id;
-        return expandedIds.has(id);
-      });
     } else if (activeFilter === 'settled') {
       filtered = filtered.filter(i => i.settled);
     } else if (activeFilter === 'background') {
@@ -256,7 +251,7 @@ export const ReviewScreen: React.FC<Props> = ({
     });
 
     return groups;
-  }, [allFeedItems, activeFilter, expandedIds, sortDesc]);
+  }, [allFeedItems, activeFilter, sortDesc]);
 
   const itemId = (item: FeedItem) => item.kind === 'session' ? item.session.id : item.moment.id;
 
@@ -423,16 +418,6 @@ export const ReviewScreen: React.FC<Props> = ({
             全部留存 ({allCount})
           </button>
           <button
-            onClick={() => setActiveFilter('expanded')}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors cursor-pointer ${
-              activeFilter === 'expanded'
-                ? 'bg-[#1E3E31] text-white shadow-sm'
-                : 'bg-[#ECE9E2] hover:bg-[#E3DFD6] text-[#4A5D53]'
-            }`}
-          >
-            展開中 ({expandedIds.size})
-          </button>
-          <button
             onClick={() => setActiveFilter('settled')}
             className={`shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors cursor-pointer ${
               activeFilter === 'settled'
@@ -468,7 +453,7 @@ export const ReviewScreen: React.FC<Props> = ({
         <main className="w-full flex flex-col space-y-7" data-purpose="timeline-list">
           {timelineGroups.length === 0 ? (
             <div className="w-full py-16 text-center text-sm text-[#84958C]">
-              {activeFilter === 'settled' ? '目前沒有已安放的記錄。' : activeFilter === 'expanded' ? '目前沒有展開的記錄。' : '這裡還沒有留下任何事。'}
+              {activeFilter === 'settled' ? '目前沒有已安放的記錄。' : '這裡還沒有留下任何事。'}
             </div>
           ) : (
             timelineGroups.map(group => {
