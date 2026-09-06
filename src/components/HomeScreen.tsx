@@ -14,11 +14,11 @@ interface Props {
 
 const quickStates = UI_TEXT.home.quickDrafts;
 
-const TOP_ZEN_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDQh5kyggFcRV0ghkTqK3m7SIK99ukF7z6a5FTVil4LP-8TD4-kuoMAdz--RopIM0pye3Q5xtKf6qy5cHU-HTLHJ1pVKE110QOVp-kPdFCwEzzM3D9QxuPDoyg42Tqje7DpcpxBDnYt5X23O-CjLrbr_GjZV_BpluiJgTKIoqFZna7lHy17bbGJCcDxlaOUqCoqOQW6HlCf_DjxJJZQw0TVAKVNLHgw-xlYjZqBCsTTXk0pUn-3xC4z';
+import topZenImage from '../assets/zen-stones.jpg';
+import bottomMistImage from '../assets/mist-forest.jpg';
 
-const BOTTOM_MIST_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDrneCCs85P9x9G5eTAmlINWiDqsiJiLM69_JE5LEHCv4VLlRNZVOlSpLg3opTS4WfyRgJR32hJPaKapnA2-yB0cOn-B2bvzMmkhy2WDGY1LkCB82CnB9diQM5qtT_0r46bhMwnrzzikWrJFZcfpV7xNrb9a5U5R_CqN1mavdtrluGt0IQjNeTuMGQalLiftxpCnILyXc8z5z2g8KGjKsy1ZfMlyVJfch4sr2EhqFDec29JcHQBGE2H';
+const TOP_ZEN_IMAGE = topZenImage;
+const BOTTOM_MIST_IMAGE = bottomMistImage;
 
 export const HomeScreen: React.FC<Props> = ({
   onStartInput,
