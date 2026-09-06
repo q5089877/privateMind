@@ -45,7 +45,7 @@ export const HomeScreen: React.FC<Props> = ({
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [isEbbing, setIsEbbing] = useState(false);
-  const [afterAnchor, setAfterAnchor] = useState(false);
+  const [ebbPhase, setEbbPhase] = useState<'ending' | 'done' | null>(null);
   const [isTapping, setIsTapping] = useState(false);
   const [isHeartSustaining, setIsHeartSustaining] = useState(false);
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
@@ -235,8 +235,12 @@ export const HomeScreen: React.FC<Props> = ({
       ebbTimerRef.current = window.setTimeout(() => {
         setIsHolding(false);
         setIsEbbing(false);
-        setAfterAnchor(true); // 退潮結束後浮現極輕文字，不強迫選擇
-        ebbTimerRef.current = null;
+        triggerHaptic('settle'); // P2: 退潮完成的結束感
+        setEbbPhase('ending'); // 顯示「好。」
+        ebbTimerRef.current = window.setTimeout(() => {
+          setEbbPhase('done'); // 淡出變為「想留一句的話...」
+          ebbTimerRef.current = null;
+        }, 1200);
       }, 2000);
       return;
     }
@@ -268,7 +272,7 @@ export const HomeScreen: React.FC<Props> = ({
       setContinuityDismissed(true);
     }
 
-    setAfterAnchor(false); // 開始輸入時收起退潮後提示
+    setEbbPhase(null); // 開始輸入時收起退潮後提示
 
     triggerHaptic('docking');
     setSubmittingState('submitting');
@@ -351,37 +355,44 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-col items-end">
-          <button
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={clearHold}
-            onPointerCancel={clearHold}
-            onContextMenu={e => e.preventDefault()}
-            className={`group relative flex h-12 items-center gap-2.5 rounded-full px-5 select-none touch-none transition-all duration-200 cursor-pointer border-2 ${
-              isHolding
-                ? 'bg-accent border-accent text-white shadow-[0_4px_20px_rgba(19,66,48,0.35)] scale-105'
-                : isTapping
-                  ? 'bg-accent/10 border-accent scale-95'
-                  : 'bg-surface border-accent/40 hover:border-accent hover:bg-accent/5 hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(19,66,48,0.12)]'
-            }`}
-            title="按住隨心跳定錨呼吸"
-            type="button"
-          >
-            <Anchor
-              size={19}
-              className={`transition-all duration-300 ${
-                isHolding ? 'text-white rotate-12 scale-110' : 'text-accent group-hover:rotate-12'
+          <div className="relative">
+            {/* 微弱呼吸光暈 */}
+            {!isHolding && !isTapping && (
+              <div className="absolute inset-0 rounded-full bg-accent/20 animate-ping" style={{ animationDuration: '3s', opacity: 0.4 }} />
+            )}
+            <button
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={clearHold}
+              onPointerCancel={clearHold}
+              onContextMenu={e => e.preventDefault()}
+              className={`group relative flex h-14 items-center gap-3 rounded-full px-6 select-none touch-none transition-all duration-300 cursor-pointer border-2 ${
+                isHolding
+                  ? 'bg-accent border-accent text-white shadow-[0_4px_24px_rgba(19,66,48,0.45)] scale-105'
+                  : isTapping
+                    ? 'bg-accent/10 border-accent scale-95'
+                    : 'bg-surface border-accent/60 hover:border-accent hover:bg-accent/5 hover:-translate-y-0.5 shadow-[0_4px_12px_rgba(19,66,48,0.15)]'
               }`}
-            />
-            <span className={`text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${isHolding ? 'text-white' : 'text-ink'}`}>
-              定錨
-            </span>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono transition-colors duration-200 ${
-              isHolding ? 'bg-white/20 text-white' : 'bg-paper-sunken text-ink-muted'
-            }`}>
-              {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
-            </span>
-          </button>
+              title="按住隨心跳定錨呼吸"
+              type="button"
+            >
+              <Anchor
+                size={22}
+                strokeWidth={2.2}
+                className={`transition-all duration-300 ${
+                  isHolding ? 'text-white rotate-12 scale-110' : 'text-accent group-hover:rotate-12'
+                }`}
+              />
+              <span className={`text-[15px] font-semibold whitespace-nowrap transition-colors duration-200 ${isHolding ? 'text-white' : 'text-ink'}`}>
+                定錨
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono transition-colors duration-200 ${
+                isHolding ? 'bg-white/20 text-white' : 'bg-paper-sunken text-ink-muted'
+              }`}>
+                {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
+              </span>
+            </button>
+          </div>
           {ventCount > 0 && (
             <span className="mt-1.5 text-[11px] text-ink-muted">
               {UI_TEXT.home.vent.counterPrefix} {ventCount} {UI_TEXT.home.vent.counterSuffix}
@@ -481,19 +492,24 @@ export const HomeScreen: React.FC<Props> = ({
         </section>
       )}
 
-      {/* 退潮後極輕文字提示（無按鈕，靜默是被允許的答案） */}
+      {/* 退潮後極輕文字提示（兩階段：先「好。」，再變為「想留一句的話...」） */}
       <div
         style={{
-          opacity: afterAnchor ? 1 : 0,
-          transform: afterAnchor ? 'translateY(0px)' : 'translateY(8px)',
+          opacity: ebbPhase !== null ? 1 : 0,
+          transform: ebbPhase !== null ? 'translateY(0px)' : 'translateY(8px)',
           transition: 'opacity 800ms ease-out, transform 800ms ease-out',
-          pointerEvents: afterAnchor ? 'none' : 'none',
+          pointerEvents: ebbPhase !== null ? 'none' : 'none',
           display: dockedMoment ? 'none' : 'block' // 如果停靠卡片存在，先藏起這個
         }}
-        aria-hidden={!afterAnchor}
+        aria-hidden={ebbPhase === null}
       >
-        <p className="px-1 text-[13px] text-ink-muted text-center tracking-wide leading-relaxed">
-          想留一句的話，就寫在這裡。
+        <p
+          className="px-1 text-[13px] text-center tracking-wide leading-relaxed transition-colors duration-1000"
+          style={{
+            color: ebbPhase === 'ending' ? 'var(--color-ink)' : 'var(--color-ink-muted)'
+          }}
+        >
+          {ebbPhase === 'ending' ? '好。' : '想留一句的話，就寫在這裡。'}
         </p>
       </div>
       {/* 核心輸入卡片 (Core Expression Card) */}
