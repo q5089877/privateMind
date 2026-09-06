@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Anchor, ArrowDown, ArrowRight, Check, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, Heart, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
 import { CarryState, Moment } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
@@ -216,7 +216,7 @@ export const HomeScreen: React.FC<Props> = ({
                 heartBeatPhase ? 'scale-115' : 'scale-100'
               }`}
             >
-              <Anchor size={28} className="text-white" />
+              <Heart size={28} className="text-white fill-white/20" />
             </span>
             <p className="mt-4 text-xl sm:text-2xl font-medium text-white tracking-wide">
               {isHeartSustaining ? UI_TEXT.home.vent.sustainedState : '深呼吸，隨心定錨'}
@@ -253,7 +253,7 @@ export const HomeScreen: React.FC<Props> = ({
             title="按住隨心跳定錨呼吸"
             type="button"
           >
-            <Anchor size={17} className={`text-accent transition-transform duration-300 ${isHolding ? 'rotate-12 scale-110' : 'group-hover:rotate-12'}`} />
+            <Heart size={17} className={`text-accent transition-transform duration-300 ${isHolding ? 'scale-115 fill-accent' : 'group-hover:scale-110'}`} />
             <span className="text-sm font-medium text-ink whitespace-nowrap">定錨</span>
             <span className="rounded-full bg-paper-sunken px-2 py-0.5 text-[10px] font-mono text-ink-muted">
               {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
