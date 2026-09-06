@@ -12,7 +12,16 @@ export const UI_TEXT = {
     sectionTitle: '現在想留下什麼？',
     inputHintDefault: '先留下一句也可以。',
     inputHintDraft: '文字可直接修改，或留下一句就好。',
-    footerPromise: '留下來就好。想接著理清，或停在這裡都可以。',
+    heroTitle: '把卡在心裡的事，\n先說出來。',
+    heroSubtitle: '不用整理，也不用現在就有答案。先從最想說的那一句開始。',
+    vignetteTopText: '現在這一刻，是安靜的',
+    vignetteBottomText: '「允許每一種狀態存在，也是給自己的寬容。」',
+    submittingBtn: '正在安放……',
+    settledBtn: '已安穩停靠',
+    counterListening: '準備傾聽',
+    counterSuffixInjected: '字已注入',
+    vaultSubtext: '存於本機',
+    privacyGuarantee: '內容只保存在這台裝置・不聯網・無帳號・完全無痕安全',
     // Level 0: ⚓🤍 全螢幕沉降注水定心錨（生理心跳與物理定錨共存）
     vent: {
       buttonLabel: '定錨',
@@ -154,12 +163,15 @@ export const CORE_PHILOSOPHY = {
   motto: '說出來 → 看一看 → 收回來 → 放下去。',
   containmentMotto: '物理現實明早 09:00 前不收件，今晚在床上運算一律判定為無效。',
   passiveLinkageMotto: '平常不打擾，看到連結才開口。',
+  sanctuaryMotto: '和紙自然、老松墨綠、靜謐切片、低刺激性、安穩停靠。',
   principles: [
     'Level 0 消波：急性混亂時，先給身體出口，不必面對文字。',
     'Level 1 草稿：低摩擦膠囊，降低啟動阻抗。',
     '客觀手術刀：切開客觀張力與物理邊界，嚴禁心理診斷與套話。',
     '雙軌解耦：事件軌道（人事地）與狀態軌道（身心感受）分離，捕捉跨情境溢出與跨時間重現。',
     '心智封裝：指認今晚運算無效的外部變數，履約下班。',
-    '原文第一：每一次留下的原文永久保存，AI 不覆蓋、不篡改。'
+    '原文第一：每一次留下的原文永久保存，AI 不覆蓋、不篡改。',
+    '侘寂心智庇護所：採和紙暖白底色與深林老松墨綠，以晨光禪石與晨霧松林切片建立視覺退火點，降低焦慮防備。',
+    '44pt 無障礙與人體工學：全系統按鈕嚴格保證 44x44pt 拇指熱區，文字嚴格遵守 WCAG AA 高對比標準。'
   ]
 };
