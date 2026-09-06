@@ -22,18 +22,18 @@ export const UI_TEXT = {
     counterSuffixInjected: '字已注入',
     vaultSubtext: '存於本機',
     privacyGuarantee: '內容只保存在這台裝置・不聯網・無帳號・完全無痕安全',
-    // Level 0: ⚓🤍 全螢幕沉降注水定心錨（生理心跳與物理定錨共存）
+    // Level 0: 🤍 全螢幕沉降注水定心（生理心跳共振）
     vent: {
-      buttonLabel: '定錨',
-      idleHint: '按住',
-      holdingState: '隨心跳沉澱',
-      sustainedState: '已定錨 · 維持呼吸',
+      buttonLabel: '定心',
+      waterSoundEffect: '深沉水壓包覆音效',
+      hapticLevel: '滿載定心頓挫感',
+      sustainedState: '已定心 · 維持呼吸',
       sustainedSubtext: '保持呼吸 · 放開即止',
-      buttonTitle: '輕點消波，按住隨心跳定錨',
-      counterPrefix: '已定錨',
+      buttonTitle: '輕點消波，按住隨心跳定心',
+      counterPrefix: '已定心',
       counterSuffix: '次 · 想說再留',
       pulseWords: ['停', '穩', '呼', '放', '隨它'] as const,
-      description: '全螢幕沉降注水定心錨：按住時深邃潮水自螢幕底端湧升，伴隨平靜穩定的生理心跳律動（~60 BPM），滿載 100% 物理咬合定錨，持續維持共振直到放開。'
+      description: '全螢幕沉降注水定心：按住時深邃潮水自螢幕底端湧升，伴隨平靜穩定的生理心跳律動（~60 BPM），持續維持共振直到放開。'
     },
     pulseWords: ['停', '穩', '呼', '放', '隨它'] as const,
     pulseHint: '想說再留。',

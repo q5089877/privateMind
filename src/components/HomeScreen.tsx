@@ -219,7 +219,7 @@ export const HomeScreen: React.FC<Props> = ({
               <Heart size={28} className="text-white fill-white/20" />
             </span>
             <p className="mt-4 text-xl sm:text-2xl font-medium text-white tracking-wide">
-              {isHeartSustaining ? UI_TEXT.home.vent.sustainedState : '深呼吸，隨心定錨'}
+              {isHeartSustaining ? UI_TEXT.home.vent.sustainedState : '深呼吸，隨心定心'}
             </p>
             <p className="mt-1 text-xs text-white/80">
               {isHeartSustaining ? UI_TEXT.home.vent.sustainedSubtext : '讓腦海的浪潮在此刻緩下來……'}
@@ -228,7 +228,7 @@ export const HomeScreen: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 頂部 Header & 定錨按鈕 */}
+      {/* 頂部 Header & 定心按鈕 */}
       <header className="flex items-center justify-between gap-4 pt-1">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-[0_6px_16px_rgba(19,66,48,0.22)] transition-transform duration-300 active:scale-95">
@@ -250,13 +250,13 @@ export const HomeScreen: React.FC<Props> = ({
             className={`group relative flex h-11 items-center gap-2 rounded-full bg-surface px-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] border border-border-base/70 select-none touch-none transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0.5 active:scale-95 cursor-pointer ${
               isTapping ? 'scale-90 border-accent bg-accent/10' : ''
             }`}
-            title="按住隨心跳定錨呼吸"
+            title="按住隨心跳定心呼吸"
             type="button"
           >
             <Heart size={17} className={`text-accent transition-transform duration-300 ${isHolding ? 'scale-115 fill-accent' : 'group-hover:scale-110'}`} />
-            <span className="text-sm font-medium text-ink whitespace-nowrap">定錨</span>
+            <span className="text-sm font-medium text-ink whitespace-nowrap">{UI_TEXT.home.vent.buttonLabel}</span>
             <span className="rounded-full bg-paper-sunken px-2 py-0.5 text-[10px] font-mono text-ink-muted">
-              {isHolding ? (isHeartSustaining ? '已定錨' : `${Math.round(holdProgress)}%`) : '長按'}
+              {isHolding ? (isHeartSustaining ? '已定心' : `${Math.round(holdProgress)}%`) : '長按'}
             </span>
           </button>
           {ventCount > 0 && (
