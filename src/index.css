@@ -13,16 +13,16 @@
   --border-subtle: #ECEEF1;
   --border-focus: #1F2937;
 
-  --ink-primary: #202722;
-  --ink-heading: #202722;
-  --ink-body: #34423A;
-  --ink-stem: #4B5B51;
-  --ink-secondary: #4B5B51;
-  --ink-muted: #647168;
-  --ink-placeholder: #748078;
+  --ink-primary: #1E293B;
+  --ink-heading: #1E293B;
+  --ink-body: #334155;
+  --ink-stem: #475569;
+  --ink-secondary: #475569;
+  --ink-muted: #59665E;
+  --ink-placeholder: #64748B;
 
-  --accent: #356A55;
-  --accent-hover: #285441;
+  --accent: #346853;
+  --accent-hover: #2C3E35;
   --accent-text: #FFFFFF;      /* 白字 */
 }
 

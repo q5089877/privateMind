@@ -38,6 +38,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
   const [exploration, setExploration] = useState<ExploreResult | null>(null);
   const [activePerspectiveIndex, setActivePerspectiveIndex] = useState(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const hasValidReply = moment?.immediateReply && !isFallbackReply(moment.immediateReply);
@@ -52,6 +53,11 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     setExploration(null);
     setActivePerspectiveIndex(0);
   }, [moment?.id]);
+
+  // 新訊息或狀態變更時自動平滑滾動到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [reply, exploring, showAngles, showComposer]);
 
   useEffect(() => {
     if (!moment || (moment.immediateReply && !isFallbackReply(moment.immediateReply))) return;
@@ -96,6 +102,8 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
   const turns: ConversationTurn[] = [...session.turns].filter(turn => turn.role !== 'assistant' || !isFallbackReply(turn.content));
   const hasCurrentAssistant = turns.some(turn => turn.role === 'assistant' && turn.momentId === moment.id);
   if (reply && !hasCurrentAssistant) turns.push({ id: `visible-reply-${moment.id}`, role: 'assistant', content: reply, createdAt: Date.now(), momentId: moment.id });
+
+  const isMultiTurn = turns.length >= 2;
 
   const openComposer = (guide = '') => {
     setContinuation('');
@@ -149,34 +157,44 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     }
   };
 
-  return <div className="w-full max-w-[560px] min-h-[calc(100vh-104px)] py-5 sm:py-8">
-    <header className="flex min-h-11 items-center">
-      <button onClick={onLeave} className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink"><ArrowLeft size={16}/>{t.backBtn}</button>
+  return <div className="w-full max-w-[560px] min-h-[calc(100vh-90px)] pb-12 pt-2 sm:pt-4">
+    <header className="flex min-h-[44px] items-center justify-between">
+      <button onClick={onLeave} className="inline-flex min-h-[44px] items-center gap-1.5 px-1 text-sm font-medium text-ink-secondary hover:text-ink cursor-pointer">
+        <ArrowLeft size={16}/>{t.backBtn}
+      </button>
+      {isMultiTurn && (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+          <Waves size={12}/>{t.sceneTag}
+        </span>
+      )}
     </header>
 
-    <main className="pt-8 sm:pt-12">
-      <div className="flex items-center gap-2 text-sm font-medium text-accent">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10"><Waves size={16}/></span>{t.sceneTag}
-      </div>
-      <h1 className="mt-5 text-[30px] font-medium tracking-[-0.045em] text-ink sm:text-[36px]">{t.heroTitle}</h1>
-      <p className="mt-3 text-[15px] leading-relaxed text-ink-secondary">{t.heroSubtitle}</p>
+    <main className="pt-3 sm:pt-5">
+      {!isMultiTurn && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase text-accent">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10"><Waves size={13}/></span>
+            <span>{t.sceneTag}</span>
+          </div>
+          <h1 className="mt-3 text-[26px] font-medium tracking-[-0.04em] text-ink sm:text-[32px]">{t.heroTitle}</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-secondary">{t.heroSubtitle}</p>
+        </div>
+      )}
 
-      {session.closure && <aside className="mt-6 rounded-2xl border border-accent/15 bg-surface-subtle px-4 py-3">
+      {session.closure && <aside className="mb-6 rounded-2xl border border-accent/20 bg-surface-subtle px-4 py-3">
         <p className="text-xs font-medium text-accent">{t.pastAnchorHeader}</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-ink-secondary">{session.closure.resumeAnchor || session.closure.unresolved}</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{session.closure.resumeAnchor || session.closure.unresolved}</p>
       </aside>}
 
-      <section aria-label="這次停靠的對話" className="mt-10 space-y-5">
+      <section aria-label="這次停靠的對話" className="space-y-6">
         {turns.map((turn, index) => {
           const isLastAssistant = turn.role === 'assistant' && index === turns.length - 1;
           return turn.role === 'user'
-            ? <article key={turn.id} className="ml-5 rounded-[24px] border border-border-base bg-surface px-5 py-4 shadow-[0_3px_10px_rgba(47,70,54,0.06)] sm:ml-12">
-                <p className="text-xs font-medium text-ink-muted">{t.userTurnLabel}</p>
-                <p className="mt-2 whitespace-pre-wrap text-[18px] leading-[1.7] tracking-[-0.02em] text-ink">{turn.content}</p>
+            ? <article key={turn.id} className="ml-6 sm:ml-14 rounded-[22px] border border-border-base/80 bg-surface px-5 py-3.5 shadow-xs">
+                <p className="whitespace-pre-wrap text-[17px] leading-[1.65] tracking-[-0.015em] text-ink">{turn.content}</p>
               </article>
-            : <article key={turn.id} className="mr-5 border-l-2 border-accent/55 py-1 pl-4 sm:mr-12 sm:pl-5">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-accent"><Waves size={14}/>{t.aiMirrorLabel}</p>
-                <p className="mt-2 whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-secondary">{turn.content}</p>
+            : <article key={turn.id} className="mr-3 sm:mr-10 border-l-2 border-accent/50 py-1 pl-4 sm:pl-5">
+                <p className="whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-body">{turn.content}</p>
 
                 {isLastAssistant && (
                   <div className="mt-3">
@@ -185,56 +203,56 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
                         type="button"
                         disabled={exploring}
                         onClick={() => void requestAngles()}
-                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-ink-muted transition-colors hover:bg-surface-subtle hover:text-accent disabled:opacity-50"
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-4 py-1.5 text-xs font-medium text-accent transition-all hover:bg-accent/12 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
                       >
-                        <RotateCw size={12} className={exploring ? 'animate-spin' : ''} />
+                        <RotateCw size={13} className={exploring ? 'animate-spin' : ''} />
                         <span>{exploring ? t.exploreLoading : t.exploreBtn}</span>
                       </button>
                     ) : (
-                      <div className="rounded-2xl border border-accent/20 bg-surface-subtle p-3.5 sm:p-4">
+                      <div className="mt-2 rounded-2xl border border-accent/25 bg-surface-subtle p-4 shadow-xs">
                         {exploring ? (
-                          <p className="flex items-center gap-2 text-xs text-ink-muted">
-                            <RotateCw size={13} className="animate-spin text-accent" />
+                          <p className="flex items-center gap-2 text-xs font-medium text-ink-muted min-h-[44px]">
+                            <RotateCw size={14} className="animate-spin text-accent" />
                             {t.exploreLoading}
                           </p>
                         ) : exploration && exploration.perspectives.length > 0 ? (() => {
                           const currentPerspective = exploration.perspectives[activePerspectiveIndex % exploration.perspectives.length];
                           return (
                             <div>
-                              <div className="flex items-center justify-between text-[11px] font-medium text-accent">
+                              <div className="flex items-center justify-between text-xs font-medium text-accent">
                                 <span>{t.explorePerspectivePrefix} · {currentPerspective.title}</span>
                                 <button
                                   type="button"
                                   onClick={() => setShowAngles(false)}
-                                  className="text-ink-muted hover:text-ink transition-colors"
+                                  className="inline-flex min-h-[36px] items-center px-2 text-ink-muted hover:text-ink transition-colors cursor-pointer"
                                 >
                                   {t.closeExploreBtn}
                                 </button>
                               </div>
                               <p className="mt-2 text-[15px] leading-relaxed text-ink">{currentPerspective.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-border-base/50 pt-2.5 text-xs">
+                              <div className="mt-3.5 flex items-center justify-between border-t border-border-base/60 pt-2.5 text-xs">
                                 <button
                                   type="button"
                                   disabled={exploring}
                                   onClick={() => void nextPerspective()}
-                                  className="inline-flex items-center gap-1.5 font-medium text-accent hover:text-ink transition-colors disabled:opacity-50"
+                                  className="inline-flex min-h-[44px] items-center gap-1.5 font-medium text-accent hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
                                 >
-                                  <RotateCw size={12} className={exploring ? 'animate-spin' : ''} />
+                                  <RotateCw size={13} className={exploring ? 'animate-spin' : ''} />
                                   <span>{exploring ? t.exploreLoading : t.exploreNextBtn}</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => openComposer(currentPerspective.followUp)}
-                                  className="inline-flex items-center gap-1 font-medium text-ink-secondary hover:text-accent transition-colors"
+                                  className="inline-flex min-h-[44px] items-center gap-1 font-medium text-ink-secondary hover:text-accent transition-colors cursor-pointer"
                                 >
                                   <span>{t.exploreAdoptBtn}</span>
-                                  <ArrowDown size={12} />
+                                  <ArrowDown size={13} />
                                 </button>
                               </div>
                             </div>
                           );
                         })() : (
-                          <p className="text-xs text-ink-muted">{t.exploreEmpty}</p>
+                          <p className="text-xs text-ink-muted py-2">{t.exploreEmpty}</p>
                         )}
                       </div>
                     )}
@@ -243,34 +261,36 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
               </article>;
         })}
         {!hasCurrentAssistant && !reply && !replyUnavailable && !isRetrying && (
-          <article className="mr-5 border-l-2 border-accent/25 py-1 pl-4 sm:mr-12 sm:pl-5">
+          <article className="mr-3 border-l-2 border-accent/30 py-2 pl-4 sm:mr-10 sm:pl-5">
             <p className="flex items-center gap-2 text-sm text-ink-muted">
-              <RotateCw size={14} className="animate-spin text-accent/70" />
+              <RotateCw size={14} className="animate-spin text-accent" />
               {t.loadingHint}
             </p>
           </article>
         )}
         {(replyUnavailable || isRetrying) && (
-          <article className="mr-5 border-l-2 border-border-base py-1 pl-4 sm:mr-12 sm:pl-5">
+          <article className="mr-3 border-l-2 border-border-base py-2 pl-4 sm:mr-10 sm:pl-5">
             <p className="text-sm leading-relaxed text-ink-secondary">{t.errorHint}</p>
             <button
               type="button"
               disabled={isRetrying}
               onClick={() => void handleRetry()}
-              className="mt-2.5 inline-flex min-h-[38px] items-center gap-2 rounded-full border border-border-base bg-surface px-4 py-1.5 text-xs font-medium text-ink-secondary shadow-xs transition-all hover:border-accent/40 hover:text-ink active:scale-98 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border-base bg-surface px-4 py-2 text-xs font-medium text-ink-secondary shadow-xs transition-all hover:border-accent/40 hover:text-ink active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <RotateCw size={13} className={isRetrying ? 'animate-spin text-accent' : ''} />
               <span>{isRetrying ? '連線重試中……' : t.retryBtn}</span>
             </button>
           </article>
         )}
+        {/* 自動滾動錨點 */}
+        <div ref={messagesEndRef} className="h-2" />
       </section>
 
-      <section className="mt-10 border-t border-border-base pt-6">
-        {showComposer ? <div className="rounded-[24px] border border-accent/20 bg-surface p-4 shadow-[0_5px_16px_rgba(47,70,54,0.07)]">
+      <section className="mt-8 border-t border-border-base/70 pt-6">
+        {showComposer ? <div className="rounded-[24px] border border-accent/25 bg-surface p-4.5 shadow-[0_5px_18px_rgba(47,70,54,0.08)]">
           <label htmlFor="continue-thought" className="text-sm font-medium text-ink">{t.composerTitle}</label>
-          {continuationGuide && <div className="mt-3 rounded-2xl bg-surface-subtle px-3 py-2.5">
-            <p className="text-[11px] font-medium text-accent">{t.explorePerspectivePrefix}</p>
+          {continuationGuide && <div className="mt-2.5 rounded-2xl bg-surface-subtle px-3.5 py-2.5">
+            <p className="text-[11px] font-semibold text-accent">{t.explorePerspectivePrefix}</p>
             <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{continuationGuide}</p>
           </div>}
           <textarea ref={composerRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event => {
@@ -279,15 +299,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
               void continueConversation();
             }
           }} placeholder={continuationGuide ? t.composerPlaceholderGuide : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
-          <div className="mt-3 flex items-center justify-between border-t border-border-base pt-3">
-            <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="text-sm text-ink-muted hover:text-ink">{t.composerCancelBtn}</button>
-            <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-35">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
+          <div className="mt-3 flex items-center justify-between border-t border-border-base/60 pt-3">
+            <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="inline-flex min-h-[44px] items-center px-2 text-sm text-ink-muted hover:text-ink cursor-pointer">{t.composerCancelBtn}</button>
+            <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
           </div>
-        </div> : <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          <button type="button" onClick={() => openComposer()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px">
+        </div> : <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => openComposer()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px cursor-pointer">
             <MessageCircle size={16}/>{t.continueBtn}
           </button>
-          <button type="button" onClick={() => void onBeginLanding(session)} className="inline-flex min-h-11 items-center rounded-full border border-border-base bg-surface px-4 text-sm font-medium text-ink-secondary shadow-xs transition-colors hover:border-accent/40 hover:text-ink">
+          <button type="button" onClick={() => void onBeginLanding(session)} className="inline-flex min-h-[44px] items-center rounded-full border border-border-base bg-surface px-4.5 text-sm font-medium text-ink-secondary shadow-xs transition-colors hover:border-accent/40 hover:text-ink cursor-pointer active:scale-98">
             {t.concludeBtn}
           </button>
         </div>}

@@ -18,12 +18,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </main>
       
-      <footer className="pt-2 pb-4 sm:pb-6 flex justify-center">
+      <footer className="pt-2 pb-5 sm:pb-6 flex justify-center">
         <button 
           onClick={() => setShowSupportModal(true)}
-          className="flex items-center gap-1.5 text-xs text-ink-muted/70 hover:text-ink transition-colors duration-300 cursor-pointer select-none"
+          className="inline-flex min-h-[44px] items-center gap-2 px-3 py-1.5 text-xs font-medium text-ink-secondary hover:text-ink rounded-full hover:bg-surface-subtle transition-colors cursor-pointer select-none"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-accent/40 inline-block" />
+          <span className="w-1.5 h-1.5 rounded-full bg-accent/60 inline-block" />
           <span>{UI_TEXT.layout.supportBtn}</span>
         </button>
       </footer>
