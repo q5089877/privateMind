@@ -60,7 +60,6 @@ export const HomeScreen: React.FC<Props> = ({
   const holdDelayTimerRef = useRef<number | null>(null);
   const heartbeatLoopTimerRef = useRef<number | null>(null);
   const ebbTimerRef = useRef<number | null>(null);
-  const dockedDismissTimerRef = useRef<number | null>(null);
   const pressStartTimeRef = useRef<number>(0);
 
   const clearTimers = () => {
@@ -94,29 +93,14 @@ export const HomeScreen: React.FC<Props> = ({
     }
   }, [getContinuityCandidate]);
 
-  // Handle transient dockedMoment (3~4s auto-dismiss)
+  // Handle transient dockedMoment (No auto-dismiss timer - stays until next action)
   useEffect(() => {
     if (dockedMoment) {
       setDockedVisible(true);
-      dockedDismissTimerRef.current = window.setTimeout(() => {
-        setDockedVisible(false); // 開始淡出
-        window.setTimeout(() => {
-          if (onDismissDockedMoment) onDismissDockedMoment();
-        }, 600); // 配合 CSS transition 600ms
-      }, 3500); // 3.5秒後啟動淡出
     } else {
       setDockedVisible(false);
-      if (dockedDismissTimerRef.current) {
-        clearTimeout(dockedDismissTimerRef.current);
-        dockedDismissTimerRef.current = null;
-      }
     }
-    return () => {
-      if (dockedDismissTimerRef.current) {
-        clearTimeout(dockedDismissTimerRef.current);
-      }
-    };
-  }, [dockedMoment, onDismissDockedMoment]);
+  }, [dockedMoment]);
 
   const triggerDockedDismiss = () => {
     if (dockedMoment && onDismissDockedMoment) {
