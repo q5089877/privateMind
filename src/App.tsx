@@ -15,7 +15,7 @@ const App: React.FC = () => {
     if (!flow.ready) return <div className="min-h-[60vh] w-full max-w-[560px] pt-24 text-sm text-ink-muted">正在整理停靠過的片段…</div>;
     switch (flow.state) {
       case 'HOME':
-        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={flow.openReview} onOpenBackup={flow.openBackup} />;
+        return <HomeScreen onStartInput={text => flow.submitText(text)} onReview={flow.openReview} onOpenBackup={flow.openBackup} getContinuityCandidate={flow.getContinuityCandidate} onResolveContinuity={flow.resolveContinuityProbe} />;
       case 'CHAT':
         return <ChatScreen moment={flow.currentMoment} session={flow.currentSession} onLeave={flow.finish} onContinue={text => flow.submitText(text, 'follow_up')} getPresentReply={(m, s, force) => flow.requestPresentReply(m, s || undefined, force)} getExploration={flow.requestExploration} onSaveReply={flow.saveImmediateReply} onBeginLanding={flow.beginLanding} />;
       case 'LAND':

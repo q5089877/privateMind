@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Anchor, ArrowDown, ArrowRight, Check, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
+import { CarryState, Moment } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
 
@@ -7,6 +8,8 @@ interface Props {
   onStartInput: (text: string) => void;
   onReview: () => void;
   onOpenBackup: () => void;
+  getContinuityCandidate?: () => Promise<Moment | null>;
+  onResolveContinuity?: (momentId: string, state: CarryState | null) => Promise<void>;
 }
 
 const quickStates = UI_TEXT.home.quickDrafts;
@@ -17,7 +20,13 @@ const TOP_ZEN_IMAGE =
 const BOTTOM_MIST_IMAGE =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDrneCCs85P9x9G5eTAmlINWiDqsiJiLM69_JE5LEHCv4VLlRNZVOlSpLg3opTS4WfyRgJR32hJPaKapnA2-yB0cOn-B2bvzMmkhy2WDGY1LkCB82CnB9diQM5qtT_0r46bhMwnrzzikWrJFZcfpV7xNrb9a5U5R_CqN1mavdtrluGt0IQjNeTuMGQalLiftxpCnILyXc8z5z2g8KGjKsy1ZfMlyVJfch4sr2EhqFDec29JcHQBGE2H';
 
-export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBackup }) => {
+export const HomeScreen: React.FC<Props> = ({
+  onStartInput,
+  onReview,
+  onOpenBackup,
+  getContinuityCandidate,
+  onResolveContinuity
+}) => {
   const [input, setInput] = useState('');
   const [ventCount, setVentCount] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
@@ -27,6 +36,8 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
   const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
+  const [continuityMoment, setContinuityMoment] = useState<Moment | null>(null);
+  const [continuityDismissed, setContinuityDismissed] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const progressTimerRef = useRef<number | null>(null);
   const holdDelayTimerRef = useRef<number | null>(null);
@@ -55,6 +66,24 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
       cancelHaptics();
     };
   }, []);
+
+  useEffect(() => {
+    if (getContinuityCandidate) {
+      void getContinuityCandidate().then(candidate => {
+        if (candidate) setContinuityMoment(candidate);
+      });
+    }
+  }, [getContinuityCandidate]);
+
+  const handleContinuityChoice = (choice: CarryState) => {
+    if (!continuityMoment) return;
+    const id = continuityMoment.id;
+    setContinuityDismissed(true);
+    if (onResolveContinuity) {
+      void onResolveContinuity(id, choice);
+    }
+    inputRef.current?.focus();
+  };
 
   const clearHold = () => {
     clearTimers();
@@ -146,6 +175,12 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
   const beginConversation = () => {
     const text = input.trim();
     if (!text || submittingState !== 'idle') return;
+
+    if (continuityMoment && !continuityDismissed && onResolveContinuity) {
+      void onResolveContinuity(continuityMoment.id, null);
+      setContinuityDismissed(true);
+    }
+
     triggerHaptic('docking');
     setSubmittingState('submitting');
     window.setTimeout(() => {
@@ -259,6 +294,38 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenBack
           不用整理，也不用現在就有答案。先從最想說的那一句開始。
         </p>
       </section>
+
+      {/* 跨次承接感極簡探針 (Continuity Sensitivity Probe) */}
+      {continuityMoment && !continuityDismissed && (
+        <section className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_2px_12px_rgba(19,66,48,0.05)] transition-all duration-300">
+          <p className="text-[15.5px] font-medium text-ink leading-relaxed">
+            「{continuityMoment.content.length > 22 ? continuityMoment.content.slice(0, 22) + '…' : continuityMoment.content}」，還在嗎？
+          </p>
+          <div className="mt-3.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleContinuityChoice('still')}
+              className="px-4 py-1.5 rounded-full bg-accent text-white text-xs font-medium shadow-xs hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
+            >
+              還在
+            </button>
+            <button
+              type="button"
+              onClick={() => handleContinuityChoice('faded')}
+              className="px-3.5 py-1.5 rounded-full bg-surface-subtle text-ink-secondary border border-border-base text-xs font-medium hover:bg-surface-hover active:scale-95 transition-all cursor-pointer"
+            >
+              不在了
+            </button>
+            <button
+              type="button"
+              onClick={() => handleContinuityChoice('dont_ask')}
+              className="px-2.5 py-1 text-xs text-ink-muted hover:text-ink transition-colors ml-auto cursor-pointer"
+            >
+              先不提
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* 核心輸入卡片 (Core Expression Card) */}
       <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_8px_24px_rgba(36,40,38,0.06)] border border-border-base/80 transition-all duration-300">

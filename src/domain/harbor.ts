@@ -3,6 +3,8 @@ export type FlowState = 'HOME' | 'CHAT' | 'LAND' | 'REVIEW' | 'BACKUP';
 /** Why a moment was written. It is inferred from its entry point, never requested as a field. */
 export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_added';
 
+export type CarryState = 'still' | 'faded' | 'dont_ask';
+
 /** The indivisible, user-authored unit. It is never rewritten by AI. */
 export interface Moment {
   id: string;
@@ -14,6 +16,10 @@ export interface Moment {
   settledAt?: number;
   /** Set when the user hard-deletes: hidden everywhere. Backup still exports it. */
   deletedAt?: number;
+  /** Continuity probe response: still / faded / dont_ask */
+  carryState?: CarryState | null;
+  /** Nullable timestamp when the continuity probe was surfaced to user */
+  carryPromptShownAt?: number | null;
 }
 
 export type ConversationRole = 'user' | 'assistant';

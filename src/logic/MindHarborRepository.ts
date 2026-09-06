@@ -1,4 +1,4 @@
-import { HarborSession, LinkDecision, MindHarborData, Moment, ThoughtThread, ThreadLine } from '../types';
+import { CarryState, HarborSession, LinkDecision, MindHarborData, Moment, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 1;
@@ -97,6 +97,15 @@ export class MindHarborRepository {
       ...data,
       moments: data.moments.map(moment => moment.id === momentId ? transform(moment) : moment),
       backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+    }));
+  }
+
+  /** Update continuity probe state and ensure carryPromptShownAt is recorded */
+  public async setMomentCarryState(momentId: string, carryState: CarryState | null, shownAt = Date.now()): Promise<MindHarborData> {
+    return this.updateMoment(momentId, m => ({
+      ...m,
+      carryState,
+      carryPromptShownAt: m.carryPromptShownAt ?? shownAt
     }));
   }
 

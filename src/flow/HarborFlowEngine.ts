@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { BackupOverview, BackupStatus, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { BackupOverview, BackupStatus, CarryState, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
 import { PatternService } from '../services/memory/PatternService';
@@ -170,6 +170,31 @@ export class HarborFlowEngine {
    */
   public async deleteItem(kind: 'moment' | 'session', id: string): Promise<void> {
     await this.storage.deleteItem(kind, id);
+  }
+
+  /**
+   * Continuity Probe: Selects the last active Moment from a prior calendar usage day
+   * that has never been probed before.
+   */
+  public async getContinuityCandidate(): Promise<Moment | null> {
+    const data = await this.storage.getData();
+    const todayStr = new Date().toDateString();
+
+    const candidates = data.moments
+      .filter(m => !m.deletedAt && !m.settledAt)
+      .filter(m => m.carryPromptShownAt == null)
+      .filter(m => new Date(m.createdAt).toDateString() !== todayStr)
+      .filter(m => m.content.trim().length >= 4)
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    return candidates[0] || null;
+  }
+
+  /**
+   * Resolves the continuity probe with still / faded / dont_ask, recording shownAt timestamp.
+   */
+  public async resolveContinuityProbe(momentId: string, state: CarryState | null): Promise<void> {
+    await this.storage.setMomentCarryState(momentId, state, Date.now());
   }
 
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }

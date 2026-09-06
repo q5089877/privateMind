@@ -29,6 +29,8 @@ export function useFlow() {
     deleteItem: (kind: 'moment' | 'session', id: string) => engine.deleteItem(kind, id),
     canShowPatternMirror: () => engine.canShowPatternMirror(),
     requestPatternMirror: () => engine.requestPatternMirror(),
+    getContinuityCandidate: () => engine.getContinuityCandidate(),
+    resolveContinuityProbe: (momentId: string, state: any) => engine.resolveContinuityProbe(momentId, state),
     getMoments: () => engine.getMoments(),
     getSessions: () => engine.getSessions(),
     getBackupStatus: () => engine.getBackupStatus(),
