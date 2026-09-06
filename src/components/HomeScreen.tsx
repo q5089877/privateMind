@@ -347,12 +347,10 @@ export const HomeScreen: React.FC<Props> = ({
 
     if (pressDuration < 240) {
       clearTimers();
-      setVentCount(prev => prev + 1);
       return;
     }
 
     if (isHolding) {
-      setVentCount(prev => prev + 1);
       triggerHaptic('release');
       clearTimers();
       setIsHeartSustaining(false);

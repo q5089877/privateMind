@@ -206,6 +206,10 @@ export class HarborFlowEngine {
     await this.storage.unsettleItem(kind, id);
   }
 
+  public async settleAllStill(): Promise<void> {
+    await this.storage.settleAllStill();
+  }
+
   /**
    * Hard delete. If the item is part of the current Pattern Mirror result,
    * callers should warn the user first. Engine does not gate — UI gates.

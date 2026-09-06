@@ -21,7 +21,7 @@ const App: React.FC = () => {
       case 'LAND':
         return <LandingScreen session={flow.currentSession} closure={flow.pendingClosure} onReturnToChat={flow.returnToChat} onSaveAndReturn={flow.completeLanding} />;
       case 'REVIEW':
-        return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getSessions={flow.getSessions} onOpenSession={flow.openSession} canShowPatternMirror={flow.canShowPatternMirror} onRequestPatternMirror={flow.requestPatternMirror} onSettleItem={flow.settleItem} onUnsettleItem={flow.unsettleItem} onDeleteItem={flow.deleteItem} onOpenBackup={flow.openBackup} onResolveTemporalDelta={flow.resolveTemporalDelta} />;
+        return <ReviewScreen onClose={flow.finish} getMoments={flow.getMoments} getSessions={flow.getSessions} onOpenSession={flow.openSession} canShowPatternMirror={flow.canShowPatternMirror} onRequestPatternMirror={flow.requestPatternMirror} onSettleItem={flow.settleItem} onUnsettleItem={flow.unsettleItem} onSettleAllStill={flow.settleAllStill} onDeleteItem={flow.deleteItem} onOpenBackup={flow.openBackup} onResolveTemporalDelta={flow.resolveTemporalDelta} />;
       case 'BACKUP':
         return <BackupScreen getOverview={flow.getBackupOverview} onExport={flow.exportBackup} onImport={flow.importBackup} onClose={flow.finish} />;
       default:

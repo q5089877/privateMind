@@ -47,11 +47,16 @@ export class MindHarborRepository {
       const parsed = JSON.parse(raw);
       if (!parsed || !Array.isArray(parsed.moments)) return null;
       return {
-        version: parsed.version || 2,
+        version: 2,
         moments: parsed.moments || [],
         sessions: parsed.sessions || [],
         lines: [],
-        linkDecisions: []
+        linkDecisions: [],
+        backup: parsed.backup || {
+          lastExportAt: undefined,
+          pendingChanges: 0,
+          suggestedIntervalDays: 7
+        }
       };
     } catch {
       return null;
@@ -337,21 +342,90 @@ export class MindHarborRepository {
     }));
   }
 
-  /** Settle: hide from Review feed, keep in Pattern pool. Reversible. */
-  public async settleItem(kind: 'moment' | 'session', id: string): Promise<MindHarborData> {
+  /** Settle all moments in 'still' state, along with their sessions. Single atomic write. */
+  public async settleAllStill(): Promise<MindHarborData> {
     const now = Date.now();
-    return this.update(data => kind === 'moment'
-      ? { ...data, moments: data.moments.map(m => m.id === id ? { ...m, settledAt: now } : m), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
-      : { ...data, sessions: data.sessions.map(s => s.id === id ? { ...s, settledAt: now } : s), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
-    );
+    return this.update(data => {
+      const stillMomentIds = new Set(
+        data.moments
+          .filter(m => !m.deletedAt && !m.settledAt && (m.temporalValidation?.status === 'still' || m.carryState === 'still'))
+          .map(m => m.id)
+      );
+
+      if (stillMomentIds.size === 0) return data;
+
+      const moments = data.moments.map(m =>
+        stillMomentIds.has(m.id) ? { ...m, settledAt: now } : m
+      );
+
+      const sessions = data.sessions.map(s =>
+        stillMomentIds.has(s.originMomentId) || s.momentIds.some(id => stillMomentIds.has(id))
+          ? { ...s, settledAt: now }
+          : s
+      );
+
+      return {
+        ...data,
+        moments,
+        sessions,
+        backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+      };
+    });
   }
 
-  /** Unsettle: restore item back to Review feed. */
+  /** Settle: hide from Review feed, keep in Pattern pool. Synchronizes moment and session. Reversible. */
+  public async settleItem(kind: 'moment' | 'session', id: string): Promise<MindHarborData> {
+    const now = Date.now();
+    return this.update(data => {
+      const momentIdsToSettle = new Set<string>();
+      const sessionIdsToSettle = new Set<string>();
+
+      if (kind === 'moment') {
+        momentIdsToSettle.add(id);
+        data.sessions.filter(s => s.originMomentId === id || s.momentIds.includes(id)).forEach(s => sessionIdsToSettle.add(s.id));
+      } else {
+        sessionIdsToSettle.add(id);
+        const session = data.sessions.find(s => s.id === id);
+        if (session) {
+          momentIdsToSettle.add(session.originMomentId);
+          session.momentIds.forEach(mid => momentIdsToSettle.add(mid));
+        }
+      }
+
+      return {
+        ...data,
+        moments: data.moments.map(m => momentIdsToSettle.has(m.id) ? { ...m, settledAt: now } : m),
+        sessions: data.sessions.map(s => sessionIdsToSettle.has(s.id) ? { ...s, settledAt: now } : s),
+        backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+      };
+    });
+  }
+
+  /** Unsettle: restore item back to Review feed. Synchronizes moment and session. */
   public async unsettleItem(kind: 'moment' | 'session', id: string): Promise<MindHarborData> {
-    return this.update(data => kind === 'moment'
-      ? { ...data, moments: data.moments.map(m => m.id === id ? { ...m, settledAt: undefined } : m), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
-      : { ...data, sessions: data.sessions.map(s => s.id === id ? { ...s, settledAt: undefined } : s), backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 } }
-    );
+    return this.update(data => {
+      const momentIdsToUnsettle = new Set<string>();
+      const sessionIdsToUnsettle = new Set<string>();
+
+      if (kind === 'moment') {
+        momentIdsToUnsettle.add(id);
+        data.sessions.filter(s => s.originMomentId === id || s.momentIds.includes(id)).forEach(s => sessionIdsToUnsettle.add(s.id));
+      } else {
+        sessionIdsToUnsettle.add(id);
+        const session = data.sessions.find(s => s.id === id);
+        if (session) {
+          momentIdsToUnsettle.add(session.originMomentId);
+          session.momentIds.forEach(mid => momentIdsToUnsettle.add(mid));
+        }
+      }
+
+      return {
+        ...data,
+        moments: data.moments.map(m => momentIdsToUnsettle.has(m.id) ? { ...m, settledAt: undefined } : m),
+        sessions: data.sessions.map(s => sessionIdsToUnsettle.has(s.id) ? { ...s, settledAt: undefined } : s),
+        backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+      };
+    });
   }
 
   /**

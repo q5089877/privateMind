@@ -1,4 +1,4 @@
-import { HarborSession, Moment, MomentIntent, SessionClosure } from '../domain/harbor';
+import { HarborSession, Moment, MomentIntent, PersistenceState, SessionClosure } from '../domain/harbor';
 
 /** Public, user-originated intentions. New UI should call the flow engine with these. */
 export type HarborUserIntent =
@@ -8,7 +8,8 @@ export type HarborUserIntent =
   | { type: 'BEGIN_LANDING'; session: HarborSession }
   | { type: 'SAVE_LANDING'; sessionId: string; closure: SessionClosure }
   | { type: 'OPEN_BACKUP' }
-  | { type: 'RETURN_HOME' };
+  | { type: 'RETURN_HOME' }
+  | { type: 'RESET_HARBOR' };
 
 /**
  * Every state change is named. UI emits user intentions; effects later dispatch

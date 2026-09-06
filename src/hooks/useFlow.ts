@@ -30,6 +30,7 @@ export function useFlow() {
     returnToChat: () => engine.returnToChat(),
     settleItem: (kind: 'moment' | 'session', id: string) => engine.settleItem(kind, id),
     unsettleItem: (kind: 'moment' | 'session', id: string) => engine.unsettleItem(kind, id),
+    settleAllStill: () => engine.settleAllStill(),
     deleteItem: (kind: 'moment' | 'session', id: string) => engine.deleteItem(kind, id),
     canShowPatternMirror: () => engine.canShowPatternMirror(),
     requestPatternMirror: () => engine.requestPatternMirror(),
