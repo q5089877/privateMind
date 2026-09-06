@@ -26,7 +26,7 @@ export const UI_TEXT = {
     counterListening: '準備傾聽',
     counterSuffixInjected: '字已注入',
     vaultSubtext: '存於本機',
-    privacyGuarantee: '內容只保存在這台裝置・不聯網・無帳號・完全無痕安全',
+    privacyGuarantee: '內容先保存在這台裝置；使用 AI 時，當次文字會經安全連線處理。',
     // Level 0: ⚓🤍 全螢幕沉降注水定心錨（生理心跳與物理定錨共存）
     vent: {
       buttonLabel: '定錨',
@@ -52,7 +52,7 @@ export const UI_TEXT = {
       { id: 'tired', label: '有些疲倦', text: '今天整個人電量見底，只剩下身體的重與累。' }
     ] as const,
     reviewPast: '回看以前留下的事',
-    footerPromise: '這裡的每一句，都只屬於你。不分析、不評價、不傳送到任何地方。',
+    footerPromise: '原文保存在這台裝置；只有使用 AI 功能時，必要內容才會經安全連線處理。',
     backup: '內容只保存在這台裝置'
   },
   chat: {
