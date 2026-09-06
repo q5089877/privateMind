@@ -91,6 +91,8 @@ export const triggerHaptic = (type: HapticType = 'settle') => {
     playHapticThump(75, 0.05);
   } else if (type === 'docking' || type === 'settle') {
     playHapticThump(55, 0.08);
+  } else if (type === 'release') {
+    playHapticThump(50, 0.28);
   }
 
   try {
@@ -121,7 +123,8 @@ export const triggerHaptic = (type: HapticType = 'settle') => {
           navigator.vibrate([50, 40, 50]);
           break;
         case 'release':
-          navigator.vibrate(40);
+          // 350ms 餘韻衰減：35ms 柔和釋放 -> 55ms 阻尼間隔 -> 15ms 微弱餘波
+          navigator.vibrate([35, 55, 15]);
           break;
         case 'light':
           navigator.vibrate(30);

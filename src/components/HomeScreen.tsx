@@ -31,6 +31,7 @@ export const HomeScreen: React.FC<Props> = ({
   const [ventCount, setVentCount] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
+  const [isEbbing, setIsEbbing] = useState(false);
   const [isTapping, setIsTapping] = useState(false);
   const [isHeartSustaining, setIsHeartSustaining] = useState(false);
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
@@ -42,6 +43,7 @@ export const HomeScreen: React.FC<Props> = ({
   const progressTimerRef = useRef<number | null>(null);
   const holdDelayTimerRef = useRef<number | null>(null);
   const heartbeatLoopTimerRef = useRef<number | null>(null);
+  const ebbTimerRef = useRef<number | null>(null);
   const pressStartTimeRef = useRef<number>(0);
 
   const clearTimers = () => {
@@ -87,7 +89,12 @@ export const HomeScreen: React.FC<Props> = ({
 
   const clearHold = () => {
     clearTimers();
+    if (ebbTimerRef.current) {
+      clearTimeout(ebbTimerRef.current);
+      ebbTimerRef.current = null;
+    }
     setIsHolding(false);
+    setIsEbbing(false);
     setIsHeartSustaining(false);
     setHeartBeatPhase(false);
     setHoldProgress(0);
@@ -103,6 +110,11 @@ export const HomeScreen: React.FC<Props> = ({
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     clearTimers();
+    if (ebbTimerRef.current) {
+      clearTimeout(ebbTimerRef.current);
+      ebbTimerRef.current = null;
+      setIsEbbing(false);
+    }
     pressStartTimeRef.current = Date.now();
     triggerHaptic('unlatch');
     setIsTapping(true);
@@ -153,11 +165,26 @@ export const HomeScreen: React.FC<Props> = ({
       return;
     }
 
-    // 只要有長按（無論是充飽中或已持續滿水心跳），放開時均計入一次沉澱定錨
+    // 只要有長按（充飽中或已維持心跳），放開時啟動 360ms 餘韻慣性退潮
     if (isHolding) {
       setVentCount(prev => prev + 1);
       triggerHaptic('release');
+
+      // 立即停止心跳循環與充水計時器，啟動帶物理慣性的退潮過渡
+      clearTimers();
+      setIsHeartSustaining(false);
+      setHeartBeatPhase(false);
+      setIsEbbing(true);
+      setHoldProgress(0); // 觸發 360ms cubic-bezier 慣性滑落至 0%
+
+      ebbTimerRef.current = window.setTimeout(() => {
+        setIsHolding(false);
+        setIsEbbing(false);
+        ebbTimerRef.current = null;
+      }, 360);
+      return;
     }
+
     clearHold();
   };
 
@@ -198,19 +225,31 @@ export const HomeScreen: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-4 sm:py-7 flex flex-col space-y-6">
-      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat) */}
+      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat with 360ms Ebb Resonance) */}
       <div
-        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-500 ease-out ${
-          isHolding || holdProgress > 0 ? 'opacity-100' : 'opacity-0'
+        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-360 ease-out ${
+          isHolding || isEbbing ? 'opacity-100' : 'opacity-0'
         }`}
         aria-hidden="true"
       >
         <div
-          className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/90 via-accent/55 to-transparent backdrop-blur-[6px] transition-[height] duration-150 ease-linear"
+          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-accent/90 via-accent/55 to-transparent backdrop-blur-[6px] transition-[height] ${
+            isEbbing
+              ? 'duration-360 ease-[cubic-bezier(0.22,1,0.36,1)]'
+              : 'duration-150 ease-linear'
+          }`}
           style={{ height: `${holdProgress}%` }}
         >
-          <div className="absolute inset-x-0 top-0 h-[2px] bg-emerald-300 shadow-[0_0_20px_rgba(188,238,211,0.9)]" />
-          <div className="absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6">
+          <div
+            className={`absolute inset-x-0 top-0 h-[2px] bg-emerald-300 transition-opacity duration-300 ${
+              isEbbing ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(188,238,211,0.9)]'
+            }`}
+          />
+          <div
+            className={`absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6 transition-all duration-300 ${
+              isEbbing ? 'opacity-0 translate-y-3 scale-95' : 'opacity-100 translate-y-0 scale-100'
+            }`}
+          >
             <span
               className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white shadow-lg backdrop-blur-md transition-transform duration-150 ${
                 heartBeatPhase ? 'scale-115' : 'scale-100'
