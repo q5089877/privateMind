@@ -165,7 +165,7 @@ export const HomeScreen: React.FC<Props> = ({
       return;
     }
 
-    // 只要有長按（充飽中或已維持心跳），放開時啟動 650ms 餘韻慣性退潮
+    // 只要有長按（充飽中或已維持心跳），放開時啟動 2000ms 餘韻慣性退潮
     if (isHolding) {
       setVentCount(prev => prev + 1);
       triggerHaptic('release');
@@ -175,13 +175,13 @@ export const HomeScreen: React.FC<Props> = ({
       setIsHeartSustaining(false);
       setHeartBeatPhase(false);
       setIsEbbing(true);
-      setHoldProgress(0); // 觸發 650ms cubic-bezier 慣性滑落至 0%
+      setHoldProgress(0); // 觸發 2000ms cubic-bezier 慣性滑落至 0%
 
       ebbTimerRef.current = window.setTimeout(() => {
         setIsHolding(false);
         setIsEbbing(false);
         ebbTimerRef.current = null;
-      }, 650);
+      }, 2000);
       return;
     }
 
@@ -225,12 +225,12 @@ export const HomeScreen: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-4 sm:py-7 flex flex-col space-y-6">
-      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat with 650ms Ebb Resonance) */}
+      {/* 全螢幕定錨注水層 (Full-screen Ballast Water & Heartbeat with 2000ms Ebb Resonance) */}
       <div
         className="fixed inset-0 z-50 pointer-events-none"
         style={{
           opacity: isHolding || isEbbing ? 1 : 0,
-          transition: isEbbing ? 'opacity 650ms ease-out' : 'opacity 200ms ease-out'
+          transition: isEbbing ? 'opacity 2000ms ease-out' : 'opacity 200ms ease-out'
         }}
         aria-hidden="true"
       >
@@ -239,7 +239,7 @@ export const HomeScreen: React.FC<Props> = ({
           style={{
             height: `${holdProgress}%`,
             transition: isEbbing
-              ? 'height 650ms cubic-bezier(0.16, 1, 0.3, 1)'
+              ? 'height 2000ms cubic-bezier(0.16, 1, 0.3, 1)'
               : 'height 150ms linear'
           }}
         >
@@ -248,7 +248,7 @@ export const HomeScreen: React.FC<Props> = ({
             style={{
               opacity: isEbbing ? 0 : 1,
               boxShadow: isEbbing ? 'none' : '0 0 20px rgba(188,238,211,0.9)',
-              transition: 'opacity 400ms ease-out'
+              transition: 'opacity 1200ms ease-out'
             }}
           />
           <div
@@ -256,7 +256,7 @@ export const HomeScreen: React.FC<Props> = ({
             style={{
               opacity: isEbbing ? 0 : 1,
               transform: isEbbing ? 'translateY(16px) scale(0.96)' : 'translateY(0px) scale(1)',
-              transition: isEbbing ? 'opacity 450ms ease-out, transform 450ms ease-out' : 'none'
+              transition: isEbbing ? 'opacity 1500ms ease-out, transform 1500ms ease-out' : 'none'
             }}
           >
             <span

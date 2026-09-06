@@ -123,8 +123,8 @@ export const triggerHaptic = (type: HapticType = 'settle') => {
           navigator.vibrate([50, 40, 50]);
           break;
         case 'release':
-          // 650ms 餘韻漸弱三段阻尼脈衝：40ms 釋放 -> 75ms 阻尼間隔 -> 25ms 餘震 -> 90ms 阻尼間隔 -> 15ms 微弱餘息
-          navigator.vibrate([40, 75, 25, 90, 15]);
+          // 2000ms 餘韻漸弱阻尼脈衝序列
+          navigator.vibrate([45, 140, 30, 200, 20, 260, 15]);
           break;
         case 'light':
           navigator.vibrate(30);
