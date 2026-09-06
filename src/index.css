@@ -165,3 +165,19 @@ html {
     transform: translateY(48px) scale(0.5);
   }
 }
+
+/* Timeline dot connecting lines for ReviewScreen */
+.timeline-dot::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 20px;
+  bottom: -28px;
+  width: 2px;
+  background: #E3DFD7;
+}
+
+.timeline-group:last-child .timeline-dot::before {
+  display: none;
+}
+
