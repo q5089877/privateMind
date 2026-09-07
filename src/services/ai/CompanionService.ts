@@ -1,6 +1,6 @@
-import { ExploreGroup, ExplorePerspective, ExploreResult, HarborSession, Moment, SessionClosureDraft } from '../../domain/harbor';
+import { ExplorePerspective, ExploreResult, HarborSession, Moment, SessionClosureDraft } from '../../domain/harbor';
 import { GeminiProxyClient } from '../../logic/geminiProxyClient';
-import { DEFAULT_EXPLORE_GROUP } from './roles/exploreRouterRole';
+
 
 /**
  * The only AI entry point currently used by the present-tense conversation.
@@ -17,20 +17,15 @@ export class CompanionService {
     return GeminiProxyClient.getSessionClosure(session.turns);
   }
 
-  /** Exploration is explicit, session-only, and its selected group is never persisted. */
-  public async exploreSession(session: HarborSession, excludeAxesOrGroup?: string[] | ExploreGroup): Promise<ExploreResult | null> {
-    const excludeAxes = Array.isArray(excludeAxesOrGroup) ? excludeAxesOrGroup : undefined;
-    const requestedGroup = typeof excludeAxesOrGroup === 'string' ? excludeAxesOrGroup : undefined;
-    const route = requestedGroup
-      ? { group: requestedGroup, evidence: [], source: 'manual' as const }
-      : { group: DEFAULT_EXPLORE_GROUP, evidence: [], source: 'automatic' as const };
-    const generated = await GeminiProxyClient.getExplorePerspectives(session.turns, excludeAxes || route.group);
-    const perspectives = generated || this.localExplore(session, route.group);
-    return perspectives ? { route, perspectives } : null;
+  /** Exploration is explicit, session-only, and uses three sampled orthogonal axes. */
+  public async exploreSession(session: HarborSession, excludeAxes: string[] = []): Promise<ExploreResult | null> {
+    const generated = await GeminiProxyClient.getExplorePerspectives(session.turns, excludeAxes);
+    const perspectives = generated || this.localExplore(session);
+    return perspectives ? { perspectives } : null;
   }
 
   /** Safe source-grounded cards for timeouts or invalid model output. */
-  private localExplore(session: HarborSession, _group: ExploreGroup): ExplorePerspective[] | null {
+  private localExplore(session: HarborSession): ExplorePerspective[] | null {
     const last = [...session.turns].reverse().find(turn => turn.role === 'user' && turn.content.trim());
     if (!last) return null;
     const source = last.content.replace(/\s+/g, ' ').trim().slice(0, 28);

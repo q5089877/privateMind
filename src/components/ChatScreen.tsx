@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
-import { ConversationTurn, ExploreGroup, ExploreResult, HarborSession, Moment } from '../types';
+import { ConversationTurn, ExploreResult, HarborSession, Moment } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -10,7 +10,7 @@ interface Props {
   onLeave: () => void;
   onContinue: (content: string) => Promise<void>;
   getPresentReply: (moment: Moment, session?: HarborSession | null, force?: boolean) => Promise<string | null>;
-  getExploration: (session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]) => Promise<ExploreResult | null>;
+  getExploration: (session: HarborSession, excludeAxes?: string[]) => Promise<ExploreResult | null>;
   onSaveReply: (momentId: string, reply: string) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
 }

@@ -60,6 +60,7 @@ export const ReviewScreen: React.FC<Props> = ({
   const [activeFilter, setActiveFilter] = useState<'all' | 'settled' | 'background'>('all');
   const [sortDesc, setSortDesc] = useState(true);
   const [settleAllNotice, setSettleAllNotice] = useState<string | null>(null);
+  const [temporalCandidate, setTemporalCandidate] = useState<Moment | null>(null);
 
   // Pattern Passive Mirroring state
   const [patternEligible, setPatternEligible] = useState(false);
@@ -133,6 +134,13 @@ export const ReviewScreen: React.FC<Props> = ({
     reload();
   };
 
+  const handleResolveTemporalCandidate = async (choice: 'still' | 'faded' | 'resolved') => {
+    if (!temporalCandidate || !onResolveTemporalDelta) return;
+    await onResolveTemporalDelta(temporalCandidate.id, choice);
+    setTemporalCandidate(null);
+    reload();
+  };
+
   const handleResolveMoment = async (momentId: string, choice: 'faded' | 'resolved') => {
     if (onResolveTemporalDelta) {
       await onResolveTemporalDelta(momentId, choice);
@@ -144,7 +152,7 @@ export const ReviewScreen: React.FC<Props> = ({
     if (onSettleAllStill) {
       await onSettleAllStill();
     } else {
-      const stillMoments = moments.filter(m => !m.deletedAt && !m.settledAt && (m.temporalValidation?.status === 'still' || m.carryState === 'still'));
+      const stillMoments = moments.filter(m => !m.deletedAt && !m.settledAt && (m.temporalValidation?.status === 'still'));
       if (stillMoments.length === 0) return;
       for (const m of stillMoments) {
         await onSettleItem('moment', m.id);
@@ -187,7 +195,7 @@ export const ReviewScreen: React.FC<Props> = ({
 
   const isStillFeedItem = (i: FeedItem) => {
     const m = i.kind === 'session' ? i.primaryMoment : i.moment;
-    return Boolean(m && (m.temporalValidation?.status === 'still' || m.carryState === 'still'));
+    return Boolean(m && (m.temporalValidation?.status === 'still'));
   };
 
   // Counts for pills
@@ -201,9 +209,9 @@ export const ReviewScreen: React.FC<Props> = ({
     const total = validMoments.length;
     if (total === 0) return null;
 
-    const faded = validMoments.filter(m => m.temporalValidation?.status === 'faded' || m.carryState === 'faded').length;
+    const faded = validMoments.filter(m => m.temporalValidation?.status === 'faded').length;
     const resolved = validMoments.filter(m => m.temporalValidation?.status === 'resolved').length;
-    const stillMoments = validMoments.filter(m => m.temporalValidation?.status === 'still' || m.carryState === 'still');
+    const stillMoments = validMoments.filter(m => m.temporalValidation?.status === 'still');
     const still = stillMoments.length;
     const stillActive = stillMoments.filter(m => !m.settledAt).length;
     const stillSettled = still - stillActive;
@@ -371,6 +379,18 @@ export const ReviewScreen: React.FC<Props> = ({
           </section>
         )}
         {/* END: Temporal Sedimentation Summary */}
+
+        {temporalCandidate && (
+          <section className="w-full mb-6 rounded-2xl bg-white p-5 border border-[#E9E6DE] shadow-xs">
+            <p className="text-[12px] font-medium text-[#5E7066]">沉澱後再看一次</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-[#1E2923]">「{temporalCandidate.content}」</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={() => void handleResolveTemporalCandidate('still')} className="min-h-[44px] px-3.5 rounded-full bg-[#1E3E31] text-white text-xs font-medium cursor-pointer">還在</button>
+              <button type="button" onClick={() => void handleResolveTemporalCandidate('faded')} className="min-h-[44px] px-3.5 rounded-full bg-[#EAF2ED] text-[#387358] text-xs font-medium cursor-pointer">淡掉了</button>
+              <button type="button" onClick={() => void handleResolveTemporalCandidate('resolved')} className="min-h-[44px] px-3.5 rounded-full bg-[#F3F1EC] text-[#4A5C52] text-xs font-medium cursor-pointer">結案</button>
+            </div>
+          </section>
+        )}
 
         {/* BEGIN: Pattern Passive Mirroring Hint */}
         {patternEligible && (
@@ -570,7 +590,7 @@ export const ReviewScreen: React.FC<Props> = ({
                               )}
                               {onResolveTemporalDelta && (() => {
                                 const m = item.kind === 'session' ? item.primaryMoment : item.moment;
-                                if (!m.temporalValidation || m.temporalValidation.status === 'still' || m.carryState === 'still') {
+                                if (!m.temporalValidation || m.temporalValidation.status === 'still') {
                                   return (
                                     <>
                                       <button

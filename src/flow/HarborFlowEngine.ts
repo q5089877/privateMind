@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { AnchorEventType, BackupOverview, BackupStatus, CarryState, DailyAnchorStats, ExploreGroup, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { AnchorEventType, BackupOverview, BackupStatus, DailyAnchorStats, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
 import { PatternService } from '../services/memory/PatternService';
@@ -143,9 +143,9 @@ export class HarborFlowEngine {
   }
 
   /** Explore is explicit, scoped to the visible session, and never persisted as a user label. */
-  public async requestExploration(session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]): Promise<ExploreResult | null> {
+  public async requestExploration(session: HarborSession, excludeAxes?: string[]): Promise<ExploreResult | null> {
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const result = await this.companion.exploreSession(session, requestedGroupOrExcludeAxes);
+    const result = await this.companion.exploreSession(session, excludeAxes);
     this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(result ? {} : { error: '暫時找不到可用的新角度。' }) });
     return result;
   }
@@ -257,50 +257,6 @@ export class HarborFlowEngine {
    */
   public async resolveTemporalDelta(momentId: string, choice: 'still' | 'faded' | 'resolved'): Promise<void> {
     await this.storage.resolveTemporalDelta(momentId, choice);
-  }
-
-  /**
-   * Continuity Probe: Legacy prototype. Superseded by 48-hour Temporal Delta.
-   */
-  public async getContinuityCandidate(): Promise<Moment | null> {
-    return this.getTemporalCandidate();
-  }
-
-  /**
-   * User answered "還在" or "淡掉了" — records explicit carry state.
-   */
-  public async resolveContinuityProbe(momentId: string, state: CarryState): Promise<void> {
-    await this.resolveTemporalDelta(momentId, state === 'still' ? 'still' : 'faded');
-  }
-
-  public async resumeContinuityMoment(momentId: string): Promise<void> {
-    const data = await this.storage.getData();
-    const session = this.findSessionForMoment(data, momentId);
-    
-    // Write carry state
-    await this.storage.setMomentCarryState(momentId, 'still', Date.now());
-
-    // Jump to chat
-    if (session) {
-      await this.openSession(session.id);
-    }
-  }
-
-  /**
-   * User chose "先不提這個" — suppresses this Moment from future probes.
-   * We only know: user doesn't want to be asked about this one right now.
-   * We do NOT know: whether it's resolved, avoided, or anything psychological.
-   */
-  public async suppressContinuityProbe(momentId: string): Promise<void> {
-    await this.storage.suppressContinuityMoment(momentId, Date.now());
-  }
-
-  /**
-   * User ignored/skipped the probe (直接略過) — only stamps the shown timestamp.
-   * "No answer" is not an answer. No carryState or carrySuppressed is written.
-   */
-  public async dismissContinuityProbe(momentId: string): Promise<void> {
-    await this.storage.markContinuityPromptShown(momentId, Date.now());
   }
 
   public async getTodayAnchorStats(): Promise<DailyAnchorStats> {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Anchor, ArrowDown, ArrowRight, Check, Heart, History, Loader2, MessageSquare, ShieldCheck, Sprout, Waves } from 'lucide-react';
-import { CarryState, DailyAnchorStats, Moment, PersistenceState } from '../types';
+import { DailyAnchorStats, Moment, PersistenceState } from '../types';
 import { UI_TEXT } from '../config/textConfig';
 import { cancelHaptics, triggerHaptic } from '../utils/haptics';
 import { CRISIS_RESOURCES, evaluateSafetyRisk, SafetyEvaluation } from '../services/ai/roles/safetyRoute';
@@ -15,14 +15,7 @@ interface Props {
   onStartInput: (text: string) => void;
   onReview: () => void;
   onOpenBackup: () => void;
-  getTemporalCandidate?: () => Promise<Moment | null>;
-  onResolveTemporalDelta?: (momentId: string, choice: 'still' | 'faded' | 'resolved') => Promise<void>;
-  getContinuityCandidate?: () => Promise<Moment | null>;
-  onResolveContinuity?: (momentId: string, state: CarryState) => Promise<void>;
-  onSuppressContinuity?: (momentId: string) => Promise<void>;
-  onDismissContinuity?: (momentId: string) => Promise<void>;
   /** Jump directly to Chat for this moment's session */
-  onResumeContinuity?: (momentId: string) => Promise<void>;
   /** Transient: non-null when a Moment was just docked. */
   dockedMoment?: Moment | null;
   /** User chose "接著說" on the docked card → navigate to CHAT. */
@@ -43,13 +36,6 @@ export const HomeScreen: React.FC<Props> = ({
   onStartInput,
   onReview,
   onOpenBackup,
-  getTemporalCandidate,
-  onResolveTemporalDelta,
-  getContinuityCandidate,
-  onResolveContinuity,
-  onSuppressContinuity,
-  onDismissContinuity,
-  onResumeContinuity,
   dockedMoment,
   onOpenChat,
   onBeginLanding,
@@ -60,8 +46,7 @@ export const HomeScreen: React.FC<Props> = ({
 }) => {
   const [input, setInput] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [temporalCandidate, setTemporalCandidate] = useState<Moment | null>(null);
-  const [temporalFeedback, setTemporalFeedback] = useState<string | null>(null);
+
   const [safetyCheck, setSafetyCheck] = useState<SafetyEvaluation | null>(null);
   const [showCrisisHelp, setShowCrisisHelp] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
@@ -73,8 +58,7 @@ export const HomeScreen: React.FC<Props> = ({
   const [heartBeatPhase, setHeartBeatPhase] = useState(false);
   const [activeQuickState, setActiveQuickState] = useState<string | null>(null);
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
-  const [continuityMoment, setContinuityMoment] = useState<Moment | null>(null);
-  const [continuityDismissed, setContinuityDismissed] = useState(false);
+
   const [todayAnchorStats, setTodayAnchorStats] = useState<DailyAnchorStats>({ tapCount: 0, holdCount: 0 });
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -85,7 +69,6 @@ export const HomeScreen: React.FC<Props> = ({
   const pressStartTimeRef = useRef<number>(0);
   const holdActivatedRef = useRef(false);
   const pendingDismissTimerRef = useRef<number | null>(null);
-  const temporalFadeTimerRef = useRef<number | null>(null);
   const lastHandledDockedIdRef = useRef<string | null>(null);
 
   const clearTimers = () => {
@@ -101,7 +84,6 @@ export const HomeScreen: React.FC<Props> = ({
       clearTimers();
       cancelHaptics();
       if (pendingDismissTimerRef.current) clearTimeout(pendingDismissTimerRef.current);
-      if (temporalFadeTimerRef.current) clearTimeout(temporalFadeTimerRef.current);
     };
   }, []);
 
@@ -109,53 +91,7 @@ export const HomeScreen: React.FC<Props> = ({
     if (getTodayAnchorStats) void getTodayAnchorStats().then(setTodayAnchorStats);
   }, [getTodayAnchorStats]);
 
-  useEffect(() => {
-    const refreshCandidate = () => {
-      if (getTemporalCandidate) {
-        void getTemporalCandidate().then(candidate => {
-          setTemporalCandidate(candidate);
-        });
-        return;
-      }
-      if (getContinuityCandidate) {
-        void getContinuityCandidate().then(candidate => {
-          setContinuityMoment(candidate);
-        });
-      }
-    };
 
-    refreshCandidate();
-    // Eligibility is time-based. Re-check when the user returns to the tab so
-    // a thought that just crossed the 48-hour boundary can appear on HOME.
-    document.addEventListener('visibilitychange', refreshCandidate);
-    window.addEventListener('focus', refreshCandidate);
-    return () => {
-      document.removeEventListener('visibilitychange', refreshCandidate);
-      window.removeEventListener('focus', refreshCandidate);
-    };
-  }, [getTemporalCandidate, getContinuityCandidate]);
-
-  const handleTemporalChoice = async (choice: 'still' | 'faded' | 'resolved') => {
-    if (!temporalCandidate) return;
-    const id = temporalCandidate.id;
-
-    const feedbackMap = {
-      still: '知道了，那就先放著。',
-      faded: '好。',
-      resolved: '已結案。'
-    };
-
-    setTemporalFeedback(feedbackMap[choice]);
-    if (onResolveTemporalDelta) {
-      void onResolveTemporalDelta(id, choice);
-    }
-
-    if (temporalFadeTimerRef.current) clearTimeout(temporalFadeTimerRef.current);
-    temporalFadeTimerRef.current = window.setTimeout(() => {
-      setTemporalCandidate(null);
-      setTemporalFeedback(null);
-    }, choice === 'still' ? 1500 : 1200);
-  };
 
   // The docked card is static on HOME; AI begins only after explicit navigation.
 
@@ -167,29 +103,6 @@ export const HomeScreen: React.FC<Props> = ({
     onDismissDockedMoment();
   };
 
-  const handleContinuityChoice = (choice: CarryState) => {
-    if (!continuityMoment) return;
-    const id = continuityMoment.id;
-    
-    if (choice === 'still') {
-      // jump right to the chat for this old session
-      setContinuityDismissed(true);
-      if (onResumeContinuity) void onResumeContinuity(id);
-    } else {
-      // faded
-      setContinuityDismissed(true);
-      if (onResolveContinuity) void onResolveContinuity(id, choice);
-      inputRef.current?.focus();
-    }
-  };
-
-  const handleContinuitySuppress = () => {
-    if (!continuityMoment) return;
-    const id = continuityMoment.id;
-    setContinuityDismissed(true);
-    if (onSuppressContinuity) void onSuppressContinuity(id);
-    inputRef.current?.focus();
-  };
 
 
   const clearHold = () => {
@@ -322,11 +235,6 @@ export const HomeScreen: React.FC<Props> = ({
       setSafetyCheck(safetyEval);
       setShowCrisisHelp(false);
       return;
-    }
-
-    if (continuityMoment && !continuityDismissed) {
-      if (onDismissContinuity) void onDismissContinuity(continuityMoment.id);
-      setContinuityDismissed(true);
     }
 
     setEbbPhase(null); 
@@ -546,38 +454,6 @@ export const HomeScreen: React.FC<Props> = ({
         </section>
       )}
 
-      {/* Continuity Sensitivity Probe */}
-      {continuityMoment && !continuityDismissed && (
-        <section className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_2px_12px_rgba(19,66,48,0.05)] transition-all duration-300">
-          <p className="text-[15.5px] font-medium text-ink leading-relaxed">
-            「{continuityMoment.content.length > 22 ? continuityMoment.content.slice(0, 22) + '…' : continuityMoment.content}」，還在嗎？
-          </p>
-          <div className="mt-3.5 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleContinuityChoice('still')}
-              className="min-h-[44px] px-4 rounded-full bg-accent text-white text-xs font-medium shadow-xs hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
-            >
-              還在
-            </button>
-            <button
-              type="button"
-              onClick={() => handleContinuityChoice('faded')}
-              className="min-h-[44px] px-3.5 rounded-full bg-surface-subtle text-ink-secondary border border-border-base text-xs font-medium hover:bg-surface-hover active:scale-95 transition-all cursor-pointer"
-            >
-              淡掉了
-            </button>
-            <button
-              type="button"
-              onClick={handleContinuitySuppress}
-              className="min-h-[44px] px-2.5 text-xs text-ink-muted hover:text-ink transition-colors ml-auto cursor-pointer"
-            >
-              先不提
-            </button>
-          </div>
-        </section>
-      )}
-
       {/* Docked Confirmation Card */}
       {dockedMoment && (
         <section
@@ -731,48 +607,6 @@ export const HomeScreen: React.FC<Props> = ({
           </button>
         </div>
       </section>
-
-      {/* 48-Hour Temporal Delta Card */}
-      {temporalCandidate && !isInputFocused && input.trim().length === 0 && (
-        <section className="w-full rounded-2xl border border-border-base/70 bg-surface/40 p-4 transition-all duration-300">
-          <span className="text-[12px] font-medium tracking-wide text-ink-muted">
-            尚未整理的念頭
-          </span>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-ink line-clamp-3">
-            「{temporalCandidate.content}」
-          </p>
-
-          {temporalFeedback ? (
-            <div className="mt-3 text-xs font-medium text-accent">
-              {temporalFeedback}
-            </div>
-          ) : (
-            <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-2.5 border-t border-border-base/40">
-              <button
-                type="button"
-                onClick={() => handleTemporalChoice('still')}
-                className="text-xs text-ink-muted hover:text-ink min-h-[44px] px-2.5 rounded-md transition-colors cursor-pointer active:scale-95"
-              >
-                [ 還在 ]
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTemporalChoice('faded')}
-                className="text-xs text-ink-muted hover:text-ink min-h-[44px] px-2.5 rounded-md transition-colors cursor-pointer active:scale-95"
-              >
-                [ 淡掉了 ]
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTemporalChoice('resolved')}
-                className="text-xs text-ink-muted hover:text-ink min-h-[44px] px-2.5 rounded-md transition-colors cursor-pointer active:scale-95"
-              >
-                [ 結案 ]
-              </button>
-            </div>
-          )}
-        </section>
-      )}
 
       <p className="px-2 text-sm leading-relaxed text-ink-secondary">
         {UI_TEXT.home.footerPromise}

@@ -21,13 +21,6 @@ HarborFlowEngine.initialise()
 ```text
 HOME
  │
- ├─ 背景查詢 getTemporalCandidate()
- │    └─ 條件：已超過 48h、未刪除／封存／抑制、尚未驗證
- │          └─ 有候選 → 顯示「尚未整理的念頭」
- │                ├─ 還在 → temporalValidation: still
- │                ├─ 淡掉了 → temporalValidation: faded
- │                └─ 結案 → temporalValidation: resolved
- │
  ├─ 輸入文字 → Flow.submitText()
  │    │
  │    ├─ 空白 → 不動作
@@ -64,8 +57,8 @@ CHAT
  │          └─ 失敗／逾時 → 保留原文，使用安全 fallback
  │
  ├─ [換個角度]
- │    └─ Explore Router → 單一 Explore Group
- │          └─ Explore Companion → 一次四張角度卡
+ │    └─ 直接抽樣三個正交軸
+ │          └─ Explore Companion → 一次三張角度卡
  │                （不自動存成使用者資料）
  │
  └─ [今天先到這裡] → LAND
@@ -141,7 +134,7 @@ HOME → BACKUP
 ```text
 新 Moment
    ├─ Present Router    → 只處理現在與本次 session
-   ├─ Continuity       → 只處理 48 小時後的明確狀態確認
+   ├─ Temporal Delta   → 只在 REVIEW 主動開啟時處理 48 小時後的狀態確認
    └─ Pattern Router    → 只在 Review 主動開啟且門檻通過時讀取長期原文
 
 三條管線彼此平行，不互斥；任何一條失敗都不能阻止原文保存。

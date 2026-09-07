@@ -10,9 +10,7 @@ export type MomentLifecycle = 'docked' | 'sealed';
  * Continuity probe outcome — only what we actually know.
  * still  = user says it is still present this moment (stops further probing this round)
  * faded  = user says it has faded this moment (ends this Continuity round; new round possible if user writes about it again)
- * NOTE: "先不提這個" is NOT a CarryState value — it is stored as carrySuppressed: true on the Moment.
  */
-export type CarryState = 'still' | 'faded';
 export type TemporalStatus = 'pending' | 'still' | 'faded' | 'resolved';
 
 export interface TemporalValidation {
@@ -48,15 +46,12 @@ export interface Moment {
   /**
    * Continuity probe response: still | faded | null (legacy, superseded by temporalValidation).
    */
-  carryState?: CarryState | null;
   /**
    * true = user chose "先不提這個" — do not proactively surface this Moment again.
    * Semantics: "please don't ask me about this one" — NOT "the user is avoiding it".
    * Reason could be anything: busy, tired, irrelevant. No inference allowed.
    */
-  carrySuppressed?: boolean;
   /** Timestamp when the continuity probe was first shown to user. null = never shown. */
-  carryPromptShownAt?: number | null;
 }
 
 export type ConversationRole = 'user' | 'assistant';
@@ -87,21 +82,12 @@ export interface SessionClosureDraft {
 }
 
 /** A non-persistent session-only exploration group. It is never a user label. */
-export type ExploreGroup = 'feeling' | 'decision' | 'relationship';
-
 export type ExplorePerspectiveId =
   | 'fact' | 'time' | 'control' | 'defusion'
   | 'need' | 'body' | 'context' | 'exception'
   | 'other' | 'scale' | 'assumption' | 'action'
   | 'change' | 'suspend' | 'values' | 'constraint' | 'reversible'
   | 'self' | 'unknown' | 'observer' | 'system';
-
-/** The route selected for this one explicit exploration request. */
-export interface ExploreRoute {
-  group: ExploreGroup;
-  evidence: string[];
-  source: 'automatic' | 'manual';
-}
 
 /** One distinct, user-invoked AI angle grounded in this session's own user turns. */
 export interface ExplorePerspective {
@@ -114,7 +100,6 @@ export interface ExplorePerspective {
 
 /** An ephemeral result. It must never be persisted as a Moment, turn, or user category. */
 export interface ExploreResult {
-  route: ExploreRoute;
   perspectives: ExplorePerspective[];
 }
 

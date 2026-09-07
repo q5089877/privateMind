@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFlowEngine } from '../context/FlowContext';
-import { ExploreGroup, HarborSession, Moment, MomentIntent, SessionClosure } from '../types';
+import { HarborSession, Moment, MomentIntent, SessionClosure } from '../types';
 
 /** React adapter for the MVI Flow Engine; screens never import data or AI services. */
 export function useFlow() {
@@ -23,7 +23,7 @@ export function useFlow() {
     openChat: () => engine.openChat(),
     dismissDockedMoment: () => engine.dismissDockedMoment(),
     requestPresentReply: (moment: Moment, session?: HarborSession, force?: boolean) => engine.requestPresentReply(moment, session, force),
-    requestExploration: (session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]) => engine.requestExploration(session, requestedGroupOrExcludeAxes),
+    requestExploration: (session: HarborSession, excludeAxes?: string[]) => engine.requestExploration(session, excludeAxes),
     saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
     beginLanding: (session: HarborSession) => engine.beginLanding(session),
     beginLandingFromMoment: (momentId: string) => engine.beginLandingFromMoment(momentId),
@@ -37,11 +37,6 @@ export function useFlow() {
     requestPatternMirror: () => engine.requestPatternMirror(),
     getTemporalCandidate: () => engine.getTemporalCandidate(),
     resolveTemporalDelta: (momentId: string, choice: 'still' | 'faded' | 'resolved') => engine.resolveTemporalDelta(momentId, choice),
-    getContinuityCandidate: () => engine.getContinuityCandidate(),
-    resolveContinuityProbe: (momentId: string, state: 'still' | 'faded') => engine.resolveContinuityProbe(momentId, state),
-    resumeContinuityMoment: (momentId: string) => engine.resumeContinuityMoment(momentId),
-    suppressContinuityProbe: (momentId: string) => engine.suppressContinuityProbe(momentId),
-    dismissContinuityProbe: (momentId: string) => engine.dismissContinuityProbe(momentId),
     getMoments: () => engine.getMoments(),
     getSessions: () => engine.getSessions(),
     getTodayAnchorStats: () => engine.getTodayAnchorStats(),

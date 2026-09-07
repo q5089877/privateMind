@@ -6,9 +6,8 @@
  * accidentally changing another role's boundaries.
  */
 
-import type { ConversationTurn, ExploreGroup, ExplorePerspective, ExploreRoute, SessionClosureDraft, TimelineInsight } from '../domain/harbor';
+import type { ConversationTurn, ExplorePerspective, SessionClosureDraft, TimelineInsight } from '../domain/harbor';
 import { exploreRole } from '../services/ai/roles/exploreRole';
-import { exploreRouterRole } from '../services/ai/roles/exploreRouterRole';
 import { landingRole } from '../services/ai/roles/landingRole';
 import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
 import { presentFallback, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
@@ -99,21 +98,8 @@ export class GeminiProxyClient {
     }
   }
 
-  /** Conservative session-only router. Ambiguity always falls back to feeling. */
-  public static async getExploreRoute(turns: ConversationTurn[]): Promise<ExploreRoute | null> {
-    const task = exploreRouterRole.create(turns);
-    const proxyUrl = this.getProxyUrl();
-    if (!task || !proxyUrl) return task ? exploreRouterRole.fallback() : null;
-    try {
-      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
-      return raw ? exploreRouterRole.read(raw, task.context.transcript) : exploreRouterRole.fallback();
-    } catch {
-      return exploreRouterRole.fallback();
-    }
-  }
-
   /** Explore Companion: explicit session-only perspectives from orthogonal axes. */
-  public static async getExplorePerspectives(turns: ConversationTurn[], excludeAxes?: string[] | ExploreGroup): Promise<ExplorePerspective[] | null> {
+  public static async getExplorePerspectives(turns: ConversationTurn[], excludeAxes?: string[]): Promise<ExplorePerspective[] | null> {
     const task = exploreRole.create(turns, excludeAxes);
     const proxyUrl = this.getProxyUrl();
     if (!task || !proxyUrl) return null;

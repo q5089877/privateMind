@@ -1,4 +1,4 @@
-import type { ConversationTurn, ExploreGroup, ExplorePerspective, ExplorePerspectiveId } from '../../../domain/harbor';
+import type { ConversationTurn, ExplorePerspective, ExplorePerspectiveId } from '../../../domain/harbor';
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, parseJson } from './shared';
 
 export const ORTHOGONAL_AXIS_DEFINITIONS: Record<string, { title: string; instruction: string }> = {
@@ -37,7 +37,7 @@ const transcriptFrom = (turns: ConversationTurn[]) => turns
   .slice(-6000);
 
 export const exploreRole = {
-  create(turns: ConversationTurn[], excludeAxes?: string[] | ExploreGroup): GeminiRoleRequest<{ transcript: string; group?: ExploreGroup }> | null {
+  create(turns: ConversationTurn[], excludeAxes?: string[]): GeminiRoleRequest<{ transcript: string }> | null {
     const transcript = transcriptFrom(turns);
     if (!transcript) return null;
     const excluded = Array.isArray(excludeAxes) ? excludeAxes : [];
@@ -63,7 +63,7 @@ export const exploreRole = {
 
     return {
       timeoutMs: 14_000,
-      context: { transcript, group: undefined },
+      context: { transcript },
       payload: {
         model: FLASH_LITE_MODEL,
         contents: [{ role: 'user', parts: [{ text: `以下只包含使用者在這次對話親口說過的話：\n${transcript}\n\n使用者主動點選了「換個角度」。
@@ -80,7 +80,7 @@ ${instructions}
     };
   },
 
-  read(raw: string, transcript: string, _group?: ExploreGroup): ExplorePerspective[] | null {
+  read(raw: string, transcript: string): ExplorePerspective[] | null {
     const parsed = parseJson(raw) as { perspectives?: unknown } | null;
     const cards = Array.isArray(parsed?.perspectives) ? parsed.perspectives : [];
     const forbidden = ['心理', '人格', '診斷', '建議', '應該', '一定', '真正原因', '你其實', '你在', '這顯示'];
