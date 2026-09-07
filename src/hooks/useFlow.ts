@@ -26,6 +26,7 @@ export function useFlow() {
     requestExploration: (session: HarborSession, requestedGroupOrExcludeAxes?: ExploreGroup | string[]) => engine.requestExploration(session, requestedGroupOrExcludeAxes),
     saveImmediateReply: (momentId: string, reply: string) => engine.saveImmediateReply(momentId, reply),
     beginLanding: (session: HarborSession) => engine.beginLanding(session),
+    beginLandingFromMoment: (momentId: string) => engine.beginLandingFromMoment(momentId),
     completeLanding: (sessionId: string, closure: SessionClosure) => engine.completeLanding(sessionId, closure),
     returnToChat: () => engine.returnToChat(),
     settleItem: (kind: 'moment' | 'session', id: string) => engine.settleItem(kind, id),

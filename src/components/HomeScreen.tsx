@@ -27,10 +27,10 @@ interface Props {
   dockedMoment?: Moment | null;
   /** User chose "接著說" on the docked card → navigate to CHAT. */
   onOpenChat?: () => void;
+  /** User explicitly chose to seal this docked moment. */
+  onBeginLanding?: (momentId: string) => Promise<void>;
   /** Auto-dismiss or ignored → clear dockedMoment, stay HOME. */
   onDismissDockedMoment?: () => void;
-  /** Request the AI reply for the docked moment */
-  requestPresentReply?: (moment: Moment) => Promise<string | null>;
   /** Honest local storage status */
   persistenceState?: PersistenceState;
   getTodayAnchorStats?: () => Promise<DailyAnchorStats>;
@@ -52,8 +52,8 @@ export const HomeScreen: React.FC<Props> = ({
   onResumeContinuity,
   dockedMoment,
   onOpenChat,
+  onBeginLanding,
   onDismissDockedMoment,
-  requestPresentReply,
   persistenceState = 'persisted',
   getTodayAnchorStats,
   onRecordAnchorEvent
@@ -76,8 +76,6 @@ export const HomeScreen: React.FC<Props> = ({
   const [continuityMoment, setContinuityMoment] = useState<Moment | null>(null);
   const [continuityDismissed, setContinuityDismissed] = useState(false);
   const [todayAnchorStats, setTodayAnchorStats] = useState<DailyAnchorStats>({ tapCount: 0, holdCount: 0 });
-  
-  const [dockedAiReply, setDockedAiReply] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const progressTimerRef = useRef<number | null>(null);
@@ -602,21 +600,6 @@ export const HomeScreen: React.FC<Props> = ({
             「{dockedMoment.content}」
           </p>
 
-          {/* 客觀沉澱映照（若有 AI 分析且非預設值） */}
-          {dockedAiReply && dockedAiReply !== '已留下。' && (
-            <div className="mb-3.5 rounded-xl bg-paper-sunken/70 border border-border-base/50 p-3 text-[13.5px] text-ink-secondary leading-relaxed">
-              <span className="text-[11px] font-semibold text-accent/80 block mb-1">客觀邊界</span>
-              {dockedAiReply}
-            </div>
-          )}
-
-          {!dockedAiReply && requestPresentReply && (
-            <div className="flex items-center gap-2 text-ink-muted text-[12px] py-1 mb-3">
-              <Loader2 size={13} className="animate-spin text-accent" />
-              <span>正在沉澱客觀邊界...</span>
-            </div>
-          )}
-
           <div className="flex flex-wrap justify-end gap-x-5 gap-y-2 text-[13px] font-medium text-ink-secondary">
             <button
               onClick={() => { triggerDockedDismiss(true); if (onOpenChat) onOpenChat(); }}
@@ -625,10 +608,10 @@ export const HomeScreen: React.FC<Props> = ({
               {UI_TEXT.home.dockedCard?.continueLink || '順著這句往下寫'}
             </button>
             <button
-              onClick={() => { triggerDockedDismiss(true); if (onOpenChat) onOpenChat(); }}
+              onClick={() => { triggerDockedDismiss(true); if (onBeginLanding && dockedMoment) void onBeginLanding(dockedMoment.id); }}
               className="hover:text-accent transition-colors cursor-pointer"
             >
-              {UI_TEXT.home.dockedCard?.exploreLink || '換個角度看看'}
+              封裝存檔
             </button>
             <button type="button" onClick={() => triggerDockedDismiss(true)} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
               結束這次停靠

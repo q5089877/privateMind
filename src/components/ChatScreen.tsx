@@ -59,21 +59,6 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [reply, exploring, showAngles, showComposer]);
 
-  useEffect(() => {
-    if (!moment || (moment.immediateReply && !isFallbackReply(moment.immediateReply))) return;
-    let alive = true;
-    void getPresentReply(moment, session).then(async value => {
-      if (!alive) return;
-      if (!value) {
-        setReplyUnavailable(true);
-        return;
-      }
-      const clean = normalizeCompanionResponse(value);
-      setReply(clean);
-      await onSaveReply(moment.id, clean);
-    });
-    return () => { alive = false; };
-  }, [moment?.id, getPresentReply, onSaveReply, session]);
 
   const handleRetry = async () => {
     if (!moment || isRetrying) return;
@@ -260,14 +245,6 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
                 )}
               </article>;
         })}
-        {!hasCurrentAssistant && !reply && !replyUnavailable && !isRetrying && (
-          <article className="mr-3 border-l-2 border-accent/30 py-2 pl-4 sm:mr-10 sm:pl-5">
-            <p className="flex items-center gap-2 text-sm text-ink-muted">
-              <RotateCw size={14} className="animate-spin text-accent" />
-              {t.loadingHint}
-            </p>
-          </article>
-        )}
         {(replyUnavailable || isRetrying) && (
           <article className="mr-3 border-l-2 border-border-base py-2 pl-4 sm:mr-10 sm:pl-5">
             <p className="text-sm leading-relaxed text-ink-secondary">{t.errorHint}</p>

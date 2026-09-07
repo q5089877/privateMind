@@ -75,26 +75,39 @@ export class HarborFlowEngine {
     }
   }
 
-  /** A Moment is durable before any screen transition. Screen stays HOME after save. */
+  /** Save the raw Moment first. Follow-up turns persist a Session only after explicit CHAT input. */
   public async submitText(content: string, intent: MomentIntent = 'captured') {
     const clean = content.trim();
     if (!clean) return;
     this.dispatch({ type: 'SET_REQUEST', request: 'saving' });
-    const moment: Moment = { id: this.id('moment'), content: clean, createdAt: Date.now(), intent };
-    const session = this.createOrContinueSession(moment);
-    await this.storage.saveMomentWithSession(moment, session);
+    const moment: Moment = { id: this.id('moment'), content: clean, createdAt: Date.now(), intent, lifecycle: 'docked' };
+
+    if (intent === 'follow_up' && this.snapshot.currentSession) {
+      const session = this.createOrContinueSession(moment);
+      await this.storage.saveMomentWithSession(moment, session);
+      this.dispatch({ type: 'SESSION_CONTINUED', moment, session });
+
+      // Local persistence is already complete; AI is an optional second step.
+      const reply = await this.requestPresentReply(moment, session);
+      if (reply) await this.saveImmediateReply(moment.id, reply);
+      return;
+    }
+
+    await this.storage.saveMoment(moment);
     const persistenceState = this.storage.getPersistenceStatus();
-    // Stay on HOME — dispatch MOMENT_DOCKED, not MOMENT_CAPTURED.
-    // Screen transition to CHAT is opt-in via openChat().
-    this.dispatch({ type: 'MOMENT_DOCKED', moment, session, persistenceState });
+    this.dispatch({ type: 'MOMENT_DOCKED', moment, persistenceState });
   }
 
+  /** User chose to discuss the latest Moment. The Session is memory-only until a follow-up is sent. */
   /** User chose "接著說" on the docked card. Moves to CHAT. */
   public openChat() {
-    this.dispatch({ type: 'OPEN_CHAT' });
+    const moment = this.snapshot.dockedMoment || this.snapshot.currentMoment;
+    if (!moment) return;
+    const session = this.createOrContinueSession(moment);
+    this.dispatch({ type: 'OPEN_CHAT', moment, session });
   }
 
-  /** Auto-dismiss or user ignored the docked card. */
+  /** Explicitly dismiss the docked card. */
   public dismissDockedMoment() {
     this.dispatch({ type: 'DISMISS_DOCKED_MOMENT' });
   }
@@ -139,20 +152,31 @@ export class HarborFlowEngine {
 
   /** Enter LAND with a visible draft first; no closure has been persisted yet. */
   public async beginLanding(session: HarborSession) {
+    const moment = this.snapshot.currentMoment || (await this.getMoments()).find(item => item.id === session.originMomentId) || null;
+    if (!moment) return;
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
     const draft: SessionClosureDraft | null = await this.companion.closeSession(session);
     const closure = draft ? this.toClosure(session, draft) : this.fallbackClosure(session);
-    this.dispatch({ type: 'LANDING_READY', closure });
+    this.dispatch({ type: 'LANDING_READY', closure, moment, session });
   }
 
-  /** A landing becomes durable only when the person chooses to return to now. */
+  /** Start a non-persistent LAND draft directly from a docked Moment. */
+  public async beginLandingFromMoment(momentId: string) {
+    const moment = this.snapshot.dockedMoment || this.snapshot.currentMoment;
+    if (!moment || moment.id !== momentId) return;
+    await this.beginLanding(this.createOrContinueSession(moment));
+  }
+
+  /** LAND is durable only after explicit confirmation. */
   public async completeLanding(sessionId: string, closure: SessionClosure) {
     const data = await this.storage.getData();
-    const current = data.sessions.find(session => session.id === sessionId);
-    if (!current) return;
-    const session: HarborSession = { ...current, status: 'landed', closure, updatedAt: Date.now() };
-    await this.storage.saveSession(session);
-    this.dispatch({ type: 'SESSION_UPDATED', session });
+    const persisted = data.sessions.find(session => session.id === sessionId);
+    const draft = persisted || (this.snapshot.currentSession?.id === sessionId ? this.snapshot.currentSession : null);
+    if (!draft) return;
+    const momentId = draft.originMomentId;
+    const committed = await this.storage.commitClosure(momentId, draft, closure);
+    const savedSession = committed.sessions.find(session => session.id === sessionId) || null;
+    this.dispatch({ type: 'SESSION_UPDATED', session: savedSession });
     this.reset();
   }
 

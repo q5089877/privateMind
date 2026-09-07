@@ -4,6 +4,7 @@ export type PersistenceState = 'accepted' | 'persisted' | 'volatile' | 'failed';
 
 /** Why a moment was written. It is inferred from its entry point, never requested as a field. */
 export type MomentIntent = 'captured' | 'reappeared' | 'follow_up' | 'context_added';
+export type MomentLifecycle = 'docked' | 'sealed';
 
 /**
  * Continuity probe outcome — only what we actually know.
@@ -32,6 +33,8 @@ export interface Moment {
   content: string;
   createdAt: number;
   intent: MomentIntent;
+  /** Lifecycle is persisted for new records; legacy records default to docked during normalisation. */
+  lifecycle?: MomentLifecycle;
   immediateReply?: string;
   /** Set when the user settles a moment: hidden from Review feed, still in Pattern pool. */
   settledAt?: number;

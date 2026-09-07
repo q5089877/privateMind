@@ -25,14 +25,15 @@ export type HarborIntent =
    * Replaces the old MOMENT_CAPTURED which forced an immediate jump to CHAT.
    */
   | { type: 'SET_PERSISTENCE_STATE'; state: PersistenceState }
-  | { type: 'MOMENT_DOCKED'; moment: Moment; session: HarborSession; persistenceState?: PersistenceState }
+  | { type: 'MOMENT_DOCKED'; moment: Moment; session?: HarborSession; persistenceState?: PersistenceState }
   /** Explicitly dismisses the docked card, stays HOME. */
   | { type: 'DISMISS_DOCKED_MOMENT' }
   /** User explicitly chose to continue talking. Moves to CHAT with the docked Moment/Session. */
-  | { type: 'OPEN_CHAT' }
+  | { type: 'OPEN_CHAT'; moment: Moment; session: HarborSession }
   | { type: 'MOMENT_REPLY_SAVED'; moment: Moment | null; session: HarborSession | null }
   | { type: 'SESSION_OPENED'; moment: Moment; session: HarborSession }
   | { type: 'SESSION_UPDATED'; session: HarborSession | null }
-  | { type: 'LANDING_READY'; closure: SessionClosure }
+  | { type: 'SESSION_CONTINUED'; moment: Moment; session: HarborSession }
+  | { type: 'LANDING_READY'; closure: SessionClosure; moment: Moment; session: HarborSession }
   | { type: 'RETURN_TO_CHAT' }
   | { type: 'RESET_TO_HOME' };

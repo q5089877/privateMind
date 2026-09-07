@@ -1,4 +1,4 @@
-import { AnchorEvent, AnchorEventType, CarryState, DailyAnchorStats, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, TemporalGlobalState, ThoughtThread, ThreadLine } from '../types';
+import { AnchorEvent, AnchorEventType, CarryState, DailyAnchorStats, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, TemporalGlobalState, SessionClosure, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 1;
@@ -333,6 +333,26 @@ export class MindHarborRepository {
     });
   }
 
+  /** Atomically persists a confirmed LAND closure with its Session and sealed Moment. */
+  public async commitClosure(momentId: string, session: HarborSession, closure: SessionClosure): Promise<MindHarborData> {
+    const now = Date.now();
+    return this.update(data => {
+      const moment = data.moments.find(item => item.id === momentId);
+      if (!moment) throw new Error('找不到要封存的念頭');
+      const committedSession: HarborSession = {
+        ...session,
+        status: 'landed',
+        closure,
+        updatedAt: now
+      };
+      return {
+        ...data,
+        moments: data.moments.map(item => item.id === momentId ? { ...item, lifecycle: 'sealed' as const } : item),
+        sessions: [...data.sessions.filter(item => item.id !== committedSession.id), committedSession],
+        backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+      };
+    });
+  }
   public async saveSession(session: HarborSession): Promise<MindHarborData> {
     return this.update(data => ({
       ...data,
@@ -492,7 +512,7 @@ export class MindHarborRepository {
   private normalise(data: MindHarborData): MindHarborData {
     return {
       version: 2,
-      moments: Array.isArray(data.moments) ? data.moments.map(moment => ({ ...moment, intent: moment.intent || 'captured' })) : [],
+      moments: Array.isArray(data.moments) ? data.moments.map(moment => ({ ...moment, intent: moment.intent || 'captured', lifecycle: moment.lifecycle === 'sealed' ? 'sealed' as const : 'docked' as const })) : [],
       sessions: Array.isArray(data.sessions) ? data.sessions.map(session => ({
         ...session,
         momentIds: Array.isArray(session.momentIds) ? session.momentIds : [session.originMomentId],
