@@ -34,7 +34,6 @@ export class CompanionService {
       { id: 'fact', title: '事實', content: '現在可以確定的，只是眼前親口說出的這件事；其餘猜測與原因都還在未知之中。', followUp: '只看已經確定的事實，發生了什麼？', sourcePhrases: [source] },
       { id: 'control', title: '控制', content: '現在不一定要把整個局面扭轉，也許先讓眼前能做的事少消耗你一點就足夠了。', followUp: '此刻哪件微小的事在自己掌控之中？', sourcePhrases: [source] },
       { id: 'time', title: '時間', content: '拉開時間跨度來看，此時此刻的沉重感很滿，但未必代表之後也會一直是這樣。', followUp: '如果拉長到幾天後看，什麼最重要？', sourcePhrases: [source] },
-      { id: 'defusion', title: '解離', content: '此刻這份感受只是一種路過的狀態，不等於你這個人或你生活的所有部分。', followUp: '如果不把這件事當作定論，現在想做什麼？', sourcePhrases: [source] }
     ];
   }
 }
