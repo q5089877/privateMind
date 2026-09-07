@@ -154,10 +154,15 @@ export class HarborFlowEngine {
   public async beginLanding(session: HarborSession) {
     const moment = this.snapshot.currentMoment || (await this.getMoments()).find(item => item.id === session.originMomentId) || null;
     if (!moment) return;
-    this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const draft: SessionClosureDraft | null = await this.companion.closeSession(session);
-    const closure = draft ? this.toClosure(session, draft) : this.fallbackClosure(session);
-    this.dispatch({ type: 'LANDING_READY', closure, moment, session });
+
+    // Enter LAND immediately with a local draft; AI refinement must not block navigation.
+    const fallback = this.fallbackClosure(session);
+    this.dispatch({ type: 'LANDING_READY', closure: fallback, moment, session });
+
+    void this.companion.closeSession(session).then(draft => {
+      if (!draft || this.snapshot.screen !== 'LAND' || this.snapshot.currentSession?.id !== session.id) return;
+      this.dispatch({ type: 'LANDING_READY', closure: this.toClosure(session, draft), moment, session });
+    });
   }
 
   /** Start a non-persistent LAND draft directly from a docked Moment. */
