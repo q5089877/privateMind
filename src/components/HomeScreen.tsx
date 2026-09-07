@@ -159,43 +159,8 @@ export const HomeScreen: React.FC<Props> = ({
     }, choice === 'still' ? 1500 : 1200);
   };
 
-  // Handle persistent dockedMoment
-  useEffect(() => {
-    if (pendingDismissTimerRef.current) {
-      clearTimeout(pendingDismissTimerRef.current);
-      pendingDismissTimerRef.current = null;
-    }
-    
-    if (dockedMoment) {
-      // 核心防抖：避免父組件 re-render 導致重複重置與閃爍
-      if (lastHandledDockedIdRef.current === dockedMoment.id) {
-        return;
-      }
-      lastHandledDockedIdRef.current = dockedMoment.id;
+  // The docked card is static on HOME; AI begins only after explicit navigation.
 
-      // 若當前頁面已被使用者隱藏/鎖屏，靜默落盤，不浮現卡片打擾
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        return;
-      }
-      setDockedAiReply(null);
-      if (requestPresentReply) {
-        requestPresentReply(dockedMoment).then(reply => {
-          if (lastHandledDockedIdRef.current !== dockedMoment.id) return;
-          if (reply) {
-            // 再次檢查：如果生成回傳時已鎖屏，直接不浮現
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-              return;
-            }
-
-            setDockedAiReply(reply);
-          }
-        });
-      }
-    } else {
-      lastHandledDockedIdRef.current = null;
-      setDockedAiReply(null);
-    }
-  }, [dockedMoment, requestPresentReply]);
 
   // The confirmation card is intentionally persistent. Only an explicit user
   // action (new input, continue, explore, or close) may dismiss it.
