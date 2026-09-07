@@ -352,7 +352,7 @@ export class HarborFlowEngine {
     const excerpt = last?.content.replace(/\s+/g, ' ').slice(0, 28) || '這次談到的事';
     return {
       takeaway: `「${excerpt}${last && last.content.length > 28 ? '…' : ''}」先留在這裡。`,
-      unresolved: '今天還不用把它想完。',
+      unresolved: '目前沒有新的可驗證資訊。',
       createdAt: Date.now(),
       sourceTurnIds: session.turns.filter(turn => turn.role === 'user').map(turn => turn.id)
     };

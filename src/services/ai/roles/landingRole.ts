@@ -10,7 +10,7 @@ export const landingRole = {
     const responseSchema = {
       type: 'OBJECT', properties: {
         takeaway: { type: 'STRING', description: '15 到 80 字；整理對話中已說明白的客觀事實。' },
-        unresolved: { type: 'STRING', description: '10 到 60 字；指認今晚即使想破頭也沒有新資訊、明天才能驗證的外部變數。' },
+        unresolved: { type: 'STRING', description: '18 到 36 字；只描述目前缺少的事實或不可控的外部變數。' },
         resumeAnchor: { type: 'STRING', description: '0 到 35 字；摘錄一個具體方向作為下次接點。' }
       }, required: ['takeaway', 'unresolved', 'resumeAnchor']
     };
@@ -19,7 +19,7 @@ export const landingRole = {
       context: undefined,
       payload: {
         model: FLASH_LITE_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `以下是使用者這次親口留下的句子：\n${transcript}\n\n請替這次對話寫一份「心智封箱草稿」，協助大腦畫下今日思考的邊界：\n- takeaway（這次先帶走）：15 到 80 字，整理對話中已經說明白的客觀事實。\n- unresolved（留在明天看）：10 到 60 字，明確指認出「今晚即使想破頭也沒有新資訊、必須明天才能驗證」的外部變數；不得用問號、不得形成待辦或建議。\n- resumeAnchor（下次若要接續）：0 到 35 字，摘錄一個具體方向作為下次接點。\n\n禁止任何心理診斷、說教、同理套話（辛苦了、這很正常）、你其實、你在、這顯示。不可替使用者下結論。語氣冷靜平實、繁體中文。` }] }],
+        contents: [{ role: 'user', parts: [{ text: `以下是使用者這次親口留下的句子：\n${transcript}\n\n請替這次對話寫一份系統紀錄式的收束草稿：\n- takeaway（這次先帶走）：15 到 80 字，只整理對話中已明確說出的客觀事實。\n- unresolved（目前缺少的資料）：18 到 36 字，只寫目前無法驗證的事實或不可控的外部變數；只能有一句，不得寫成建議、命令或心態總結。\n- resumeAnchor（下次若要接續）：0 到 35 字，摘錄一個具體方向。\n\n負向約束：禁止比喻、詩意語句、心靈雞湯、說教、安慰或諮商語氣；禁止「營業時間」、「現實不收件」、「心靈關機」、「按下暫停鍵」、「放過自己」、「深呼吸」、「明早 09:00」及相近擬人化表達。禁止替使用者總結心態或下結論。只允許平實、中性的系統紀錄語氣，不加前言或客套。繁體中文。` }] }],
         generationConfig: { temperature: 0.25, maxOutputTokens: 200, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
@@ -30,9 +30,10 @@ export const landingRole = {
     const takeaway = typeof parsed?.takeaway === 'string' ? parsed.takeaway.trim() : '';
     const unresolved = typeof parsed?.unresolved === 'string' ? parsed.unresolved.trim() : '';
     const resumeAnchor = typeof parsed?.resumeAnchor === 'string' ? parsed.resumeAnchor.trim() : '';
-    const forbidden = ['心理', '人格', '診斷', '建議', '應該', '一定', '真正原因', '你其實', '你在', '這顯示', '辛苦了'];
+    const forbidden = ['心理', '人格', '診斷', '建議', '應該', '一定', '真正原因', '你其實', '你在', '這顯示', '辛苦了', '營業時間', '現實不收件', '心靈關機', '按下暫停鍵', '放過自己', '深呼吸', '明早 09:00', '明早09:00'];
     const invalid = (value: string) => forbidden.some(word => value.includes(word));
-    if (takeaway.length < 10 || takeaway.length > 100 || unresolved.length < 4 || unresolved.length > 80 || resumeAnchor.length > 48 || unresolved.includes('？') || unresolved.includes('?') || invalid(takeaway) || invalid(unresolved) || invalid(resumeAnchor)) return null;
+    const unresolvedHasOneSentence = !/[。！？!?]/.test(unresolved.slice(0, -1));
+    if (takeaway.length < 10 || takeaway.length > 100 || unresolved.length < 18 || unresolved.length > 36 || resumeAnchor.length > 48 || unresolved.includes('？') || unresolved.includes('?') || !unresolvedHasOneSentence || invalid(takeaway) || invalid(unresolved) || invalid(resumeAnchor)) return null;
     return { takeaway, unresolved, ...(resumeAnchor ? { resumeAnchor } : {}) };
   }
 };

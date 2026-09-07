@@ -161,7 +161,7 @@ export const UI_TEXT = {
 
 export const CORE_PHILOSOPHY = {
   motto: '說出來 → 看一看 → 收回來 → 放下去。',
-  containmentMotto: '物理現實明早 09:00 前不收件，今晚在床上運算一律判定為無效。',
+  containmentMotto: '收束只記錄目前已知事實與尚待驗證的變數。',
   passiveLinkageMotto: '平常不打擾，看到連結才開口。',
   sanctuaryMotto: '和紙自然、老松墨綠、靜謐切片、低刺激性、安穩停靠。',
   principles: [
