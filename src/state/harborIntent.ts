@@ -21,12 +21,12 @@ export type HarborIntent =
   | { type: 'SET_REQUEST'; request: 'idle' | 'saving' | 'thinking' | 'restoring'; error?: string }
   /**
    * Moment saved to DB. Screen stays HOME; dockedMoment holds the saved Moment
-   * for the transient "✓ 停好了" confirmation card.
+   * for the persistent "✓ 停好了" confirmation card.
    * Replaces the old MOMENT_CAPTURED which forced an immediate jump to CHAT.
    */
   | { type: 'SET_PERSISTENCE_STATE'; state: PersistenceState }
   | { type: 'MOMENT_DOCKED'; moment: Moment; session: HarborSession; persistenceState?: PersistenceState }
-  /** Auto-dismiss or user ignored the docked card. Clears dockedMoment, stays HOME. */
+  /** Explicitly dismisses the docked card, stays HOME. */
   | { type: 'DISMISS_DOCKED_MOMENT' }
   /** User explicitly chose to continue talking. Moves to CHAT with the docked Moment/Session. */
   | { type: 'OPEN_CHAT' }

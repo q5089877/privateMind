@@ -77,7 +77,6 @@ export const HomeScreen: React.FC<Props> = ({
   const [continuityDismissed, setContinuityDismissed] = useState(false);
   const [todayAnchorStats, setTodayAnchorStats] = useState<DailyAnchorStats>({ tapCount: 0, holdCount: 0 });
   
-  const [dockedVisible, setDockedVisible] = useState(false);
   const [dockedAiReply, setDockedAiReply] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -87,7 +86,6 @@ export const HomeScreen: React.FC<Props> = ({
   const ebbTimerRef = useRef<number | null>(null);
   const pressStartTimeRef = useRef<number>(0);
   const holdActivatedRef = useRef(false);
-  const dockedFadeTimerRef = useRef<number | null>(null);
   const pendingDismissTimerRef = useRef<number | null>(null);
   const temporalFadeTimerRef = useRef<number | null>(null);
   const lastHandledDockedIdRef = useRef<string | null>(null);
@@ -104,7 +102,6 @@ export const HomeScreen: React.FC<Props> = ({
     return () => {
       clearTimers();
       cancelHaptics();
-      if (dockedFadeTimerRef.current) clearTimeout(dockedFadeTimerRef.current);
       if (pendingDismissTimerRef.current) clearTimeout(pendingDismissTimerRef.current);
       if (temporalFadeTimerRef.current) clearTimeout(temporalFadeTimerRef.current);
     };
@@ -115,19 +112,29 @@ export const HomeScreen: React.FC<Props> = ({
   }, [getTodayAnchorStats]);
 
   useEffect(() => {
-    if (getTemporalCandidate) {
-      void getTemporalCandidate().then(candidate => {
-        if (candidate) {
+    const refreshCandidate = () => {
+      if (getTemporalCandidate) {
+        void getTemporalCandidate().then(candidate => {
           setTemporalCandidate(candidate);
-        }
-      });
-    } else if (getContinuityCandidate) {
-      void getContinuityCandidate().then(candidate => {
-        if (candidate) {
+        });
+        return;
+      }
+      if (getContinuityCandidate) {
+        void getContinuityCandidate().then(candidate => {
           setContinuityMoment(candidate);
-        }
-      });
-    }
+        });
+      }
+    };
+
+    refreshCandidate();
+    // Eligibility is time-based. Re-check when the user returns to the tab so
+    // a thought that just crossed the 48-hour boundary can appear on HOME.
+    document.addEventListener('visibilitychange', refreshCandidate);
+    window.addEventListener('focus', refreshCandidate);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshCandidate);
+      window.removeEventListener('focus', refreshCandidate);
+    };
   }, [getTemporalCandidate, getContinuityCandidate]);
 
   const handleTemporalChoice = async (choice: 'still' | 'faded' | 'resolved') => {
@@ -152,7 +159,7 @@ export const HomeScreen: React.FC<Props> = ({
     }, choice === 'still' ? 1500 : 1200);
   };
 
-  // Handle transient dockedMoment
+  // Handle persistent dockedMoment
   useEffect(() => {
     if (pendingDismissTimerRef.current) {
       clearTimeout(pendingDismissTimerRef.current);
@@ -168,11 +175,8 @@ export const HomeScreen: React.FC<Props> = ({
 
       // 若當前頁面已被使用者隱藏/鎖屏，靜默落盤，不浮現卡片打擾
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        setDockedVisible(false);
         return;
       }
-
-      setDockedVisible(true);
       setDockedAiReply(null);
       if (requestPresentReply) {
         requestPresentReply(dockedMoment).then(reply => {
@@ -180,82 +184,24 @@ export const HomeScreen: React.FC<Props> = ({
           if (reply) {
             // 再次檢查：如果生成回傳時已鎖屏，直接不浮現
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-              setDockedVisible(false);
               return;
             }
 
             setDockedAiReply(reply);
-            // 動態展示時長：基礎 6 秒 + 每 10 個字增加 0.5 秒
-            const durationMs = 6000 + Math.floor(reply.length / 10) * 500;
-            if (dockedFadeTimerRef.current) clearTimeout(dockedFadeTimerRef.current);
-            dockedFadeTimerRef.current = window.setTimeout(() => {
-              triggerDockedDismiss(false);
-            }, durationMs);
           }
         });
       }
     } else {
       lastHandledDockedIdRef.current = null;
-      setDockedVisible(false);
       setDockedAiReply(null);
-      if (dockedFadeTimerRef.current) {
-        clearTimeout(dockedFadeTimerRef.current);
-        dockedFadeTimerRef.current = null;
-      }
     }
   }, [dockedMoment, requestPresentReply]);
 
-  const triggerDockedDismiss = (immediate = false) => {
-    if (dockedFadeTimerRef.current) {
-      clearTimeout(dockedFadeTimerRef.current);
-      dockedFadeTimerRef.current = null;
-    }
+  // The confirmation card is intentionally persistent. Only an explicit user
+  // action (new input, continue, explore, or close) may dismiss it.
+  const triggerDockedDismiss = (_immediate = true) => {
     if (!dockedMoment || !onDismissDockedMoment) return;
-    
-    if (immediate) {
-      setDockedVisible(false);
-      onDismissDockedMoment();
-    } else {
-      setDockedVisible(false);
-      if (pendingDismissTimerRef.current) clearTimeout(pendingDismissTimerRef.current);
-      pendingDismissTimerRef.current = window.setTimeout(() => {
-        onDismissDockedMoment();
-      }, 600);
-    }
-  };
-
-  const handleDockedPointerEnter = () => {
-    if (dockedFadeTimerRef.current) {
-      clearTimeout(dockedFadeTimerRef.current);
-      dockedFadeTimerRef.current = null;
-    }
-  };
-
-  const handleDockedPointerLeave = () => {
-    if (dockedFadeTimerRef.current) {
-      clearTimeout(dockedFadeTimerRef.current);
-    }
-    // 滑鼠移開後寬限 2 秒淡出
-    dockedFadeTimerRef.current = window.setTimeout(() => {
-      triggerDockedDismiss(false);
-    }, 2000);
-  };
-
-  const handleDockedTouchStart = () => {
-    if (dockedFadeTimerRef.current) {
-      clearTimeout(dockedFadeTimerRef.current);
-      dockedFadeTimerRef.current = null;
-    }
-  };
-
-  const handleDockedTouchEnd = () => {
-    if (dockedFadeTimerRef.current) {
-      clearTimeout(dockedFadeTimerRef.current);
-    }
-    // 手機觸控放開後，延遲 3 秒重啟倒數，防止移動端 pointerleave 遺失導致卡片永久滯留
-    dockedFadeTimerRef.current = window.setTimeout(() => {
-      triggerDockedDismiss(false);
-    }, 3000);
+    onDismissDockedMoment();
   };
 
   const handleContinuityChoice = (choice: CarryState) => {
@@ -282,11 +228,6 @@ export const HomeScreen: React.FC<Props> = ({
     inputRef.current?.focus();
   };
 
-  const handleInputFocus = () => {
-    if (dockedMoment && dockedVisible) {
-      triggerDockedDismiss(true);
-    }
-  };
 
   const clearHold = () => {
     holdActivatedRef.current = false;
@@ -677,15 +618,7 @@ export const HomeScreen: React.FC<Props> = ({
       {/* Docked Confirmation Card */}
       {dockedMoment && (
         <section
-          onPointerEnter={handleDockedPointerEnter}
-          onPointerLeave={handleDockedPointerLeave}
-          onTouchStart={handleDockedTouchStart}
-          onTouchEnd={handleDockedTouchEnd}
           style={{
-            opacity: dockedVisible ? 1 : 0,
-            transform: dockedVisible ? 'translateY(0px)' : 'translateY(-6px)',
-            transition: 'opacity 300ms ease-out, transform 300ms ease-out',
-            willChange: 'opacity, transform'
           }}
           className="w-full rounded-2xl bg-surface border border-accent/20 p-4.5 shadow-[0_4px_16px_rgba(19,66,48,0.08)] mb-2 relative overflow-hidden min-h-[96px]"
         >
@@ -719,7 +652,7 @@ export const HomeScreen: React.FC<Props> = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-5 text-[13px] font-medium text-ink-secondary">
+          <div className="flex flex-wrap justify-end gap-x-5 gap-y-2 text-[13px] font-medium text-ink-secondary">
             <button
               onClick={() => { triggerDockedDismiss(true); if (onOpenChat) onOpenChat(); }}
               className="hover:text-accent transition-colors cursor-pointer"
@@ -731,6 +664,9 @@ export const HomeScreen: React.FC<Props> = ({
               className="hover:text-accent transition-colors cursor-pointer"
             >
               {UI_TEXT.home.dockedCard?.exploreLink || '換個角度看看'}
+            </button>
+            <button type="button" onClick={() => triggerDockedDismiss(true)} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
+              結束這次停靠
             </button>
           </div>
         </section>
@@ -796,7 +732,7 @@ export const HomeScreen: React.FC<Props> = ({
             value={input}
             onFocus={() => {
               setIsInputFocused(true);
-              handleInputFocus();
+
             }}
             onBlur={() => {
               setIsInputFocused(false);
@@ -852,7 +788,7 @@ export const HomeScreen: React.FC<Props> = ({
       {temporalCandidate && !isInputFocused && input.trim().length === 0 && (
         <section className="w-full rounded-2xl border border-border-base/70 bg-surface/40 p-4 transition-all duration-300">
           <span className="text-[12px] font-medium tracking-wide text-ink-muted">
-            48 小時前留下的那件事
+            尚未整理的念頭
           </span>
           <p className="mt-1.5 text-[14px] leading-relaxed text-ink line-clamp-3">
             「{temporalCandidate.content}」
@@ -876,14 +812,14 @@ export const HomeScreen: React.FC<Props> = ({
                 onClick={() => handleTemporalChoice('faded')}
                 className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
               >
-                [ 淡了一些 ]
+                [ 淡掉了 ]
               </button>
               <button
                 type="button"
                 onClick={() => handleTemporalChoice('resolved')}
                 className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
               >
-                [ 已經過去了 ]
+                [ 結案 ]
               </button>
             </div>
           )}
@@ -908,22 +844,23 @@ export const HomeScreen: React.FC<Props> = ({
               <span className="text-sm font-medium text-ink truncate">{UI_TEXT.home.reviewPast}</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                <span className="text-xs text-ink-muted truncate">存於本機</span>
+                <span className="text-xs text-ink-muted truncate">存於本機・可隨時回看</span>
               </div>
             </div>
           </div>
           <ArrowRight size={16} className="text-ink-muted transition-transform group-hover:translate-x-1" />
         </button>
 
-        <div
+        <button
           onClick={onOpenBackup}
-          className="flex items-center gap-2.5 rounded-xl bg-paper-sunken px-3.5 py-2.5 text-xs text-ink-secondary border border-border-base/50 cursor-pointer hover:text-ink transition-colors"
+          type="button"
+          className="flex min-h-[44px] items-center gap-2.5 rounded-xl bg-paper-sunken px-3.5 py-2.5 text-left text-xs text-ink-secondary border border-border-base/50 cursor-pointer hover:text-ink transition-colors"
         >
           <ShieldCheck size={16} className="text-accent shrink-0" />
           <span className="flex-1 leading-relaxed">
-            {UI_TEXT.home.backup}・不聯網・無帳號・完全無痕安全
+            內容只保存在這台裝置；使用 AI 時，當次文字才會經安全連線處理。
           </span>
-        </div>
+        </button>
       </nav>
 
       <div className="w-full rounded-2xl overflow-hidden shadow-xs relative h-28 my-1 border border-border-base/50">

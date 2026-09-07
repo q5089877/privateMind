@@ -48,8 +48,7 @@ export const UI_TEXT = {
       { id: 'feeling', label: '心裡很悶', text: '說不上來是什麼感覺，但整個心裡很堵、很沉。' },
       { id: 'stuck', label: '事情卡住', text: '手上有件事懸在那裡，完全不知道下一步該怎麼走。' },
       { id: 'keep', label: '先留著', text: '有個念頭我怕之後忘記，想先原封不動留在這裡。' },
-      { id: 'wordless', label: '不知怎麼說', text: '腦中一片混亂，暫時找不到字詞形容當下的狀態。' },
-      { id: 'tired', label: '有些疲倦', text: '今天整個人電量見底，只剩下身體的重與累。' }
+      // HOME 只保留四個低摩擦入口，不把它做成分類選單。
     ] as const,
     reviewPast: '回看以前留下的事',
     footerPromise: '原文保存在這台裝置；只有使用 AI 功能時，必要內容才會經安全連線處理。',
