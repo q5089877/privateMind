@@ -12,7 +12,7 @@ const TOP_ZEN_IMAGE = topZenImage;
 const BOTTOM_MIST_IMAGE = bottomMistImage;
 
 interface Props {
-  onStartInput: (text: string) => void;
+  onStartInput: (text: string) => Promise<void>;
   onReview: () => void;
   onOpenBackup: () => void;
   /** Jump directly to Chat for this moment's session */
@@ -219,7 +219,7 @@ export const HomeScreen: React.FC<Props> = ({
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
-  const beginConversation = () => {
+  const beginConversation = async () => {
     triggerDockedDismiss(true); 
     const text = input.trim();
     if (!text || submittingState !== 'idle') return;
@@ -228,7 +228,7 @@ export const HomeScreen: React.FC<Props> = ({
     const safetyEval = evaluateSafetyRisk(text);
     if (safetyEval.decision === 'imminent_risk') {
       // 依舊落盤，確保不漏掉求助者的真實紀錄
-      onStartInput(text);
+      await onStartInput(text);
       setInput('');
       setActiveQuickState(null);
       setSubmittingState('idle');
@@ -243,8 +243,9 @@ export const HomeScreen: React.FC<Props> = ({
     setSubmittingState('submitting');
     window.setTimeout(() => {
       setSubmittingState('settled');
-      window.setTimeout(() => {
-        onStartInput(text);
+      window.setTimeout(async () => {
+        await onStartInput(text);
+        onOpenChat?.();
         setInput('');
         setActiveQuickState(null);
         setSubmittingState('idle');
