@@ -202,7 +202,10 @@ export class HarborFlowEngine {
     const storedMoment = data.moments.find(moment => moment.id === momentId) || null;
     const storedSession = this.findSessionForMoment(data, momentId);
     if (!storedMoment) return;
-    const session = storedSession ? this.appendAssistantTurn(storedSession, momentId, clean) : null;
+    // The first CHAT session is initially a memory-only draft. Persist the reply
+    // into that draft too, so the visible reply and Session.turns cannot diverge.
+    const draftSession = storedSession || (this.snapshot.currentSession?.momentIds.includes(momentId) ? this.snapshot.currentSession : null);
+    const session = draftSession ? this.appendAssistantTurn(draftSession, momentId, clean) : null;
     const next = session
       ? await this.storage.saveReplyAndSession(momentId, clean, session)
       : await this.storage.updateMoment(momentId, moment => ({ ...moment, immediateReply: clean }));
@@ -347,9 +350,13 @@ export class HarborFlowEngine {
 
   public async importBackup(text: string) {
     this.dispatch({ type: 'SET_REQUEST', request: 'restoring' });
-    const incoming = this.backup.parse(text);
-    await this.storage.mergeImported(incoming);
-    this.dispatch({ type: 'SET_REQUEST', request: 'idle' });
+    try {
+      const incoming = this.backup.parse(text);
+      await this.storage.mergeImported(incoming);
+      this.dispatch({ type: 'SET_REQUEST', request: 'idle' });
+    } catch (error) {
+      this.dispatch({ type: 'SET_REQUEST', request: 'idle', error: error instanceof Error ? error.message : '備份匯入失敗。' });
+    }
   }
 
   public reset() { this.dispatch({ type: 'RESET_TO_HOME' }); }

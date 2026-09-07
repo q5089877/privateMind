@@ -556,21 +556,21 @@ export const HomeScreen: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => handleContinuityChoice('still')}
-              className="px-4 py-1.5 rounded-full bg-accent text-white text-xs font-medium shadow-xs hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
+              className="min-h-[44px] px-4 rounded-full bg-accent text-white text-xs font-medium shadow-xs hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
             >
               還在
             </button>
             <button
               type="button"
               onClick={() => handleContinuityChoice('faded')}
-              className="px-3.5 py-1.5 rounded-full bg-surface-subtle text-ink-secondary border border-border-base text-xs font-medium hover:bg-surface-hover active:scale-95 transition-all cursor-pointer"
+              className="min-h-[44px] px-3.5 rounded-full bg-surface-subtle text-ink-secondary border border-border-base text-xs font-medium hover:bg-surface-hover active:scale-95 transition-all cursor-pointer"
             >
               淡掉了
             </button>
             <button
               type="button"
               onClick={handleContinuitySuppress}
-              className="px-2.5 py-1 text-xs text-ink-muted hover:text-ink transition-colors ml-auto cursor-pointer"
+              className="min-h-[44px] px-2.5 text-xs text-ink-muted hover:text-ink transition-colors ml-auto cursor-pointer"
             >
               先不提
             </button>
@@ -661,7 +661,7 @@ export const HomeScreen: React.FC<Props> = ({
                 key={state.id}
                 type="button"
                 onClick={() => handleQuickState(state)}
-                className={`shrink-0 min-h-[30px] sm:min-h-[32px] px-3 sm:px-3.5 rounded-full text-[11.5px] sm:text-xs font-medium transition-all cursor-pointer active:scale-95 ${
+                className={`shrink-0 min-h-[44px] px-3 sm:px-3.5 rounded-full text-[11.5px] sm:text-xs font-medium transition-all cursor-pointer active:scale-95 ${
                   isSelected
                     ? 'bg-accent text-white shadow-xs'
                     : 'bg-paper-sunken text-ink-secondary hover:text-ink hover:bg-surface-hover'
@@ -751,21 +751,21 @@ export const HomeScreen: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => handleTemporalChoice('still')}
-                className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
+                className="text-xs text-ink-muted hover:text-ink min-h-[44px] px-2.5 rounded-md transition-colors cursor-pointer active:scale-95"
               >
                 [ 還在 ]
               </button>
               <button
                 type="button"
                 onClick={() => handleTemporalChoice('faded')}
-                className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
+                className="text-xs text-ink-muted hover:text-ink min-h-[44px] px-2.5 rounded-md transition-colors cursor-pointer active:scale-95"
               >
                 [ 淡掉了 ]
               </button>
               <button
                 type="button"
                 onClick={() => handleTemporalChoice('resolved')}
-                className="text-xs text-ink-muted hover:text-ink px-2.5 py-1 rounded-md transition-colors cursor-pointer active:scale-95"
+                className="text-xs text-ink-muted hover:text-ink min-h-[44px] px-2.5 rounded-md transition-colors cursor-pointer active:scale-95"
               >
                 [ 結案 ]
               </button>

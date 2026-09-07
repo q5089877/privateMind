@@ -22,6 +22,7 @@ export const parseBackupText = (text: string): MindHarborData => {
     lines: data.lines,
     linkDecisions: data.linkDecisions,
     anchorEvents: Array.isArray(data.anchorEvents) ? data.anchorEvents : [],
+    temporalState: data.temporalState,
     backup: data.backup || { pendingChanges: 0 }
   } as MindHarborData;
 };

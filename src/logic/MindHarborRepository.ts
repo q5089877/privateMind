@@ -504,6 +504,11 @@ export class MindHarborRepository {
         lines: byId(current.lines, incoming.lines),
         linkDecisions: byFingerprint,
         anchorEvents: byId(current.anchorEvents, incoming.anchorEvents),
+        temporalState: {
+          consecutiveStillCount: Math.max(current.temporalState?.consecutiveStillCount || 0, incoming.temporalState?.consecutiveStillCount || 0),
+          silencedUntil: Math.max(current.temporalState?.silencedUntil || 0, incoming.temporalState?.silencedUntil || 0) || undefined,
+          lastEvaluatedAt: Math.max(current.temporalState?.lastEvaluatedAt || 0, incoming.temporalState?.lastEvaluatedAt || 0) || undefined
+        },
         backup: { ...current.backup, lastImportedAt: Date.now(), pendingChanges: current.backup.pendingChanges }
       };
     });
