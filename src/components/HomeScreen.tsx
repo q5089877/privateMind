@@ -1,28 +1,67 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowRight, Check, History, Loader2, MessageSquare, ShieldCheck, Waves } from 'lucide-react';
+import { Anchor, ArrowDown, ArrowRight, Check, History, Loader2, MessageSquare, ShieldCheck, Waves } from 'lucide-react';
 import { UI_TEXT } from '../config/textConfig';
 import { triggerHaptic } from '../utils/haptics';
 import { CRISIS_RESOURCES, evaluateSafetyRisk, SafetyEvaluation } from '../services/ai/roles/safetyRoute';
-import type { Moment } from '../types';
+import type { DailyAnchorStats, Moment } from '../types';
 
 interface Props {
   onStartInput: (text: string) => Promise<void>;
   onReview: () => void;
   onOpenChat?: () => void;
+  onRecordAnchorEvent?: (type: 'tap' | 'hold', durationMs?: number) => Promise<DailyAnchorStats>;
 }
 
-export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat }) => {
+export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat, onRecordAnchorEvent }) => {
   const [input, setInput] = useState('');
 
   const [safetyCheck, setSafetyCheck] = useState<SafetyEvaluation | null>(null);
   const [showCrisisHelp, setShowCrisisHelp] = useState(false);
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
+  const [isHolding, setIsHolding] = useState(false);
+  const holdTimerRef = useRef<number | null>(null);
+  const heartbeatTimerRef = useRef<number | null>(null);
+  const pressStartedAtRef = useRef(0);
+  const holdActivatedRef = useRef(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    return () => {
+      if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+      if (heartbeatTimerRef.current) window.clearInterval(heartbeatTimerRef.current);
+    };
   }, []);
+
+  const handleAnchorDown = (event: React.PointerEvent) => {
+    if (event.button !== 0) return;
+    pressStartedAtRef.current = Date.now();
+    holdActivatedRef.current = false;
+    triggerHaptic('unlatch');
+    holdTimerRef.current = window.setTimeout(() => {
+      holdActivatedRef.current = true;
+      setIsHolding(true);
+      triggerHaptic('heartbeat');
+      heartbeatTimerRef.current = window.setInterval(() => triggerHaptic('heartbeat'), 1000);
+    }, 240);
+  };
+
+  const handleAnchorUp = () => {
+    const durationMs = Date.now() - pressStartedAtRef.current;
+    if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+    if (heartbeatTimerRef.current) window.clearInterval(heartbeatTimerRef.current);
+    holdTimerRef.current = null;
+    heartbeatTimerRef.current = null;
+    if (holdActivatedRef.current) {
+      void onRecordAnchorEvent?.('hold', durationMs);
+      triggerHaptic('release');
+    } else {
+      void onRecordAnchorEvent?.('tap');
+    }
+    holdActivatedRef.current = false;
+    setIsHolding(false);
+  };
 
   const beginConversation = async () => {
     const text = input.trim();
@@ -68,6 +107,19 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
             <span className="text-[9px] tracking-[0.18em] text-ink-muted uppercase">{UI_TEXT.home.brandSubtitle}</span>
           </div>
         </div>
+        <button
+          type="button"
+          onPointerDown={handleAnchorDown}
+          onPointerUp={handleAnchorUp}
+          onPointerLeave={handleAnchorUp}
+          onPointerCancel={handleAnchorUp}
+          onContextMenu={event => event.preventDefault()}
+          className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-colors ${isHolding ? 'border-accent bg-accent text-white' : 'border-accent/40 bg-surface text-accent'}`}
+          aria-label="定錨"
+        >
+          <Anchor size={17} />
+          <span>{isHolding ? '定錨中' : '定錨'}</span>
+        </button>
       </header>
 
 
