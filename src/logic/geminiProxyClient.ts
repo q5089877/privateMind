@@ -112,12 +112,12 @@ export class GeminiProxyClient {
   }
 
   /** Landing Companion: only user turns from this session are evidence. */
-  public static async getSessionClosure(turns: ConversationTurn[]): Promise<SessionClosureDraft | null> {
+  public static async getSessionClosure(turns: ConversationTurn[], signal?: AbortSignal): Promise<SessionClosureDraft | null> {
     const task = landingRole.create(turns);
     const proxyUrl = this.getProxyUrl();
     if (!task || !proxyUrl) return null;
     try {
-      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
+      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs, signal));
       return raw ? landingRole.read(raw) : null;
     } catch {
       return null;

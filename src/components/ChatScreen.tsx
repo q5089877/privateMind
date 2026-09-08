@@ -171,6 +171,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
         <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{session.closure.resumeAnchor || session.closure.unresolved}</p>
       </aside>}
 
+      {!reply && !replyUnavailable && !isMultiTurn && (
+        <p className="mb-6 rounded-2xl border border-accent/15 bg-accent/5 px-4 py-3 text-sm leading-relaxed text-ink-secondary">
+          這句話已保存。你可以接著說，也可以先停在這裡。
+        </p>
+      )}
+
       <section aria-label="這次停靠的對話" className="space-y-6">
         {turns.map((turn, index) => {
           const isLastAssistant = turn.role === 'assistant' && index === turns.length - 1;

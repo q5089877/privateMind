@@ -13,12 +13,12 @@ export class CompanionService {
   }
 
   /** A closing reflection may see only this explicit conversation, never the wider history. */
-  public closeSession(session: HarborSession): Promise<SessionClosureDraft | null> {
+  public closeSession(session: HarborSession, signal?: AbortSignal): Promise<SessionClosureDraft | null> {
     const userTurns = session.turns.filter(turn => turn.role === 'user' && turn.content.trim());
     const totalChars = userTurns.reduce((sum, turn) => sum + turn.content.trim().length, 0);
     // Short thoughts do not need an AI summary; preserve the user's exact words.
     if (userTurns.length < 2 || totalChars < 20) return Promise.resolve(null);
-    return GeminiProxyClient.getSessionClosure(session.turns);
+    return GeminiProxyClient.getSessionClosure(session.turns, signal);
   }
 
   /** Exploration is explicit, session-only, and uses three sampled orthogonal axes. */

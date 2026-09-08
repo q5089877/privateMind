@@ -20,6 +20,7 @@ export class HarborFlowEngine {
   private listeners: Array<() => void> = [];
   private readonly presentReplyRequests = new Map<string, Promise<string | null>>();
   private activePresentAbortController: AbortController | null = null;
+  private activeLandingAbortController: AbortController | null = null;
 
   constructor() {
     void this.initialise();
@@ -156,10 +157,13 @@ export class HarborFlowEngine {
     if (!moment) return;
 
     // Enter LAND immediately with a local draft; AI refinement must not block navigation.
+    this.activeLandingAbortController?.abort();
+    const landingAbortController = new AbortController();
+    this.activeLandingAbortController = landingAbortController;
     const fallback = this.fallbackClosure(session);
     this.dispatch({ type: 'LANDING_READY', closure: fallback, moment, session });
 
-    void this.companion.closeSession(session).then(draft => {
+    void this.companion.closeSession(session, landingAbortController.signal).then(draft => {
       if (!draft || this.snapshot.screen !== 'LAND' || this.snapshot.currentSession?.id !== session.id) return;
       this.dispatch({ type: 'LANDING_READY', closure: this.toClosure(session, draft), moment, session });
     });
@@ -174,6 +178,8 @@ export class HarborFlowEngine {
 
   /** LAND is durable only after explicit confirmation. */
   public async completeLanding(sessionId: string, closure: SessionClosure) {
+    this.activeLandingAbortController?.abort();
+    this.activeLandingAbortController = null;
     const data = await this.storage.getData();
     const persisted = data.sessions.find(session => session.id === sessionId);
     const draft = persisted || (this.snapshot.currentSession?.id === sessionId ? this.snapshot.currentSession : null);
@@ -185,7 +191,11 @@ export class HarborFlowEngine {
     this.reset();
   }
 
-  public returnToChat() { this.dispatch({ type: 'RETURN_TO_CHAT' }); }
+  public returnToChat() {
+    this.activeLandingAbortController?.abort();
+    this.activeLandingAbortController = null;
+    this.dispatch({ type: 'RETURN_TO_CHAT' });
+  }
 
   /** Pattern Passive Mirroring: deterministic gate first, then literal-anchor AI selection. */
   public async requestPatternMirror(): Promise<PatternMirror | null> {

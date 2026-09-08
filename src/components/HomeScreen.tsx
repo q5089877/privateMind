@@ -53,7 +53,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
       setIsHolding(true);
       triggerHaptic('heartbeat');
       heartbeatTimerRef.current = window.setInterval(() => triggerHaptic('heartbeat'), 1000);
-    }, 240);
+    }, 450);
   };
 
   const handleAnchorUp = (event?: React.PointerEvent<HTMLButtonElement>) => {
