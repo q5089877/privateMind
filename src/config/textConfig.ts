@@ -102,7 +102,7 @@ export const UI_TEXT = {
     receiptTitle: '思緒邊界',
     receiptSub: 'ANCHOR BOX',
     takeawayHeader: '這次先帶走',
-    unresolvedHeader: '留在明天看',
+    unresolvedHeader: '之後再回看',
     resumeAnchorPrefix: '下次若要接續，可以從「',
     resumeAnchorSuffix: '」開始，不擴大戰線。',
     saveBtn: '安放並回到現在',
