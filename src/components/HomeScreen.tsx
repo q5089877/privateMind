@@ -19,10 +19,13 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
   const [showCrisisHelp, setShowCrisisHelp] = useState(false);
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
   const [isHolding, setIsHolding] = useState(false);
+  const [tapPulse, setTapPulse] = useState(false);
   const holdTimerRef = useRef<number | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
   const pressStartedAtRef = useRef(0);
   const holdActivatedRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const tapPulseTimerRef = useRef<number | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -31,13 +34,19 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
     return () => {
       if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
       if (heartbeatTimerRef.current) window.clearInterval(heartbeatTimerRef.current);
+      if (tapPulseTimerRef.current) window.clearTimeout(tapPulseTimerRef.current);
     };
   }, []);
 
-  const handleAnchorDown = (event: React.PointerEvent) => {
-    if (event.button !== 0) return;
+  const handleAnchorDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 || activePointerIdRef.current !== null) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    activePointerIdRef.current = event.pointerId;
     pressStartedAtRef.current = Date.now();
     holdActivatedRef.current = false;
+    setTapPulse(true);
+    if (tapPulseTimerRef.current) window.clearTimeout(tapPulseTimerRef.current);
+    tapPulseTimerRef.current = window.setTimeout(() => setTapPulse(false), 180);
     triggerHaptic('unlatch');
     holdTimerRef.current = window.setTimeout(() => {
       holdActivatedRef.current = true;
@@ -47,7 +56,10 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
     }, 240);
   };
 
-  const handleAnchorUp = () => {
+  const handleAnchorUp = (event?: React.PointerEvent<HTMLButtonElement>) => {
+    if (event && activePointerIdRef.current !== event.pointerId) return;
+    if (event && event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    activePointerIdRef.current = null;
     const durationMs = Date.now() - pressStartedAtRef.current;
     if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
     if (heartbeatTimerRef.current) window.clearInterval(heartbeatTimerRef.current);
@@ -61,6 +73,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
     }
     holdActivatedRef.current = false;
     setIsHolding(false);
+    setTapPulse(false);
   };
 
   const beginConversation = async () => {
@@ -95,7 +108,14 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
   const trimmedLength = input.trim().length;
 
   return (
-    <div className="w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-1 sm:py-7 flex flex-col space-y-3 sm:space-y-6">
+    <div className="relative w-full max-w-[580px min-h-[calc(100vh-90px)] px-1 py-1 sm:py-7 flex flex-col space-y-3 sm:space-y-6">
+
+      {isHolding && (
+        <div className="anchor-immersion" aria-hidden="true">
+          <div className="anchor-water" />
+          <div className="anchor-ripple" />
+        </div>
+      )}
 
       <header className="flex items-center justify-between gap-3 pt-0.5 sm:pt-1">
         <div className="flex items-center gap-2.5">
@@ -111,10 +131,9 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
           type="button"
           onPointerDown={handleAnchorDown}
           onPointerUp={handleAnchorUp}
-          onPointerLeave={handleAnchorUp}
           onPointerCancel={handleAnchorUp}
           onContextMenu={event => event.preventDefault()}
-          className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-colors ${isHolding ? 'border-accent bg-accent text-white' : 'border-accent/40 bg-surface text-accent'}`}
+          className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-all ${isHolding ? 'border-accent bg-accent text-white' : tapPulse ? 'border-accent bg-accent/15 text-accent scale-105' : 'border-accent/40 bg-surface text-accent'}`}
           aria-label="定錨：短按或長按"
           title="短按輕點，長按定錨"
           data-testid="anchor-button"
