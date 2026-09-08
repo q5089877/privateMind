@@ -50,7 +50,7 @@ flowchart TD
   Q --> R["HOME 顯示停靠卡"]
 ```
 
-停靠卡分支：接著說 → openChat()；封裝存檔 → beginLandingFromMoment()；結束停靠 → dismissDockedMoment()（只清顯示，不刪 Moment）。
+一般留言會在保存完成後直接進 CHAT；若畫面上仍有停靠卡，接著說 → openChat()；封裝存檔 → beginLandingFromMoment()；結束停靠 → dismissDockedMoment()（只清顯示，不刪 Moment）。
 
 右上角定錨：recordAnchorEvent(tap 或 hold, durationMs) → MindHarborRepository.recordAnchorEvent() 寫入 AnchorEvent。
 
