@@ -115,7 +115,9 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
           onPointerCancel={handleAnchorUp}
           onContextMenu={event => event.preventDefault()}
           className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-colors ${isHolding ? 'border-accent bg-accent text-white' : 'border-accent/40 bg-surface text-accent'}`}
-          aria-label="定錨：短按或長按"`r`n          title="短按輕點，長按定錨"`r`n          data-testid="anchor-button"
+          aria-label="定錨：短按或長按"
+          title="短按輕點，長按定錨"
+          data-testid="anchor-button"
         >
           <Anchor size={17} />
           <span>{isHolding ? '定錨中' : '定錨'}</span>
