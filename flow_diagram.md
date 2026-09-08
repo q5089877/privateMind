@@ -158,7 +158,7 @@ flowchart TD
   M --> T["still / faded / resolved"]
   T --> U["resolveTemporalDelta(momentId, choice)"]
   U --> V["repository.update()"]
-  V --> W["寫入 Moment.temporalValidation + temporalState"]
+  V --> W["寫入 Moment.temporalValidation.lastReviewedAt + status"]
   X["使用者開啟 Session"] --> Y["openSession(sessionId)"]
   Y --> Z["必要時 saveSession(active)"]
   Z --> AA["dispatch SESSION_OPENED → CHAT"]

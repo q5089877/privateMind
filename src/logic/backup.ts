@@ -121,11 +121,6 @@ export const parseBackupText = (text: string): MindHarborData => {
     return event as unknown as AnchorEvent;
   });
 
-  let temporalState = data.temporalState;
-  if (temporalState !== undefined && (!isRecord(temporalState) || !isFiniteNumber(temporalState.consecutiveStillCount) || temporalState.consecutiveStillCount < 0 || (temporalState.silencedUntil !== undefined && !isFiniteNumber(temporalState.silencedUntil)) || (temporalState.lastEvaluatedAt !== undefined && !isFiniteNumber(temporalState.lastEvaluatedAt)))) {
-    throw new Error('備份中的 temporalState 格式錯誤。');
-  }
-
   return {
     version: 2,
     moments,
@@ -133,7 +128,6 @@ export const parseBackupText = (text: string): MindHarborData => {
     lines: validateLines(data.lines),
     linkDecisions: validateDecisions(data.linkDecisions),
     anchorEvents,
-    temporalState: temporalState as MindHarborData['temporalState'],
     backup: data.backup === undefined ? { pendingChanges: 0 } : validateBackupStatus(data.backup)
   };
 };

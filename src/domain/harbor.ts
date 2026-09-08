@@ -15,15 +15,9 @@ export type TemporalStatus = 'pending' | 'still' | 'faded' | 'resolved';
 
 export interface TemporalValidation {
   status: TemporalStatus;
-  validatedAt?: number;
-  nextEligibleAt?: number; // 針對 'still'，設定為 Date.now() + 7 * 86400000
+  lastReviewedAt?: number;
 }
 
-export interface TemporalGlobalState {
-  consecutiveStillCount: number;
-  silencedUntil?: number;       // 連續 2 次 still 觸發 5 天冷卻
-  lastEvaluatedAt?: number;     // 任意操作觸發 12 小時全域冷卻
-}
 
 /** The indivisible, user-authored unit. It is never rewritten by AI. */
 export interface Moment {
@@ -206,7 +200,6 @@ export interface MindHarborData {
   lines: ThreadLine[];
   linkDecisions: LinkDecision[];
   anchorEvents: AnchorEvent[];
-  temporalState?: TemporalGlobalState;
   backup: BackupStatus;
 }
 

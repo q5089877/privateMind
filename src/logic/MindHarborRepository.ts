@@ -1,4 +1,4 @@
-import { AnchorEvent, AnchorEventType, DailyAnchorStats, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, TemporalGlobalState, SessionClosure, ThoughtThread, ThreadLine } from '../types';
+import { AnchorEvent, AnchorEventType, DailyAnchorStats, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, SessionClosure, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 1;
@@ -18,7 +18,6 @@ const emptyData = (): MindHarborData => ({
   lines: [],
   linkDecisions: [],
   anchorEvents: [],
-  temporalState: { consecutiveStillCount: 0 },
   backup: { pendingChanges: 0 }
 });
 
@@ -214,87 +213,30 @@ export class MindHarborRepository {
   }
 
 
-  /**
-   * 48-Hour Temporal Delta Candidate Filter.
-   * Short-circuit priority:
-   * 1. 5-day Frustration Silence line
-   * 2. 12-hour session frequency defense (anti-cascade bombing)
-   * 3. Candidate criteria: length >= 4, age >= 48h, not suppressed/settled/deleted
-   * 4. LIFO: pick the most recent eligible past moment
-   */
+  /** Temporal Delta is a plain status archive; no ranking, weighting, or global cooldown. */
   public async getTemporalCandidate(): Promise<Moment | null> {
     const data = await this.getData();
     const now = Date.now();
-    const state = data.temporalState || { consecutiveStillCount: 0 };
-
-    // 1. 全域靜默檢查 (5天防線)
-    if (state.silencedUntil && now < state.silencedUntil) return null;
-
-    // 2. 12 小時頻率防線 (禁止連環索取 / 防追債清單)
-    if (state.lastEvaluatedAt && (now - state.lastEvaluatedAt) < MS_12H) return null;
-
-    // 3. 候選過濾
-    const candidates = data.moments.filter(m => {
-      if (m.deletedAt || m.settledAt) return false;
-      if (!m.content || m.content.trim().length < 4) return false;
-      if (now - m.createdAt < MS_48H) return false;
-
-      const tv = m.temporalValidation;
-      if (!tv || tv.status === 'pending') return true;
-      if (tv.status === 'still' && tv.nextEligibleAt && now >= tv.nextEligibleAt) return true;
-
-      return false;
+    const candidates = data.moments.filter(moment => {
+      if (moment.deletedAt || moment.settledAt || !moment.content || moment.content.trim().length < 4) return false;
+      const tv = moment.temporalValidation;
+      if (tv?.status === 'faded' || tv?.status === 'resolved') return false;
+      const referenceAt = tv?.status === 'still' ? (tv.lastReviewedAt || moment.createdAt) : moment.createdAt;
+      return now - referenceAt >= MS_48H;
     });
-
-    if (candidates.length === 0) return null;
-
-    // 4. LIFO: 優先取時間最近的一筆（離當下最近的過去）
-    return candidates.sort((a, b) => b.createdAt - a.createdAt)[0];
+    return candidates.sort((a, b) => b.createdAt - a.createdAt)[0] || null;
   }
 
-  /**
-   * Resolves Temporal Delta validation state with zero AI tokens.
-   * Updates Moment status, sets 12h cooldown, and updates Frustration Silencing counter.
-   */
+  /** Records only the user's selected status and, for still, the review timestamp. */
   public async resolveTemporalDelta(momentId: string, choice: 'still' | 'faded' | 'resolved'): Promise<MindHarborData> {
     const now = Date.now();
-    return this.update(data => {
-      const state: TemporalGlobalState = {
-        consecutiveStillCount: data.temporalState?.consecutiveStillCount || 0,
-        silencedUntil: data.temporalState?.silencedUntil,
-        lastEvaluatedAt: now
-      };
-
-      const moments = data.moments.map(m => {
-        if (m.id !== momentId) return m;
-        return {
-          ...m,
-          temporalValidation: {
-            status: choice,
-            validatedAt: now,
-            ...(choice === 'still' ? { nextEligibleAt: now + MS_7D } : {})
-          }
-        };
-      });
-
-      if (choice === 'still') {
-        state.consecutiveStillCount += 1;
-        if (state.consecutiveStillCount >= 2) {
-          state.silencedUntil = now + MS_5D;
-          state.consecutiveStillCount = 0; // 觸發後重置計數
-        }
-      } else {
-        // 只要選擇淡化或結案，連續累積計數立即歸零
-        state.consecutiveStillCount = 0;
-      }
-
-      return {
-        ...data,
-        moments,
-        temporalState: state,
-        backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
-      };
-    });
+    return this.update(data => ({
+      ...data,
+      moments: data.moments.map(moment => moment.id === momentId
+        ? { ...moment, temporalValidation: { status: choice, ...(choice === 'still' ? { lastReviewedAt: now } : {}) } }
+        : moment),
+      backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
+    }));
   }
 
   /** Atomically persists a confirmed LAND closure with its Session and sealed Moment. */
@@ -468,11 +410,6 @@ export class MindHarborRepository {
         lines: byId(current.lines, incoming.lines),
         linkDecisions: byFingerprint,
         anchorEvents: byId(current.anchorEvents, incoming.anchorEvents),
-        temporalState: {
-          consecutiveStillCount: Math.max(current.temporalState?.consecutiveStillCount || 0, incoming.temporalState?.consecutiveStillCount || 0),
-          silencedUntil: Math.max(current.temporalState?.silencedUntil || 0, incoming.temporalState?.silencedUntil || 0) || undefined,
-          lastEvaluatedAt: Math.max(current.temporalState?.lastEvaluatedAt || 0, incoming.temporalState?.lastEvaluatedAt || 0) || undefined
-        },
         backup: { ...current.backup, lastImportedAt: Date.now(), pendingChanges: current.backup.pendingChanges }
       };
     });
@@ -492,11 +429,6 @@ export class MindHarborRepository {
       lines: Array.isArray(data.lines) ? data.lines : [],
       linkDecisions: Array.isArray(data.linkDecisions) ? data.linkDecisions : [],
       anchorEvents: Array.isArray(data.anchorEvents) ? data.anchorEvents.filter(event => event && (event.type === 'tap' || event.type === 'hold') && typeof event.occurredAt === 'number') : [],
-      temporalState: data.temporalState ? {
-        consecutiveStillCount: typeof data.temporalState.consecutiveStillCount === 'number' ? data.temporalState.consecutiveStillCount : 0,
-        silencedUntil: data.temporalState.silencedUntil,
-        lastEvaluatedAt: data.temporalState.lastEvaluatedAt
-      } : { consecutiveStillCount: 0 },
       backup: { pendingChanges: 0, ...(data.backup || {}) }
     };
   }
