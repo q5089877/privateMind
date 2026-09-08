@@ -41,11 +41,11 @@ export const LandingScreen: React.FC<Props> = ({ session, closure, onReturnToCha
           <p className="flex items-center gap-1.5 text-xs font-medium text-accent"><Waves size={14}/>{t.takeawayHeader}</p>
           <p className="mt-2 text-[17px] leading-[1.8] text-ink">{closure.takeaway}</p>
         </div>
-        <div className="mt-5 border-l-2 border-accent/45 pl-4">
+        {(closure.unresolved || closure.resumeAnchor) && <div className="mt-5 border-l-2 border-accent/45 pl-4">
           <p className="text-xs font-medium text-accent">{t.unresolvedHeader}</p>
           <p className="mt-2 text-[16px] leading-[1.75] text-ink-secondary">{closure.unresolved}</p>
           {closure.resumeAnchor && <p className="mt-3.5 border-t border-border-base/70 pt-2.5 text-xs text-ink-muted leading-relaxed">{t.resumeAnchorPrefix}{closure.resumeAnchor}{t.resumeAnchorSuffix}</p>}
-        </div>
+        </div>}
       </section>
 
       <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">

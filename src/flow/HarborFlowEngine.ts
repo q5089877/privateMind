@@ -341,10 +341,10 @@ export class HarborFlowEngine {
 
   private fallbackClosure(session: HarborSession): SessionClosure {
     const last = [...session.turns].reverse().find(turn => turn.role === 'user');
-    const excerpt = last?.content.replace(/\s+/g, ' ').slice(0, 28) || '這次談到的事';
+    const excerpt = last?.content.replace(/\s+/g, ' ').trim() || '這次談到的內容';
     return {
-      takeaway: `「${excerpt}${last && last.content.length > 28 ? '…' : ''}」先留在這裡。`,
-      unresolved: '目前沒有新的可驗證資訊。',
+      takeaway: excerpt,
+      unresolved: '',
       createdAt: Date.now(),
       sourceTurnIds: session.turns.filter(turn => turn.role === 'user').map(turn => turn.id)
     };

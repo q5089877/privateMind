@@ -101,14 +101,14 @@ export const UI_TEXT = {
     subtitle: '這不是結論；只是把現在能想的到此打住。',
     receiptTitle: '思緒邊界',
     receiptSub: 'ANCHOR BOX',
-    takeawayHeader: '這次先帶走',
-    unresolvedHeader: '之後再回看',
+    takeawayHeader: '本次內容',
+    unresolvedHeader: '未釐清事項',
     resumeAnchorPrefix: '下次若要接續，可以從「',
     resumeAnchorSuffix: '」開始，不擴大戰線。',
-    saveBtn: '安放並回到現在',
+    saveBtn: '結束並封存',
     backToChatBtn: '回到對話',
     backBtn: '還想再多寫一點',
-    persistNote: '選擇回到現在後，這份邊界紀錄才會和本次對話一起保存。'
+    persistNote: '封存後，原文與對話會保存到本機。'
   },
   review: {
     backBtn: '回首頁',
