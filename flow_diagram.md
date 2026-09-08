@@ -47,7 +47,7 @@ flowchart TD
   N --> O["取得 persistenceState"]
   O --> P["dispatch MOMENT_DOCKED"]
   P --> Q["snapshot.dockedMoment 更新"]
-  Q --> R["HOME 顯示停靠卡"]
+  Q --> R["一般留言：App callback 接著呼叫 openChat()"]`r`n  R --> S["dispatch OPEN_CHAT → CHAT"]
 ```
 
 一般留言會在保存完成後直接進 CHAT；若畫面上仍有停靠卡，接著說 → openChat()；封裝存檔 → beginLandingFromMoment()；結束停靠 → dismissDockedMoment()（只清顯示，不刪 Moment）。
