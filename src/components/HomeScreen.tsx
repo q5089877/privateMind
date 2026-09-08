@@ -108,7 +108,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
   const trimmedLength = input.trim().length;
 
   return (
-    <div className="relative w-full max-w-[580px min-h-[calc(100vh-90px)] px-1 py-1 sm:py-7 flex flex-col space-y-3 sm:space-y-6">
+    <div className="relative w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-1 sm:py-7 flex flex-col space-y-3 sm:space-y-6">
 
       {isHolding && (
         <div className="anchor-immersion" aria-hidden="true">
