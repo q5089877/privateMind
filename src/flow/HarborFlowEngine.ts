@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { AnchorEventType, BackupOverview, BackupStatus, DailyAnchorStats, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { AnchorEventType, BackupOverview, BackupStatus, DailyAnchorStats, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, PresentResult, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
 import { PatternService } from '../services/memory/PatternService';
@@ -18,7 +18,7 @@ export class HarborFlowEngine {
   private readonly companion = new CompanionService();
   private readonly backup = new BackupService();
   private listeners: Array<() => void> = [];
-  private readonly presentReplyRequests = new Map<string, Promise<string | null>>();
+  private readonly presentReplyRequests = new Map<string, Promise<PresentResult>>();
   private activePresentAbortController: AbortController | null = null;
   private activeLandingAbortController: AbortController | null = null;
 
@@ -54,7 +54,7 @@ export class HarborFlowEngine {
     this.listeners.forEach(listener => listener());
   }
 
-  public async handle(intent: HarborUserIntent): Promise<string | SessionClosure | ReviewReading | null | void> {
+  public async handle(intent: HarborUserIntent): Promise<PresentResult | SessionClosure | ReviewReading | null | void> {
     switch (intent.type) {
       case 'CAPTURE_MOMENT': return this.submitText(intent.content, intent.intent);
       case 'REQUEST_PRESENT_REPLY': return this.requestPresentReply(intent.moment);
@@ -89,8 +89,8 @@ export class HarborFlowEngine {
       this.dispatch({ type: 'SESSION_CONTINUED', moment, session });
 
       // Local persistence is already complete; AI is an optional second step.
-      const reply = await this.requestPresentReply(moment, session);
-      if (reply) await this.saveImmediateReply(moment.id, reply);
+      const result = await this.requestPresentReply(moment, session);
+      await this.applyPresentResult(moment, session, result);
       return;
     }
 
@@ -99,13 +99,16 @@ export class HarborFlowEngine {
     this.dispatch({ type: 'MOMENT_DOCKED', moment, persistenceState });
   }
 
-  /** User chose to discuss the latest Moment. The Session is memory-only until a follow-up is sent. */
-  /** User chose "接著說" on the docked card. Moves to CHAT. */
+  /**
+   * User chose "接著說" on the docked card. Enter CHAT first, then request
+   * exactly one Present reply for the opening Moment through the Flow layer.
+   */
   public openChat() {
     const moment = this.snapshot.dockedMoment || this.snapshot.currentMoment;
     if (!moment) return;
     const session = this.createOrContinueSession(moment);
     this.dispatch({ type: 'OPEN_CHAT', moment, session });
+    void this.requestOpeningPresentReply(moment, session);
   }
 
   /** Explicitly dismiss the docked card. */
@@ -114,7 +117,7 @@ export class HarborFlowEngine {
   }
 
   /** Present Companion reads one current Moment with in-session context, and no past cross-session history. */
-  public async requestPresentReply(moment: Moment, session?: HarborSession, force = false): Promise<string | null> {
+  public async requestPresentReply(moment: Moment, session?: HarborSession, force = false): Promise<PresentResult> {
     if (force) {
       this.presentReplyRequests.delete(moment.id);
     }
@@ -128,12 +131,15 @@ export class HarborFlowEngine {
 
     const activeSession = session || this.snapshot.currentSession || undefined;
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
-    const request = this.companion.replyToPresentMoment(moment, activeSession, abortController.signal).then(reply => {
-      this.dispatch(reply
-        ? { type: 'SET_REQUEST', request: 'idle' }
-        : { type: 'SET_REQUEST', request: 'idle', error: '回應暫時沒有連上。' });
-      return reply;
-    }).catch(() => null).finally(() => {
+    const request = this.companion.replyToPresentMoment(moment, activeSession, abortController.signal).then(result => {
+      this.dispatch(result.status === 'unavailable'
+        ? { type: 'SET_REQUEST', request: 'idle', error: '回應暫時沒有連上。' }
+        : { type: 'SET_REQUEST', request: 'idle' });
+      return result;
+    }).catch(() => {
+      this.dispatch({ type: 'SET_REQUEST', request: 'idle', error: '回應暫時沒有連上。' });
+      return { status: 'unavailable' as const };
+    }).finally(() => {
       if (this.activePresentAbortController === abortController) {
         this.activePresentAbortController = null;
       }
@@ -224,11 +230,16 @@ export class HarborFlowEngine {
     const next = session
       ? await this.storage.saveReplyAndSession(momentId, clean, session)
       : await this.storage.updateMoment(momentId, moment => ({ ...moment, immediateReply: clean }));
-    this.dispatch({
-      type: 'MOMENT_REPLY_SAVED',
-      moment: next.moments.find(moment => moment.id === momentId) || null,
-      session: session ? next.sessions.find(item => item.id === session.id) || session : null
-    });
+    // The reply remains durable even if the user already left CHAT, but stale
+    // async completion must not repopulate HOME/LAND with an old conversation.
+    const visibleSessionId = this.snapshot.currentSession?.id;
+    if (this.snapshot.screen === 'CHAT' && session?.id === visibleSessionId) {
+      this.dispatch({
+        type: 'MOMENT_REPLY_SAVED',
+        moment: next.moments.find(moment => moment.id === momentId) || null,
+        session: next.sessions.find(item => item.id === session.id) || session
+      });
+    }
   }
 
   public async getMoments(): Promise<Moment[]> {
@@ -339,6 +350,30 @@ export class HarborFlowEngine {
       return { ...active, momentIds: [...new Set([...active.momentIds, moment.id])], turns: [...active.turns, userTurn], updatedAt: moment.createdAt };
     }
     return { id: this.id('session'), originMomentId: moment.id, momentIds: [moment.id], turns: [userTurn], recalledMomentIds: [], status: 'active', createdAt: moment.createdAt, updatedAt: moment.createdAt };
+  }
+
+  private async requestOpeningPresentReply(moment: Moment, session: HarborSession): Promise<void> {
+    const hasStoredReply = Boolean(moment.immediateReply?.trim());
+    const hasSessionReply = session.turns.some(turn => turn.role === 'assistant' && turn.momentId === moment.id);
+    if (hasStoredReply || hasSessionReply) return;
+
+    const result = await this.requestPresentReply(moment, session);
+    await this.applyPresentResult(moment, session, result);
+  }
+
+  private async applyPresentResult(moment: Moment, session: HarborSession, result: PresentResult): Promise<void> {
+    if (result.status === 'success') {
+      await this.saveImmediateReply(moment.id, result.reply);
+      return;
+    }
+    if (
+      result.status === 'acknowledged' &&
+      this.snapshot.screen === 'CHAT' &&
+      this.snapshot.currentSession?.id === session.id &&
+      this.snapshot.currentMoment?.id === moment.id
+    ) {
+      this.dispatch({ type: 'PRESENT_ACKNOWLEDGED', momentId: moment.id });
+    }
   }
 
   private toClosure(session: HarborSession, draft: SessionClosureDraft): SessionClosure {

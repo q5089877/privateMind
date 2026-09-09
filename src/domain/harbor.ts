@@ -59,6 +59,12 @@ export interface ConversationTurn {
   momentId?: string;
 }
 
+/** Explicit outcome of a Present request; only success is persisted as AI text. */
+export type PresentResult =
+  | { status: 'success'; reply: string }
+  | { status: 'acknowledged'; reply: '已留下。' }
+  | { status: 'unavailable' };
+
 /** A temporary landing, never a diagnosis or permanent verdict. */
 export interface SessionClosure {
   takeaway: string;

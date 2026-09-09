@@ -1,21 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
-import { ConversationTurn, ExploreResult, HarborSession, Moment } from '../types';
+import { ConversationTurn, ExploreResult, HarborSession, Moment, PresentResult } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { UI_TEXT } from '../config/textConfig';
 
 interface Props {
   moment: Moment | null;
   session: HarborSession | null;
+  isPresentThinking: boolean;
+  isPresentAcknowledged: boolean;
+  isPresentUnavailable: boolean;
   onLeave: () => void;
   onContinue: (content: string) => Promise<void>;
-  getPresentReply: (moment: Moment, session?: HarborSession | null, force?: boolean) => Promise<string | null>;
+  getPresentReply: (moment: Moment, session?: HarborSession | null, force?: boolean) => Promise<PresentResult>;
   getExploration: (session: HarborSession, excludeAxes?: string[]) => Promise<ExploreResult | null>;
   onSaveReply: (momentId: string, reply: string) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
 }
 
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
+const acknowledgementReply = '已留下。';
+
+const isAcknowledgementReply = (text?: string | null) =>
+  Boolean(text && normalizeCompanionResponse(text) === acknowledgementReply);
 
 const isFallbackReply = (text?: string | null) => {
   if (!text) return false;
@@ -26,8 +33,9 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding }) => {
   const [reply, setReply] = useState('');
+  const [acknowledged, setAcknowledged] = useState(false);
   const [replyUnavailable, setReplyUnavailable] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [continuation, setContinuation] = useState('');
@@ -41,9 +49,11 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const hasValidReply = moment?.immediateReply && !isFallbackReply(moment.immediateReply);
+    const hasAcknowledgement = isAcknowledgementReply(moment?.immediateReply);
+    const hasValidReply = moment?.immediateReply && !hasAcknowledgement && !isFallbackReply(moment.immediateReply);
     setReply(hasValidReply ? normalizeCompanionResponse(moment!.immediateReply!) : '');
-    setReplyUnavailable(Boolean(moment?.immediateReply && isFallbackReply(moment.immediateReply)));
+    setAcknowledged(hasAcknowledgement);
+    setReplyUnavailable(Boolean(moment?.immediateReply && !hasAcknowledgement && isFallbackReply(moment.immediateReply)));
     setIsRetrying(false);
     setContinuation('');
     setContinuationGuide('');
@@ -52,7 +62,19 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     setExploring(false);
     setExploration(null);
     setActivePerspectiveIndex(0);
-  }, [moment?.id]);
+  }, [moment?.id, moment?.immediateReply]);
+
+  useEffect(() => {
+    if (isPresentAcknowledged) {
+      setReply('');
+      setAcknowledged(true);
+      setReplyUnavailable(false);
+    }
+  }, [isPresentAcknowledged]);
+
+  useEffect(() => {
+    if (isPresentUnavailable) setReplyUnavailable(true);
+  }, [isPresentUnavailable]);
 
   // 新訊息或狀態變更時自動平滑滾動到底部
   useEffect(() => {
@@ -66,12 +88,18 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
     setReplyUnavailable(false);
     try {
       const value = await getPresentReply(moment, session, true);
-      if (value) {
-        const clean = normalizeCompanionResponse(value);
+      if (value.status === 'success') {
+        const clean = normalizeCompanionResponse(value.reply);
         setReply(clean);
+        setAcknowledged(false);
         await onSaveReply(moment.id, clean);
         setReplyUnavailable(false);
+      } else if (value.status === 'acknowledged') {
+        setReply('');
+        setAcknowledged(true);
+        setReplyUnavailable(false);
       } else {
+        setAcknowledged(false);
         setReplyUnavailable(true);
       }
     } catch {
@@ -84,7 +112,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
   if (!moment || !session) return null;
 
   const t = UI_TEXT.chat;
-  const turns: ConversationTurn[] = [...session.turns].filter(turn => turn.role !== 'assistant' || !isFallbackReply(turn.content));
+  const hasLegacyAcknowledgement = session.turns.some(turn =>
+    turn.role === 'assistant' && turn.momentId === moment.id && isAcknowledgementReply(turn.content)
+  );
+  const turns: ConversationTurn[] = [...session.turns].filter(turn =>
+    turn.role !== 'assistant' || (!isFallbackReply(turn.content) && !isAcknowledgementReply(turn.content))
+  );
   const hasCurrentAssistant = turns.some(turn => turn.role === 'assistant' && turn.momentId === moment.id);
   if (reply && !hasCurrentAssistant) turns.push({ id: `visible-reply-${moment.id}`, role: 'assistant', content: reply, createdAt: Date.now(), momentId: moment.id });
 
@@ -171,9 +204,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, onLeave, onContin
         <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{session.closure.resumeAnchor || session.closure.unresolved}</p>
       </aside>}
 
-      {!reply && !replyUnavailable && !isMultiTurn && (
+      {!reply && !replyUnavailable && !isMultiTurn && isPresentThinking && (
         <p className="mb-6 rounded-2xl border border-accent/15 bg-accent/5 px-4 py-3 text-sm leading-relaxed text-ink-secondary">
-          這句話已保存。你可以接著說，也可以先停在這裡。
+          這句話已保存，正在看一看……
+        </p>
+      )}
+
+      {!reply && !replyUnavailable && !isPresentThinking && !isMultiTurn && (acknowledged || hasLegacyAcknowledgement) && (
+        <p className="mb-6 rounded-2xl border border-accent/15 bg-accent/5 px-4 py-3 text-sm leading-relaxed text-ink-secondary">
+          {acknowledgementReply}
         </p>
       )}
 

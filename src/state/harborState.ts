@@ -7,6 +7,8 @@ export interface HarborAppState {
   screen: 'HOME' | 'CHAT' | 'LAND' | 'REVIEW' | 'BACKUP';
   currentMoment: Moment | null;
   currentSession: HarborSession | null;
+  /** Ephemeral local acknowledgement; never persisted as an assistant turn. */
+  presentAcknowledgedMomentId: string | null;
   /**
    * Transient UI state: the Moment just saved via submitText().
    * Present = show confirmation card on HOME.
@@ -24,6 +26,7 @@ export const initialHarborState: HarborAppState = {
   screen: 'HOME',
   currentMoment: null,
   currentSession: null,
+  presentAcknowledgedMomentId: null,
   dockedMoment: null,
   pendingClosure: null,
   ready: false,

@@ -1,9 +1,14 @@
-import type { ConversationTurn } from '../../../domain/harbor';
+import type { ConversationTurn, PresentResult } from '../../../domain/harbor';
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCompanionResponse } from './shared';
 
 export const DEFAULT_CIRCUIT_BREAKER_FALLBACK = '已留下。';
 
-export const presentFallback = (_value?: string) => DEFAULT_CIRCUIT_BREAKER_FALLBACK;
+export const presentAcknowledgement = (): PresentResult => ({
+  status: 'acknowledged',
+  reply: DEFAULT_CIRCUIT_BREAKER_FALLBACK
+});
+
+const presentUnavailable = (): PresentResult => ({ status: 'unavailable' });
 
 /**
  * 成本與純發洩短路門 (Cost & Vent Gate)：
@@ -110,8 +115,11 @@ B. 結構不足時（資訊過於零碎、純情緒發洩、或無法拆解）�
     };
   },
 
-  read(raw: string, _current?: string): string {
+  read(raw: string, _current?: string): PresentResult {
     const text = normalizeCompanionResponse(raw);
+    if (text === DEFAULT_CIRCUIT_BREAKER_FALLBACK) {
+      return presentAcknowledgement();
+    }
     const genericForbidden = [
       '辛苦了', '這很正常', '真實的一刻', '一切正在運作', '允許自己', '先停下來', '休息一下',
       '法庭', '審判', '神經訊號', '注意力通道', '看得出來', '聽得出來', '別擔心', '慢慢來', '深呼吸',
@@ -123,20 +131,20 @@ B. 結構不足時（資訊過於零碎、純情緒發洩、或無法拆解）�
     // 1. Present 永遠不提出問題
     const questionCount = (text.match(/[?？]/g) || []).length;
     if (questionCount > 0) {
-      return DEFAULT_CIRCUIT_BREAKER_FALLBACK;
+      return presentUnavailable();
     }
     
     // 2. 禁安撫套話與工程術語
     const hasForbidden = genericForbidden.some(phrase => text.includes(phrase));
     if (hasForbidden) {
-      return DEFAULT_CIRCUIT_BREAKER_FALLBACK;
+      return presentUnavailable();
     }
     
     // 3. 高品質的短回應可通過，但主要回報不能膨脹成報告
     if (text.length > 160 || text.length < 30) {
-      return DEFAULT_CIRCUIT_BREAKER_FALLBACK;
+      return presentUnavailable();
     }
     
-    return text;
+    return { status: 'success', reply: text };
   }
 };

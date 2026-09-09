@@ -1,4 +1,4 @@
-import { ExplorePerspective, ExploreResult, HarborSession, Moment, SessionClosureDraft } from '../../domain/harbor';
+import { ExplorePerspective, ExploreResult, HarborSession, Moment, PresentResult, SessionClosureDraft } from '../../domain/harbor';
 import { GeminiProxyClient } from '../../logic/geminiProxyClient';
 
 
@@ -7,7 +7,7 @@ import { GeminiProxyClient } from '../../logic/geminiProxyClient';
  * It deliberately receives one Moment, never an implicit dump of personal history.
  */
 export class CompanionService {
-  public replyToPresentMoment(moment: Moment, session?: HarborSession, signal?: AbortSignal): Promise<string | null> {
+  public replyToPresentMoment(moment: Moment, session?: HarborSession, signal?: AbortSignal): Promise<PresentResult> {
     const priorTurns = session?.turns.filter(t => t.momentId !== moment.id) || [];
     return GeminiProxyClient.getCompanionResponse(moment.content, priorTurns, signal);
   }

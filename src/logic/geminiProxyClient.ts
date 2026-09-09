@@ -6,11 +6,11 @@
  * accidentally changing another role's boundaries.
  */
 
-import type { ConversationTurn, ExplorePerspective, SessionClosureDraft, TimelineInsight } from '../domain/harbor';
+import type { ConversationTurn, ExplorePerspective, PresentResult, SessionClosureDraft, TimelineInsight } from '../domain/harbor';
 import { exploreRole } from '../services/ai/roles/exploreRole';
 import { landingRole } from '../services/ai/roles/landingRole';
 import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
-import { presentFallback, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
+import { presentAcknowledgement, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
 import { normalizeCompanionResponse } from '../services/ai/roles/shared';
 import { timelineRole, type TimelineSource } from '../services/ai/roles/timelineRole';
 
@@ -80,21 +80,20 @@ export class GeminiProxyClient {
   }
 
   /** Present Companion (Circuit Breaker): one current Moment, with in-session context if available. */
-  public static async getCompanionResponse(current: string, priorTurns?: ConversationTurn[], signal?: AbortSignal): Promise<string | null> {
+  public static async getCompanionResponse(current: string, priorTurns?: ConversationTurn[], signal?: AbortSignal): Promise<PresentResult> {
     const clean = current.trim();
     // 本地短路過濾：長度過短、純髒話/虛詞、純符號、或高重複字元，直接短路返回熔斷文字
     if (shouldShortCircuitLocally(clean)) {
-      return presentFallback();
+      return presentAcknowledgement();
     }
     const task = presentRole.create(clean, priorTurns);
     const proxyUrl = this.getProxyUrl();
-    if (!proxyUrl) return presentFallback();
+    if (!proxyUrl) return { status: 'unavailable' };
     try {
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs, signal));
-      return raw ? presentRole.read(raw, clean) : presentFallback();
+      return raw ? presentRole.read(raw, clean) : { status: 'unavailable' };
     } catch (err) {
-      if (signal?.aborted) return null;
-      return presentFallback();
+      return { status: 'unavailable' };
     }
   }
 

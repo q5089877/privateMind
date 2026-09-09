@@ -30,6 +30,7 @@ export type HarborIntent =
   | { type: 'DISMISS_DOCKED_MOMENT' }
   /** User explicitly chose to continue talking. Moves to CHAT with the docked Moment/Session. */
   | { type: 'OPEN_CHAT'; moment: Moment; session: HarborSession }
+  | { type: 'PRESENT_ACKNOWLEDGED'; momentId: string }
   | { type: 'MOMENT_REPLY_SAVED'; moment: Moment | null; session: HarborSession | null }
   | { type: 'SESSION_OPENED'; moment: Moment; session: HarborSession }
   | { type: 'SESSION_UPDATED'; session: HarborSession | null }

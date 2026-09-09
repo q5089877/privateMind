@@ -13,6 +13,7 @@ export function useFlow() {
     state: snapshot.screen,
     currentMoment: snapshot.currentMoment,
     currentSession: snapshot.currentSession,
+    presentAcknowledgedMomentId: snapshot.presentAcknowledgedMomentId,
     dockedMoment: snapshot.dockedMoment,
     pendingClosure: snapshot.pendingClosure,
     ready: snapshot.ready,
