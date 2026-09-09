@@ -403,6 +403,17 @@ export class MindHarborRepository {
       // Existing device data wins when ids collide: import is a merge, never an overwrite.
       const byId = <T extends { id: string }>(left: T[], right: T[]) => [...new Map([...right, ...left].map(item => [item.id, item])).values()];
       const byFingerprint = [...new Map([...incoming.linkDecisions, ...current.linkDecisions].map(item => [item.fingerprint, item])).values()];
+      const countNewIds = <T extends { id: string }>(existing: T[], imported: T[]) => {
+        const existingIds = new Set(existing.map(item => item.id));
+        return new Set(imported.filter(item => !existingIds.has(item.id)).map(item => item.id)).size;
+      };
+      const existingFingerprints = new Set(current.linkDecisions.map(item => item.fingerprint));
+      const importedChanges =
+        countNewIds(current.moments, incoming.moments) +
+        countNewIds(current.sessions, incoming.sessions) +
+        countNewIds(current.lines, incoming.lines) +
+        countNewIds(current.anchorEvents, incoming.anchorEvents) +
+        new Set(incoming.linkDecisions.filter(item => !existingFingerprints.has(item.fingerprint)).map(item => item.fingerprint)).size;
       return {
         version: 2,
         moments: byId(current.moments, incoming.moments).sort((a, b) => a.createdAt - b.createdAt),
@@ -410,7 +421,11 @@ export class MindHarborRepository {
         lines: byId(current.lines, incoming.lines),
         linkDecisions: byFingerprint,
         anchorEvents: byId(current.anchorEvents, incoming.anchorEvents),
-        backup: { ...current.backup, lastImportedAt: Date.now(), pendingChanges: current.backup.pendingChanges }
+        backup: {
+          ...current.backup,
+          lastImportedAt: Date.now(),
+          pendingChanges: current.backup.pendingChanges + importedChanges
+        }
       };
     });
   }

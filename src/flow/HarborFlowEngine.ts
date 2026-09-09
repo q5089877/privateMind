@@ -337,7 +337,11 @@ export class HarborFlowEngine {
       await this.storage.mergeImported(incoming);
       this.dispatch({ type: 'SET_REQUEST', request: 'idle' });
     } catch (error) {
-      this.dispatch({ type: 'SET_REQUEST', request: 'idle', error: error instanceof Error ? error.message : '備份匯入失敗。' });
+      const failure = error instanceof Error ? error : new Error('備份匯入失敗。');
+      this.dispatch({ type: 'SET_REQUEST', request: 'idle', error: failure.message });
+      // The screen owns user-facing success/error presentation, so it must
+      // receive the failure instead of assuming a resolved Promise succeeded.
+      throw failure;
     }
   }
 

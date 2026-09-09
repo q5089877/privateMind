@@ -202,6 +202,7 @@ UI 先顯示 `Present Companion` 的當下回應，不在剛輸入後強制展�
 - `Migration` 負責把舊版本資料安全升級為目前結構。
 - `Backup Export` 匯出完整 JSON，不可只匯出 Moment。
 - `Backup Import` 必須先驗證格式再合併，不可覆蓋既有本機資料。
+- `Backup Import` 只有在驗證、合併與本機寫入全部完成後才能回報成功；任何階段失敗都必須將錯誤傳回畫面，不得顯示成功訊息。實際新增的匯入紀錄視為本機新變更，必須增加待備份計數。
 - `Backup Status` 清楚表達本機保存、最後匯出、最後匯入與待備份變更。
 - 備份畫面必須列出完整內容清單：Moment、session、turn、closure、AnchorEvent，以及舊版資料中的 line／decision，讓人知道帶走的不只是原始文字。
 - 加密雲端同步是未來可選能力，不得破壞 local-first、原文主權與可攜備份原則。
