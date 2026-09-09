@@ -558,6 +558,7 @@ export const ReviewScreen: React.FC<Props> = ({
                       const content = item.kind === 'session' ? item.primaryMoment.content : item.moment.content;
                       const takeaway = item.kind === 'session' ? item.session.closure?.takeaway : undefined;
                       const unresolved = item.kind === 'session' ? item.session.closure?.unresolved : undefined;
+                      const isRedundantTakeaway = Boolean(takeaway && takeaway.trim() === content.trim() && !unresolved);
                       const inPattern = patternMomentIds.has(item.kind === 'session' ? item.primaryMoment.id : item.moment.id);
 
                       return (
@@ -582,7 +583,7 @@ export const ReviewScreen: React.FC<Props> = ({
                             {content}
                           </p>
 
-                          {takeaway && (
+                          {takeaway && !isRedundantTakeaway && (
                             <div className="mt-3.5 p-3.5 bg-[#F7F6F3] rounded-xl">
                               <p className="text-xs font-semibold text-[#387358]">這次先帶走</p>
                               <p className="mt-1 text-[14.5px] text-[#223129] leading-relaxed">{takeaway}</p>
@@ -593,12 +594,12 @@ export const ReviewScreen: React.FC<Props> = ({
                           )}
 
                           {/* Interactive Action Buttons */}
-                          <div className="mt-5 pt-3.5 border-t border-[#F2F0EC] flex items-center justify-between">
-                            <div className="flex flex-wrap items-center gap-2">
+                          <div className="mt-5 pt-3.5 border-t border-[#F2F0EC] flex items-end justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
                               {item.kind === 'session' && (
                                 <button
                                   onClick={() => void onOpenSession(item.session.id)}
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1E3E31] hover:bg-[#162F25] text-white text-[13px] font-medium transition-all shadow-sm cursor-pointer"
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1E3E31] hover:bg-[#162F25] text-white text-[13px] font-medium transition-all shadow-sm cursor-pointer shrink-0"
                                 >
                                   <span>繼續這裡</span>
                                   <ArrowRight size={13} />
@@ -612,14 +613,14 @@ export const ReviewScreen: React.FC<Props> = ({
                                       <button
                                         type="button"
                                         onClick={() => void handleResolveMoment(m.id, 'faded')}
-                                        className="px-3 py-1.5 rounded-full bg-[#EAF2ED] hover:bg-[#DCEAE1] text-[#387358] text-[12px] font-medium transition-colors cursor-pointer"
+                                        className="px-3 py-1.5 rounded-full bg-[#EAF2ED] hover:bg-[#DCEAE1] text-[#387358] text-[12px] font-medium transition-colors cursor-pointer shrink-0"
                                       >
                                         標記已淡化
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => void handleResolveMoment(m.id, 'resolved')}
-                                        className="px-3 py-1.5 rounded-full bg-[#EAF2ED] hover:bg-[#DCEAE1] text-[#387358] text-[12px] font-medium transition-colors cursor-pointer"
+                                        className="px-3 py-1.5 rounded-full bg-[#EAF2ED] hover:bg-[#DCEAE1] text-[#387358] text-[12px] font-medium transition-colors cursor-pointer shrink-0"
                                       >
                                         標記已結案
                                       </button>
@@ -630,14 +631,14 @@ export const ReviewScreen: React.FC<Props> = ({
                               })()}
                               <button
                                 onClick={() => item.settled ? void handleUnsettle(item.kind, id) : void handleSettle(item.kind, id)}
-                                className="px-3 py-1.5 rounded-full bg-[#F3F1EC] hover:bg-[#EAE6DE] text-[#4A5C52] text-[13px] font-medium transition-colors cursor-pointer"
+                                className="px-3 py-1.5 rounded-full bg-[#F3F1EC] hover:bg-[#EAE6DE] text-[#4A5C52] text-[13px] font-medium transition-colors cursor-pointer shrink-0"
                               >
                                 {item.settled ? '取消安放' : '安放'}
                               </button>
                             </div>
                             <button
                               onClick={() => setConfirmingId(id)}
-                              className="text-[12px] text-[#A2ADA7] hover:text-[#C55050] transition-colors px-2 py-1 cursor-pointer"
+                              className="text-[12px] text-[#A2ADA7] hover:text-[#C55050] transition-colors px-2 py-1.5 cursor-pointer shrink-0 whitespace-nowrap self-end"
                             >
                               刪除
                             </button>
