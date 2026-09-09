@@ -13,6 +13,7 @@ interface Props {
   onUnsettleItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
   onDeleteItem: (kind: 'moment' | 'session', id: string) => Promise<void>;
   onOpenBackup: () => void;
+  getTemporalCandidate?: () => Promise<Moment | null>;
   onResolveTemporalDelta?: (momentId: string, choice: 'still' | 'faded' | 'resolved') => Promise<void>;
   onSettleAllStill?: () => Promise<void>;
 }
@@ -50,6 +51,7 @@ export const ReviewScreen: React.FC<Props> = ({
   onUnsettleItem,
   onDeleteItem,
   onOpenBackup,
+  getTemporalCandidate,
   onResolveTemporalDelta,
   onSettleAllStill
 }) => {
@@ -70,11 +72,16 @@ export const ReviewScreen: React.FC<Props> = ({
   const [patternMomentIds, setPatternMomentIds] = useState<Set<string>>(new Set());
 
   const reload = useCallback(() => {
-    void Promise.all([getMoments(), getSessions()]).then(([savedMoments, savedSessions]) => {
+    void Promise.all([
+      getMoments(),
+      getSessions(),
+      getTemporalCandidate ? getTemporalCandidate() : Promise.resolve(null)
+    ]).then(([savedMoments, savedSessions, candidate]) => {
       setMoments(savedMoments);
       setSessions(savedSessions);
+      setTemporalCandidate(candidate);
     });
-  }, [getMoments, getSessions]);
+  }, [getMoments, getSessions, getTemporalCandidate]);
 
   useEffect(() => {
     reload();
@@ -310,23 +317,25 @@ export const ReviewScreen: React.FC<Props> = ({
         {/* BEGIN: Temporal Sedimentation Summary */}
         {temporalStats && (
           <section className="w-full mb-6 rounded-2xl bg-white p-5 border border-[#E9E6DE] shadow-xs" data-purpose="temporal-sedimentation">
-            <div className="flex items-center justify-between text-[12px] font-medium text-[#5E7066] mb-3">
-              <span>時間留下的事實</span>
-              <span className="font-mono text-[#86968E]">共 {allCount + settledCount} 筆記錄（{temporalStats.total} 則思緒）</span>
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-3">
+              <span className="shrink-0 whitespace-nowrap font-medium text-[13px] text-[#465950]">時間留下的事實</span>
+              <span className="font-mono text-[#86968E] text-[11.5px] whitespace-nowrap">
+                總清單 {allCount + settledCount} 筆記錄（累計 {temporalStats.total} 則思緒）
+              </span>
             </div>
 
             <div className="space-y-2 text-[14px] text-[#1E2923]">
               <div className="flex items-center justify-between py-1 border-b border-[#F0EDE6]/60">
-                <span className="text-[#465950]">隨時間經過自然淡掉</span>
-                <span className="font-mono font-medium text-[#387358]">{temporalStats.faded} 件</span>
+                <span className="text-[#465950] whitespace-nowrap">隨時間經過自然淡掉</span>
+                <span className="font-mono font-medium text-[#387358] whitespace-nowrap">{temporalStats.faded} 件</span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-[#F0EDE6]/60">
-                <span className="text-[#465950]">在現實中已經過去</span>
-                <span className="font-mono font-medium text-[#387358]">{temporalStats.resolved} 件</span>
+                <span className="text-[#465950] whitespace-nowrap">在現實中已經過去</span>
+                <span className="font-mono font-medium text-[#387358] whitespace-nowrap">{temporalStats.resolved} 件</span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-[#465950]">持續作為生活背景</span>
-                <span className="font-mono font-medium text-[#697B72]">
+                <span className="text-[#465950] whitespace-nowrap">持續作為生活背景</span>
+                <span className="font-mono font-medium text-[#697B72] whitespace-nowrap">
                   {temporalStats.still} 件
                   {temporalStats.stillSettled > 0 && (
                     <span className="text-[12px] text-[#86968E] font-normal ml-1.5">
@@ -339,7 +348,7 @@ export const ReviewScreen: React.FC<Props> = ({
 
             {temporalStats.validated > 0 ? (
               <div className="mt-3.5 pt-3 border-t border-[#E9E6DE] text-[13px] text-[#5E7066] leading-relaxed">
-                在已驗證事項中，
+                在已驗證的 {temporalStats.validated} 件時光沉澱事項中，
                 <span className="font-semibold text-[#1E3E31]">{temporalStats.rate}%</span>
                 {' '}已不再構成當初的主觀張力。
                 {temporalStats.still > 0 && (
@@ -363,13 +372,13 @@ export const ReviewScreen: React.FC<Props> = ({
             {/* Settle All Background Still Button */}
             {temporalStats.stillActive > 0 ? (
               <div className="mt-4 pt-3 border-t border-[#F0EDE6] flex items-center justify-between gap-3">
-                <span className="text-xs text-[#86968E]">不想在日常清單看見背景瑣事？</span>
+                <span className="text-xs text-[#86968E] whitespace-nowrap">不想在日常看見背景瑣事？</span>
                 <button
                   type="button"
                   onClick={() => void handleSettleAllStill()}
-                  className="px-3 py-1.5 rounded-xl bg-[#F3F1EC] hover:bg-[#E8E4DB] text-[#4A5C52] hover:text-[#1E2923] text-xs font-medium transition-colors cursor-pointer shrink-0"
+                  className="px-3 py-1.5 rounded-xl bg-[#F3F1EC] hover:bg-[#E8E4DB] text-[#4A5C52] hover:text-[#1E2923] text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                 >
-                  一鍵全數安放 ({temporalStats.stillActive})
+                  {temporalStats.stillActive === 1 ? '安放此項目' : `一鍵全數安放 (${temporalStats.stillActive})`}
                 </button>
               </div>
             ) : temporalStats.stillSettled > 0 ? (

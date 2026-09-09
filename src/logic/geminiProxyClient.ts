@@ -46,7 +46,7 @@ const postJsonWithTimeout = async (url: string, payload: unknown, timeoutMs: num
     }
     return res;
   } catch (err) {
-    if (externalSignal?.aborted) throw err;
+    if (externalSignal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) throw err;
     await new Promise(r => window.setTimeout(r, 600));
     return await doFetch();
   }

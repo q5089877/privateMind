@@ -20,7 +20,7 @@ export const landingRole = {
       payload: {
         model: FLASH_LITE_MODEL,
         contents: [{ role: 'user', parts: [{ text: `以下是使用者這次親口留下的句子：\n${transcript}\n\n請替這次對話寫一份系統紀錄式的收束草稿：\n- takeaway（這次先帶走）：12 到 32 字，只整理對話中已明確說出的客觀事實。\n- unresolved（目前缺少的資料）：8 到 20 字，只寫目前無法驗證的事實或不可控的外部變數；只能有一句，不得寫成建議、命令或心態總結。\n- resumeAnchor（下次若要接續）：0 到 14 字，摘錄一個具體方向。\n\n負向約束：禁止比喻、詩意語句、心靈雞湯、說教、安慰或諮商語氣；禁止「營業時間」、「現實不收件」、「心靈關機」、「按下暫停鍵」、「放過自己」、「深呼吸」、「明早 09:00」及相近擬人化表達。禁止替使用者總結心態或下結論。只允許平實、中性的系統紀錄語氣，不加前言或客套。繁體中文。` }] }],
-        generationConfig: { temperature: 0.25, maxOutputTokens: 80, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
+        generationConfig: { temperature: 0.25, maxOutputTokens: 280, responseMimeType: 'application/json', responseSchema, thinkingConfig: FAST_THINKING_CONFIG }
       }
     };
   },

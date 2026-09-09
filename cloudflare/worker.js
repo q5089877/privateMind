@@ -4,18 +4,24 @@
  */
 export default {
   async fetch(request, env) {
-    // 1. CORS 白名單 (支援本地開發與 GitHub Pages)
-    const allowedOrigins = [
+    // 1. CORS 白名單與嚴格來源校驗（HTTP Origin 僅包含 scheme + host，不含路徑）
+    const EXACT_ALLOWED_ORIGINS = new Set([
+      "https://q5089877.github.io",
       "http://localhost:5173",
       "http://localhost:3000",
       "http://127.0.0.1:5173",
-      "https://q5089877.github.io/privateMind" // 可替換為你的 GitHub Pages 網址
-    ];
+    ]);
 
     const origin = request.headers.get("Origin") || "";
-    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".github.io");
+    if (!EXACT_ALLOWED_ORIGINS.has(origin)) {
+      return new Response(JSON.stringify({ error: "Forbidden: Unauthorized Origin" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const corsHeaders = {
-      "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "86400",
