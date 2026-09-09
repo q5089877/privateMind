@@ -96,6 +96,13 @@ export const ReviewScreen: React.FC<Props> = ({
       setMirror(result);
       setPatternMomentIds(new Set(result.moments.map(m => m.id)));
       setMirrorOpen(true);
+    } else {
+      // The deterministic time gate was only a candidate check. If literal
+      // evidence is absent, the Pattern contract requires complete silence.
+      setPatternEligible(false);
+      setMirror(null);
+      setPatternMomentIds(new Set());
+      setMirrorOpen(false);
     }
   };
 

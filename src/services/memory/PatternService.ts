@@ -46,14 +46,14 @@ export class PatternService {
         }));
 
         const selected = await GeminiProxyClient.findRelevantMoments(indexed);
-
-        // Fallback: if AI finds nothing, show the 3 oldest-newest-middle anchors
-        const ids = selected ?? [indexed[0].id, indexed[Math.floor(indexed.length / 2)].id, indexed.at(-1)!.id];
+        // No literal anchor, invalid model output, or transport failure all mean
+        // silence. Never substitute unrelated records just to fill the mirror.
+        if (!selected) return null;
 
         const bySourceId = new Map(indexed.map(e => [e.id, e.sourceId]));
         const momentById = new Map(pool.map(m => [m.id, m]));
 
-        const result = ids
+        const result = selected
             .map(id => {
                 const sourceId = bySourceId.get(id);
                 return sourceId ? momentById.get(sourceId) : undefined;
