@@ -20,6 +20,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
   const [submittingState, setSubmittingState] = useState<'idle' | 'submitting' | 'settled'>('idle');
   const [isHolding, setIsHolding] = useState(false);
   const [tapPulse, setTapPulse] = useState(false);
+  const [tapRipples, setTapRipples] = useState<number[]>([]);
   const holdTimerRef = useRef<number | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
   const pressStartedAtRef = useRef(0);
@@ -47,6 +48,14 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
     setTapPulse(true);
     if (tapPulseTimerRef.current) window.clearTimeout(tapPulseTimerRef.current);
     tapPulseTimerRef.current = window.setTimeout(() => setTapPulse(false), 180);
+
+    // 方案 A：擴散一道靜水微漣漪（上限 5 道波紋，避免連戳掉幀）
+    const rippleId = Date.now() + Math.random();
+    setTapRipples(prev => [...prev.slice(-4), rippleId]);
+    window.setTimeout(() => {
+      setTapRipples(prev => prev.filter(id => id !== rippleId));
+    }, 480);
+
     triggerHaptic('unlatch');
     holdTimerRef.current = window.setTimeout(() => {
       holdActivatedRef.current = true;
@@ -127,20 +136,25 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
             <span className="text-[9px] tracking-[0.18em] text-ink-muted uppercase">{UI_TEXT.home.brandSubtitle}</span>
           </div>
         </div>
-        <button
-          type="button"
-          onPointerDown={handleAnchorDown}
-          onPointerUp={handleAnchorUp}
-          onPointerCancel={handleAnchorUp}
-          onContextMenu={event => event.preventDefault()}
-          className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-all ${isHolding ? 'border-accent bg-accent text-white' : tapPulse ? 'border-accent bg-accent/15 text-accent scale-105' : 'border-accent/40 bg-surface text-accent'}`}
-          aria-label="定錨：短按或長按"
-          title="短按輕點，長按定錨"
-          data-testid="anchor-button"
-        >
-          <Anchor size={17} />
-          <span>{isHolding ? '定錨中' : '定錨'}</span>
-        </button>
+        <div className="relative inline-flex items-center">
+          {tapRipples.map(id => (
+            <span key={id} className="tap-ripple-ring" aria-hidden="true" />
+          ))}
+          <button
+            type="button"
+            onPointerDown={handleAnchorDown}
+            onPointerUp={handleAnchorUp}
+            onPointerCancel={handleAnchorUp}
+            onContextMenu={event => event.preventDefault()}
+            className={`relative z-10 inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-all ${isHolding ? 'border-accent bg-accent text-white' : tapPulse ? 'border-accent bg-accent/15 text-accent scale-105' : 'border-accent/40 bg-surface text-accent'}`}
+            aria-label="定錨：短按或長按"
+            title="短按輕點，長按定錨"
+            data-testid="anchor-button"
+          >
+            <Anchor size={17} />
+            <span>{isHolding ? '定錨中' : '定錨'}</span>
+          </button>
+        </div>
       </header>
 
 
