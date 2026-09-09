@@ -117,7 +117,7 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
   const trimmedLength = input.trim().length;
 
   return (
-    <div className="relative w-full max-w-[580px] min-h-[calc(100vh-90px)] px-1 py-1 sm:py-7 flex flex-col space-y-3 sm:space-y-6">
+    <div className="relative w-full max-w-[580px] min-h-[calc(100vh-90px)] px-2 py-3 sm:py-7 flex flex-col space-y-5 sm:space-y-8">
 
       {isHolding && (
         <div className="anchor-immersion" aria-hidden="true">
@@ -126,43 +126,24 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
         </div>
       )}
 
-      <header className="flex items-center justify-between gap-3 pt-0.5 sm:pt-1">
+      <header className="flex items-center justify-between gap-3 pt-1 pb-0.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white">
             <Waves size={20} strokeWidth={1.8} />
           </div>
           <div className="flex flex-col">
-            <span className="text-[17px] font-semibold tracking-[-0.03em] text-ink leading-tight">{UI_TEXT.home.brandTitle}</span>
+            <span className="text-[17px] font-semibold tracking-normal text-ink leading-tight">{UI_TEXT.home.brandTitle}</span>
             <span className="text-[9px] tracking-[0.18em] text-ink-muted uppercase">{UI_TEXT.home.brandSubtitle}</span>
           </div>
-        </div>
-        <div className="relative inline-flex items-center">
-          {tapRipples.map(id => (
-            <span key={id} className="tap-ripple-ring" aria-hidden="true" />
-          ))}
-          <button
-            type="button"
-            onPointerDown={handleAnchorDown}
-            onPointerUp={handleAnchorUp}
-            onPointerCancel={handleAnchorUp}
-            onContextMenu={event => event.preventDefault()}
-            className={`relative z-10 inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 text-sm font-medium select-none touch-none transition-all ${isHolding ? 'border-accent bg-accent text-white' : tapPulse ? 'border-accent bg-accent/15 text-accent scale-105' : 'border-accent/40 bg-surface text-accent'}`}
-            aria-label="定錨：短按或長按"
-            title="短按輕點，長按定錨"
-            data-testid="anchor-button"
-          >
-            <Anchor size={17} />
-            <span>{isHolding ? '定錨中' : '定錨'}</span>
-          </button>
         </div>
       </header>
 
 
-      <section className="flex flex-col space-y-0.5 sm:space-y-2 px-1">
-        <h1 className="text-[21px] sm:text-[36px] font-medium tracking-[-0.03em] text-ink leading-snug">
+      <section className="flex flex-col space-y-2.5 sm:space-y-3 px-1 pt-1">
+        <h1 className="text-[23px] sm:text-[34px] font-semibold tracking-normal text-ink leading-[1.35]">
           把卡在心裡的事，先說出來。
         </h1>
-        <p className="text-[13px] sm:text-[16px] leading-relaxed text-ink-secondary max-w-[420px]">
+        <p className="text-[14px] sm:text-[16px] leading-[1.75] tracking-normal text-ink-secondary max-w-[440px]">
           不用整理，也不用現在就有答案。先從最想說的那一句開始。
         </p>
       </section>
@@ -237,21 +218,21 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
       )}
 
 
-      <section className="relative rounded-2xl sm:rounded-3xl bg-surface p-4 sm:p-7 shadow-[0_4px_20px_rgba(36,40,38,0.05)] border border-border-base/80 transition-all duration-300">
-        <div className="flex items-center justify-between pb-2.5 sm:pb-3">
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-accent/12 text-accent">
-              <MessageSquare size={14} strokeWidth={2} className="sm:w-[15px] sm:h-[15px]" />
+      <section className="relative rounded-3xl bg-surface p-5 sm:p-7 shadow-[0_4px_20px_rgba(36,40,38,0.05)] border border-border-base/80 transition-all duration-300">
+        <div className="flex items-center justify-between pb-3 sm:pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/12 text-accent">
+              <MessageSquare size={15} strokeWidth={2} />
             </div>
-            <span className="text-[13.5px] sm:text-sm font-medium text-ink">{UI_TEXT.home.sectionTitle}</span>
+            <span className="text-[14px] sm:text-[14.5px] font-medium tracking-normal text-ink">{UI_TEXT.home.sectionTitle}</span>
           </div>
-          <span className="text-[10.5px] sm:text-[11px] font-mono text-ink-muted">
+          <span className="text-[11px] font-mono text-ink-muted">
             {trimmedLength > 0 ? `${trimmedLength} 字已注入` : '準備傾聽'}
           </span>
         </div>
 
 
-        <div className="relative py-0.5 sm:py-1">
+        <div className="relative py-2 sm:py-3">
           <textarea
             ref={inputRef}
             rows={3}
@@ -266,12 +247,12 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
               }
             }}
             placeholder={UI_TEXT.home.inputPlaceholder}
-            className="w-full resize-none bg-transparent p-0 text-[17px] sm:text-[19px] leading-[1.7] text-ink placeholder:text-ink-placeholder focus:outline-none caret-accent"
+            className="w-full resize-none bg-transparent p-0 text-[17px] sm:text-[19px] leading-[1.8] tracking-normal text-ink placeholder:text-ink-placeholder focus:outline-none caret-accent"
           />
         </div>
 
-        <div className="mt-3 pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border-base/60">
-          <p className="text-xs text-ink-muted">{UI_TEXT.home.inputHintDefault}</p>
+        <div className="mt-4 pt-3.5 flex flex-wrap items-center justify-between gap-3 border-t border-border-base/60">
+          <p className="text-[12.5px] text-ink-muted">{UI_TEXT.home.inputHintDefault}</p>
 
           <button
             type="button"
@@ -299,20 +280,51 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
         </div>
       </section>
 
+      {/* 中央單手黃金定錨台 (Natural Thumb Comfort Zone) */}
+      <section className="flex flex-col items-center justify-center py-2">
+        <div className="relative inline-flex items-center justify-center">
+          {tapRipples.map(id => (
+            <span key={id} className="tap-ripple-ring" aria-hidden="true" />
+          ))}
+          <button
+            type="button"
+            onPointerDown={handleAnchorDown}
+            onPointerUp={handleAnchorUp}
+            onPointerCancel={handleAnchorUp}
+            onContextMenu={event => event.preventDefault()}
+            className={`relative z-10 inline-flex min-h-[48px] items-center gap-2.5 rounded-full border px-6 py-2.5 text-[14px] font-medium select-none touch-none transition-all cursor-pointer ${
+              isHolding
+                ? 'border-accent bg-accent text-white shadow-md scale-98'
+                : tapPulse
+                ? 'border-accent bg-accent/15 text-accent scale-105 shadow-xs'
+                : 'border-accent/30 bg-surface text-accent hover:border-accent/60 shadow-xs active:scale-95'
+            }`}
+            aria-label="定錨：短按或長按"
+            title="短按輕點消波，長按定心注水"
+            data-testid="anchor-button"
+          >
+            <Anchor size={17} strokeWidth={2} />
+            <span>{isHolding ? '定錨中 · 潮水湧升…' : '定錨 · 輕點消波 / 長按定心'}</span>
+          </button>
+        </div>
+        <p className="mt-2 text-[12px] font-normal tracking-wide text-ink-muted select-none">
+          不想寫字時，點擊泛起微瀾 · 長按沉澱雜訊
+        </p>
+      </section>
 
       <nav className="flex flex-col space-y-3 pt-1">
         <button
           onClick={onReview}
           type="button"
-          className="group flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] border border-border-base/70 transition-all hover:bg-surface-subtle hover:shadow-xs active:scale-[0.99] text-left cursor-pointer"
+          className="group flex min-h-[60px] w-full items-center justify-between gap-3 rounded-2xl bg-surface px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] border border-border-base/70 transition-all hover:bg-surface-subtle hover:shadow-xs active:scale-[0.99] text-left cursor-pointer"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent">
               <History size={18} strokeWidth={2} />
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium text-ink truncate">{UI_TEXT.home.reviewPast}</span>
-              <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex flex-col min-w-0 space-y-0.5">
+              <span className="text-[14.5px] font-medium text-ink truncate">{UI_TEXT.home.reviewPast}</span>
+              <div className="flex items-center gap-1.5">
                 <span className="inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
                 <span className="text-xs text-ink-muted truncate">存於本機・可隨時回看</span>
               </div>
