@@ -292,23 +292,26 @@ export const HomeScreen: React.FC<Props> = ({ onStartInput, onReview, onOpenChat
             onPointerUp={handleAnchorUp}
             onPointerCancel={handleAnchorUp}
             onContextMenu={event => event.preventDefault()}
-            className={`relative z-10 inline-flex min-h-[48px] items-center gap-2.5 rounded-full border px-6 py-2.5 text-[14px] font-medium select-none touch-none transition-all cursor-pointer ${
+            className={`relative z-10 inline-flex min-h-[48px] items-center gap-2.5 overflow-hidden rounded-full border px-6 py-2.5 text-[14px] font-medium select-none touch-none cursor-pointer anchor-mechanical-btn ${
               isHolding
                 ? 'border-accent bg-accent text-white shadow-md scale-98'
                 : tapPulse
-                ? 'border-accent bg-accent/15 text-accent scale-105 shadow-xs'
-                : 'border-accent/30 bg-surface text-accent hover:border-accent/60 shadow-xs active:scale-95'
+                ? 'border-accent bg-accent/15 text-accent shadow-xs anchor-mechanical-pressed'
+                : 'border-accent/30 bg-surface text-accent hover:border-accent/60 shadow-xs'
             }`}
             aria-label="定錨：短按或長按"
-            title="短按輕點消波，長按定心注水"
+            title="短按拍岸消波，長按定心注水"
             data-testid="anchor-button"
           >
-            <Anchor size={17} strokeWidth={2} />
-            <span>{isHolding ? '定錨中 · 潮水湧升…' : '定錨 · 輕點消波 / 長按定心'}</span>
+            {tapRipples.map(id => (
+              <span key={`inner-${id}`} className="shoreline-wave" aria-hidden="true" />
+            ))}
+            <Anchor size={17} strokeWidth={2} className="relative z-10" />
+            <span className="relative z-10">{isHolding ? '定錨中 · 潮水湧升…' : '定錨 · 輕點拍岸 / 長按定心'}</span>
           </button>
         </div>
         <p className="mt-2 text-[12px] font-normal tracking-wide text-ink-muted select-none">
-          不想寫字時，點擊泛起微瀾 · 長按沉澱雜訊
+          不想寫字時，點擊拍岸微瀾 · 長按沉澱雜訊
         </p>
       </section>
 

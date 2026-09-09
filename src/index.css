@@ -255,3 +255,41 @@ html {
     border-color: rgba(19, 66, 48, 0);
   }
 }
+
+@keyframes shoreline-surge {
+  0% {
+    height: 0%;
+    opacity: 0.75;
+  }
+  35% {
+    height: 52%;
+    opacity: 0.55;
+  }
+  100% {
+    height: 0%;
+    opacity: 0;
+  }
+}
+
+.shoreline-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(57, 126, 103, 0.25) 0%, rgba(19, 66, 48, 0.42) 100%);
+  animation: shoreline-surge 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anchor-mechanical-btn {
+  transition: transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 120ms ease,
+              background-color 160ms ease,
+              border-color 160ms ease;
+}
+
+.anchor-mechanical-btn:active,
+.anchor-mechanical-pressed {
+  transform: translateY(2px) scale(0.97) !important;
+  box-shadow: inset 0 2px 4px rgba(19, 66, 48, 0.12) !important;
+}
