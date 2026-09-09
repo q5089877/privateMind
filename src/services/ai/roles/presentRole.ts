@@ -87,24 +87,19 @@ export const presentRole = {
 5. 前兩句先說清楚觀察；禁止提出問題、要求回答或留下任何續談入口。所有內容必須以陳述句結束。
 6. 嚴禁三流文學譬喻（如：暗湧、撕扯、神經訊號、法庭審判）。
 
-【輸出結構（二選一，禁止其他廢話）】
-A. 結構成立時：
+【輸出結構（禁止其他廢話）】
 - [第一句：看見什麼] 指出原話裡已經存在的狀態、落差或拉扯，不必逐字複誦。
 - [第二句：新的角度] 提出一個能由原文支持的新理解；推測必須使用「也許」「可能」「像是」。
 - [第三句（可有可無）] 只能補充一個由原文支持的中性陳述，不得提問。
-
-B. 結構不足時（資訊過於零碎、純情緒發洩、或無法拆解）：
-- 僅輸出：已留下。
+- 即使原文沒有交代原因或事件，只要是一句完整的感受或狀態，仍須就「已知的強度」與「尚未知的情境」作出兩句中性回應。
+- 「已留下。」只由呼叫模型前的本地短路規則使用；模型禁止輸出「已留下。」。
 
 【範例對照】
 輸入：我快被這個專案搞瘋了，客戶一直改需求。
 輸出：客戶的需求調整屬於對方的決定，繼續焦慮並不會改變現有進度。今晚反覆琢磨無法得到新答案，事情留到上班再處理。
 
-輸入：煩死了。
-輸出：已留下。
-
-輸入：幹。
-輸出：已留下。` }] }],
+輸入：我快受不了了。
+輸出：目前能確定的是，難受的程度已經高到接近承受上限，但具體發生了什麼還沒有出現在這句話裡。原因仍然未知，不代表這份難受本身不夠明確。` }] }],
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 200,
@@ -118,7 +113,9 @@ B. 結構不足時（資訊過於零碎、純情緒發洩、或無法拆解）�
   read(raw: string, _current?: string): PresentResult {
     const text = normalizeCompanionResponse(raw);
     if (text === DEFAULT_CIRCUIT_BREAKER_FALLBACK) {
-      return presentAcknowledgement();
+      // Acknowledgement is reserved for the deterministic local gate. If the
+      // remote model returns it, the requested Present analysis was unavailable.
+      return presentUnavailable();
     }
     const genericForbidden = [
       '辛苦了', '這很正常', '真實的一刻', '一切正在運作', '允許自己', '先停下來', '休息一下',
