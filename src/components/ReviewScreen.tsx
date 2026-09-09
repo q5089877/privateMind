@@ -1,6 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronRight, HardDrive, MessageSquare, Waves } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronRight, HardDrive, MessageSquare, Sparkles, Waves, X } from 'lucide-react';
 import { HarborSession, Moment, PatternMirror } from '../types';
+import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
+
+const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
+const acknowledgementReply = '已留下。';
+
+const isAcknowledgementReply = (text?: string | null) =>
+  Boolean(text && normalizeCompanionResponse(text) === acknowledgementReply);
+
+const isFallbackReply = (text?: string | null) => {
+  if (!text) return false;
+  const clean = normalizeCompanionResponse(text);
+  return clean === legacyFallbackReply ||
+    clean === 'AI暫時無回應' ||
+    clean.includes('已經留下來。眼前最卡住、最想先分清的是哪一部分');
+};
 
 interface Props {
   onClose: () => void;
@@ -63,6 +78,7 @@ export const ReviewScreen: React.FC<Props> = ({
   const [sortDesc, setSortDesc] = useState(true);
   const [settleAllNotice, setSettleAllNotice] = useState<string | null>(null);
   const [temporalCandidate, setTemporalCandidate] = useState<Moment | null>(null);
+  const [activeDrawerSession, setActiveDrawerSession] = useState<HarborSession | null>(null);
 
   // Pattern Passive Mirroring state
   const [patternEligible, setPatternEligible] = useState(false);
@@ -561,6 +577,22 @@ export const ReviewScreen: React.FC<Props> = ({
                       const isRedundantTakeaway = Boolean(takeaway && takeaway.trim() === content.trim() && !unresolved);
                       const inPattern = patternMomentIds.has(item.kind === 'session' ? item.primaryMoment.id : item.moment.id);
 
+                      const sessionTurns = item.kind === 'session'
+                        ? item.session.turns.filter(t => !isFallbackReply(t.content) && !isAcknowledgementReply(t.content))
+                        : [];
+                      const isMultiTurn = sessionTurns.length > 2;
+
+                      // 若為單輪或單筆 Moment，提取當時的 AI 映照（若有的話）
+                      const singleAiReply = (() => {
+                        if (isMultiTurn) return null;
+                        const assistantTurn = item.kind === 'session'
+                          ? sessionTurns.find(t => t.role === 'assistant')?.content
+                          : item.moment.immediateReply;
+                        const reply = assistantTurn || (item.kind === 'session' ? item.primaryMoment.immediateReply : null);
+                        if (!reply || isFallbackReply(reply) || isAcknowledgementReply(reply)) return null;
+                        return normalizeCompanionResponse(reply);
+                      })();
+
                       return (
                         <div key={id} className="bg-white rounded-[22px] p-5 shadow-sm border border-[#E9E6DE] transition-all">
                           <div className="flex items-center justify-between text-[12px] text-[#7A8B82] mb-3">
@@ -582,6 +614,33 @@ export const ReviewScreen: React.FC<Props> = ({
                           <p className="text-[16.5px] leading-relaxed text-[#1B2822] font-medium whitespace-pre-wrap">
                             {content}
                           </p>
+
+                          {/* 當時的映照（單輪回應顯影） */}
+                          {singleAiReply && (
+                            <div className="mt-3.5 p-3.5 bg-[#F4F7F5] rounded-xl border border-[#E3ECE6]/80">
+                              <p className="text-[11.5px] font-medium text-[#387358] flex items-center gap-1.5 mb-1">
+                                <Sparkles size={12} className="text-[#387358]" />
+                                <span>當時的映照</span>
+                              </p>
+                              <p className="text-[14px] text-[#2D3E35] leading-relaxed whitespace-pre-wrap">
+                                {singleAiReply}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* 多輪對話入口抽屜按鈕 */}
+                          {isMultiTurn && item.kind === 'session' && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                onClick={() => setActiveDrawerSession(item.session)}
+                                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#F4F7F5] hover:bg-[#EAF2ED] text-[#387358] text-[12.5px] font-medium transition-colors cursor-pointer border border-[#E3ECE6]"
+                              >
+                                <MessageSquare size={13} />
+                                <span>查看對話歷程（共 {sessionTurns.length} 則紀錄）</span>
+                              </button>
+                            </div>
+                          )}
 
                           {takeaway && !isRedundantTakeaway && (
                             <div className="mt-3.5 p-3.5 bg-[#F7F6F3] rounded-xl">
@@ -686,6 +745,93 @@ export const ReviewScreen: React.FC<Props> = ({
           </p>
         </footer>
         {/* END: FooterSafetyNotice */}
+
+        {/* BEGIN: Conversation Drawer */}
+        {activeDrawerSession && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs p-0 sm:p-4">
+            <div
+              className="w-full max-w-[560px] bg-white rounded-t-[28px] sm:rounded-[28px] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="對話歷程"
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F2F0EC]">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF2ED] text-[#387358]">
+                    <MessageSquare size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-[#1B2822]">對話歷程</h3>
+                    <p className="text-[11.5px] text-[#7A8B82]">
+                      共 {activeDrawerSession.turns.filter(t => !isFallbackReply(t.content) && !isAcknowledgementReply(t.content)).length} 則紀錄 · 本機留存
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawerSession(null)}
+                  className="p-1.5 rounded-full hover:bg-[#F0EEEA] text-[#7A8B82] hover:text-[#1B2822] transition-colors cursor-pointer"
+                  aria-label="關閉"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Messages Stream */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {activeDrawerSession.turns
+                  .filter(t => !isFallbackReply(t.content) && !isAcknowledgementReply(t.content))
+                  .map((turn, idx) => {
+                    const isUser = turn.role === 'user';
+                    return (
+                      <div
+                        key={turn.id || idx}
+                        className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                      >
+                        <span className="text-[10.5px] font-mono text-[#9BA8A1] mb-1 px-1">
+                          {isUser ? '你' : '當時的映照'} · {formatTime(turn.createdAt)}
+                        </span>
+                        <div
+                          className={`max-w-[88%] rounded-2xl px-4 py-3 text-[14.5px] leading-relaxed whitespace-pre-wrap ${
+                            isUser
+                              ? 'bg-[#1E3E31] text-white rounded-br-xs shadow-xs'
+                              : 'bg-[#F4F7F5] text-[#1B2822] border border-[#E3ECE6] rounded-bl-xs'
+                          }`}
+                        >
+                          {turn.content}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 border-t border-[#F2F0EC] bg-[#FAFAF8] flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sId = activeDrawerSession.id;
+                    setActiveDrawerSession(null);
+                    void onOpenSession(sId);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1E3E31] hover:bg-[#162F25] text-white text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
+                >
+                  <span>回到此對話續談</span>
+                  <ArrowRight size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawerSession(null)}
+                  className="px-4 py-2 text-[13px] text-[#7A8B82] hover:text-[#1B2822] transition-colors cursor-pointer"
+                >
+                  關閉
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* END: Conversation Drawer */}
       </div>
     </div>
   );
