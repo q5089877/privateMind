@@ -87,19 +87,19 @@ export class GeminiProxyClient {
       return presentAcknowledgement();
     }
     const proxyUrl = this.getProxyUrl();
-    if (!proxyUrl) return { status: 'unavailable' };
+    if (!proxyUrl) return presentFallback();
     try {
       const classificationTask = presentRole.classify(clean);
       const classificationRaw = await readModelText(await postJsonWithTimeout(proxyUrl, classificationTask.payload, classificationTask.timeoutMs, signal));
-      if (!classificationRaw) return { status: 'unavailable' };
+      if (!classificationRaw) return presentFallback();
       const inferenceLevel = presentRole.readClassification(classificationRaw);
       if (!inferenceLevel) return presentFallback();
 
       const task = presentRole.create(clean, priorTurns, inferenceLevel);
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs, signal));
-      return raw ? presentRole.read(raw, clean, inferenceLevel) : { status: 'unavailable' };
+      return raw ? presentRole.read(raw, clean, inferenceLevel) : presentFallback();
     } catch (err) {
-      return { status: 'unavailable' };
+      return signal?.aborted ? { status: 'unavailable' } : presentFallback();
     }
   }
 
