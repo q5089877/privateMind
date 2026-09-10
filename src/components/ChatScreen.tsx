@@ -1,6 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
 import { ConversationTurn, ExploreResult, HarborSession, Moment, PresentResult } from '../types';
+
+const EXPLORE_CONTEXT_LABELS: Record<string, string> = {
+  chaos_body: '感受／混亂',
+  chaos_now: '感受／混亂',
+  chaos_trigger: '感受／混亂',
+  chaos_exception: '感受／混亂',
+  decision_priorities: '要做選擇',
+  decision_criteria: '要做選擇',
+  decision_irreversible: '要做選擇',
+  decision_cost: '要做選擇',
+  interpersonal_unknown: '與人卡住',
+  interpersonal_cared: '與人卡住',
+  interpersonal_controllable: '與人卡住',
+  interpersonal_observable: '與人卡住',
+};
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { UI_TEXT } from '../config/textConfig';
 
@@ -250,7 +265,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                           return (
                             <div>
                               <div className="flex items-center justify-between text-xs font-medium text-accent">
-                                <span>{t.explorePerspectivePrefix} · {currentPerspective.title}</span>
+                                <span>{EXPLORE_CONTEXT_LABELS[currentPerspective.id] || t.explorePerspectivePrefix} · {currentPerspective.title}</span>
                                 <button
                                   type="button"
                                   onClick={() => setShowAngles(false)}
