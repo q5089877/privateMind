@@ -149,10 +149,20 @@ export class HarborFlowEngine {
     return request;
   }
 
-  /** Explore is explicit, scoped to the visible session, and never persisted as a user label. */
+  /** Explore is explicit and scoped to the visible session; its cards are archived as assistant turns. */
   public async requestExploration(session: HarborSession, excludeAxes?: string[]): Promise<ExploreResult | null> {
     this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
     const result = await this.companion.exploreSession(session, excludeAxes);
+    if (result) {
+      const data = await this.storage.getData();
+      const storedSession = data.sessions.find(item => item.id === session.id) || session;
+      const momentId = storedSession.originMomentId;
+      const turns = result.perspectives.reduce((current, perspective) => {
+        const content = `【換個角度｜${perspective.title}】\n${perspective.content}\n\n引導問題：${perspective.followUp}`;
+        return this.appendAssistantTurn(current, momentId, content);
+      }, storedSession);
+      if (turns !== storedSession) await this.storage.saveSession(turns);
+    }
     this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(result ? {} : { error: '暫時找不到可用的新角度。' }) });
     return result;
   }

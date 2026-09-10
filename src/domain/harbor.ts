@@ -81,7 +81,7 @@ export interface SessionClosureDraft {
   resumeAnchor?: string;
 }
 
-/** A non-persistent session-only exploration group. It is never a user label. */
+/** An exploration result scoped to one session; its rendered cards may be archived as assistant turns. */
 export type ExplorePerspectiveId =
   | 'chaos_body' | 'chaos_now' | 'chaos_trigger' | 'chaos_exception'
   | 'decision_priorities' | 'decision_criteria' | 'decision_irreversible' | 'decision_cost'
@@ -96,7 +96,7 @@ export interface ExplorePerspective {
   sourcePhrases: string[];
 }
 
-/** An ephemeral result. It must never be persisted as a Moment, turn, or user category. */
+/** An exploration result scoped to the current session. */
 export interface ExploreResult {
   perspectives: ExplorePerspective[];
 }
