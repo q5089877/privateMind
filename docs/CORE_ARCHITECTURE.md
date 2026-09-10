@@ -147,6 +147,8 @@ AI 依任務分角色，而不是由 UI 任意拼 prompt：
 
 Present Companion 是使用者進入 `CHAT` 後的主要回報，不是過場提示。起始 Moment 在 `CHAT` 開啟後立即請求；同一 session 的後續 Moment 則在保存後立即請求。模型回應固定為 `PresentPayload`：`reflection`、`unknown`、`question`、`scene_detected` 四欄。正常回應以 3 句、45–160 個中文字為生成目標：先做情緒或狀態映照，再指出目前未知的部分，最後只提出一個逐步靠近具體情境的問題。第二句固定以「目前還不知道」或「目前不確定」開頭；若 `scene_detected` 為真，`question` 必須為 null。驗證器會檢查問號數量、未知留白、原文字元錨定、禁止詞與分類規則；驗證失敗時使用溫和 fallback，不把模型原文呈現給使用者。
 
+分類為 `metaphor` 時，`scene_detected` 必須強制為 false；法官、牢籠、深淵、黑洞、牆壁、懸崖或審判等意象，若沒有明確時間、真實人物／機構與具體程序，不得視為字面場景。`unknown` 只能指出頻率、持續時間、當下環境或身體狀態等客觀空白；若包含第三方可能原因、動機或藉口，系統必須以固定中性留白取代。
+
 Present 的結果必須區分三態：通過驗證的模型回應或溫和 fallback 以 `success` 保存為 `immediateReply` 與 assistant turn，並開放 Explore；本地短輸入或純發洩得到的 `acknowledged` 只在當次畫面顯示「已留下。」，不得冒充 AI 分析或寫入對話；網路、Worker、逾時、分類解析或生成驗證失敗都使用固定的結構化 fallback。只有使用者離開畫面造成的主動取消才回傳 `unavailable`，且不得保存取消後的替代文字。
 
 `acknowledged` 只允許由呼叫模型前的確定性本地規則產生。像「我快受不了了」這類沒有交代事件、但已清楚表達狀態與強度的完整句子，必須送往 Present Companion；模型不得以「資訊不足」為由回傳「已留下。」。

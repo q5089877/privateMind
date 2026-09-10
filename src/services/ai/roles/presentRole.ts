@@ -16,6 +16,21 @@ export const PRESENT_WARM_FALLBACK = [
 
 export type PresentInferenceLevel = 'explicit' | 'metaphor' | 'none';
 
+const SPECULATION_PATTERNS = [
+  /(?:對方|他|她).*(?:可能|也許|或許|大概|應該|說不定)/u,
+  /(?:可能|也許|或許|大概).*(?:忙|忘記|沒看到|故意|誤會|逃避|忽略)/u,
+  /(?:因為|為了).*(?:對方|他|她)/u,
+  /(?:試圖|想必|猜測)/u
+];
+
+const BANNED_UNKNOWN_WORDS = [
+  '可能', '也許', '或許', '大概', '應該',
+  '忙碌', '忘記', '沒看到', '故意', '有事',
+  '因為', '為了', '藉口', '理由'
+];
+
+const NEUTRAL_UNKNOWN = '目前還不知道這個狀態發生的頻率與持續時間。';
+
 export const presentFallback = (): PresentResult => ({
   status: 'success',
   reply: PRESENT_WARM_FALLBACK,
@@ -87,7 +102,13 @@ export const presentRole = {
         model: FLASH_LITE_MODEL,
         contents: [{ role: 'user', parts: [{ text: `請只判斷以下使用者輸入中的情緒是否已被明確說出，或需要從隱喻推論。不要解釋，不要重寫原文。\n\n使用者輸入：\n「${current}」` }] }],
         systemInstruction: {
-          parts: [{ text: '你是情緒表達分類器。只輸出 JSON。explicit 代表使用者直接說出情緒；metaphor 代表情緒藏在比喻、意象或間接語句中；none 代表沒有明確情緒線索。無法確定時輸出 metaphor。' }]
+          parts: [{ text: `你是情緒表達分類器。只輸出 JSON。
+explicit：使用者直接說出情緒，或提供有時間、真實人物／機構及具體程序的字面事件。
+metaphor：情緒藏在比喻、意象或間接語句中。
+none：沒有明確情緒線索。
+「法官、法庭、牢籠、深淵、黑洞、繩索、牆壁、懸崖、審判」若沒有明確時間、真實人物／機構與具體程序，一律視為 metaphor。
+例如「我覺得主管像法官一樣判我死刑」是 metaphor；「今天下午兩點人資寄信說我試用期沒過」是 explicit。
+無法確定時輸出 metaphor。` }]
         },
         generationConfig: {
           temperature: 0,
@@ -136,10 +157,10 @@ export const presentRole = {
 【約束條件】
 1. 這次分類是「${inferenceLevel}」。${inferenceLevel === 'explicit' ? '只能確認使用者已明說的情緒，不新增情緒或心理解釋。' : inferenceLevel === 'metaphor' ? '可以提出一個低強度的情緒映照，但必須使用「有一種」或「像是」，不能診斷或定義使用者。' : '只陳述原文可確認的狀態，不自行補上情緒。'}
 2. 必須輸出 reflection、unknown、question、scene_detected 四個欄位。unknown 必須以「目前還不知道」或「目前不確定」開頭。
-3. 若已出現明確時間／人物／地點，並且同一場景有具體行為或言詞，scene_detected 設為 true，question 必須是 null；否則 scene_detected 設為 false，question 必須是一個具體問題。
+3. 若已出現明確時間／人物／地點，並且同一場景有具體行為或言詞，scene_detected 設為 true，question 必須是 null；否則 scene_detected 設為 false，question 必須是一個具體問題。分類為 metaphor 時，scene_detected 一律為 false。
 4. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
 5. 不得提供建議、命令、安慰套話或行動指導。
-6. reflection 與 unknown 使用繁體中文，不能為空；只使用原文與本次明確提供的對話內容，不補造事件。
+6. reflection 與 unknown 使用繁體中文，不能為空；只使用原文與本次明確提供的對話內容，不補造事件。unknown 只能指出頻率、持續時間、當下環境或身體狀態等客觀空白，禁止列出第三方可能原因或替對方找理由。
 
 【輸出結構】
 {"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":"具體問題或 null","scene_detected":false}
@@ -173,11 +194,14 @@ export const presentRole = {
     if (!parsed || typeof parsed.reflection !== 'string' || typeof parsed.unknown !== 'string' || typeof parsed.scene_detected !== 'boolean') {
       return presentFallback();
     }
-    const sceneDetected = parsed.scene_detected;
+    const sceneDetected = inferenceLevel === 'metaphor' ? false : parsed.scene_detected;
     const question = sceneDetected ? null : (typeof parsed.question === 'string' ? parsed.question.trim() : null);
+    const rawUnknown = parsed.unknown.trim();
+    const unknownHasSpeculation = SPECULATION_PATTERNS.some(pattern => pattern.test(rawUnknown)) ||
+      BANNED_UNKNOWN_WORDS.some(word => rawUnknown.includes(word));
     const payload: PresentPayload = {
       reflection: parsed.reflection.trim(),
-      unknown: parsed.unknown.trim(),
+      unknown: unknownHasSpeculation ? NEUTRAL_UNKNOWN : rawUnknown,
       question,
       scene_detected: sceneDetected
     };
