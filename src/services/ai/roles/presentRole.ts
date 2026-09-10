@@ -16,6 +16,26 @@ export const PRESENT_WARM_FALLBACK = [
 
 export type PresentInferenceLevel = 'explicit' | 'metaphor' | 'none';
 
+interface RawPresentPayload {
+  reflection?: unknown;
+  unknown?: unknown;
+  question?: unknown;
+  scene_anchor?: unknown;
+  scene_interaction?: unknown;
+}
+
+const recentUserTurns = (priorTurns: ConversationTurn[]): ConversationTurn[] =>
+  priorTurns.filter(turn => turn.role === 'user' && turn.content?.trim()).slice(-2);
+
+const normalizeEvidence = (text: string): string =>
+  text.normalize('NFC').replace(/[\s\p{P}]/gu, '').toLocaleLowerCase();
+
+const isAuthenticEvidence = (value: unknown, sourceText: string): value is string => {
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeEvidence(value);
+  return normalized.length >= 2 && normalizeEvidence(sourceText).includes(normalized);
+};
+
 const SPECULATION_PATTERNS = [
   /(?:對方|他|她).*(?:可能|也許|或許|大概|應該|說不定)/u,
   /(?:可能|也許|或許|大概).*(?:忙|忘記|沒看到|故意|誤會|逃避|忽略)/u,
@@ -137,7 +157,7 @@ none：沒有明確情緒線索。
   },
 
   create(current: string, priorTurns: ConversationTurn[] = [], inferenceLevel: PresentInferenceLevel = 'metaphor'): GeminiRoleRequest {
-    const userPriors = priorTurns?.filter(t => t.role === 'user' && t.content && t.content.trim()) || [];
+    const userPriors = recentUserTurns(priorTurns || []);
     const contextBlock = userPriors.length > 0
       ? `【本次對話先前輸入（僅供解析代名詞指涉，核心聚焦最新輸入）】：\n` +
         userPriors.map(t => `先前記錄：「${t.content.trim()}」`).join('\n') +
@@ -152,18 +172,20 @@ none：沒有明確情緒線索。
         contents: [{ role: 'user', parts: [{ text: `${contextBlock}【使用者輸入】：
 「${current}」
 
-你是思緒停靠的 Present Companion。請輸出合法 JSON，先準確映照使用者的感受，再清楚說明目前還不知道的部分，最後判斷是否已經出現可以回看的具體場景。
+你是思緒停靠的 Present Companion。請輸出合法 JSON，先準確映照使用者的感受，再清楚說明目前還不知道的部分，最後從原文逐字摘錄可驗證的場景證據。場景是否成立由程式判斷，不由你宣告。
 
 【約束條件】
 1. 這次分類是「${inferenceLevel}」。${inferenceLevel === 'explicit' ? '只能確認使用者已明說的情緒，不新增情緒或心理解釋。' : inferenceLevel === 'metaphor' ? '可以提出一個低強度的情緒映照，但必須使用「有一種」或「像是」，不能診斷或定義使用者。' : '只陳述原文可確認的狀態，不自行補上情緒。'}
-2. 必須輸出 reflection、unknown、question、scene_detected 四個欄位。unknown 必須以「目前還不知道」或「目前不確定」開頭。
-3. 若已出現明確時間／人物／地點，並且同一場景有具體行為或言詞，scene_detected 設為 true，question 必須是 null；否則 scene_detected 設為 false，question 必須是一個具體問題。分類為 metaphor 時，scene_detected 一律為 false。
-4. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
-5. 不得提供建議、命令、安慰套話或行動指導。
-6. reflection 與 unknown 使用繁體中文，不能為空；只使用原文與本次明確提供的對話內容，不補造事件。unknown 只能指出頻率、持續時間、當下環境或身體狀態等客觀空白，禁止列出第三方可能原因或替對方找理由。
+2. 必須輸出 reflection、unknown、question、scene_anchor、scene_interaction 五個欄位。unknown 必須以「目前還不知道」或「目前不確定」開頭。
+3. scene_anchor 只能逐字摘錄最新輸入或提供的最近兩個使用者回合中，最短且足以辨識時間、人物或地點的片段；scene_interaction 只能逐字摘錄同一脈絡中具體行為、言詞或互動結果的片段。不得改寫、補標點或把同一整句複製到兩欄。缺少任何一項時填 null。
+4. 只有 scene_anchor 與 scene_interaction 都能逐字摘錄且分類不是 metaphor 時，question 填 null；否則 question 必須是一個具體問題。分類為 metaphor 時兩個證據欄位都填 null。
+5. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
+6. 不得提供建議、命令、安慰套話或行動指導。
+7. reflection 與 unknown 使用繁體中文，不能為空；只使用原文與本次明確提供的對話內容，不補造事件。unknown 只能指出頻率、持續時間、當下環境或身體狀態等客觀空白，禁止列出第三方可能原因或替對方找理由。
 
 【輸出結構】
-{"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":"具體問題或 null","scene_detected":false}
+形成具體場景時：{"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":null,"scene_anchor":"逐字錨點","scene_interaction":"逐字互動"}
+尚未形成場景時：{"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":"一個具體問題？","scene_anchor":null,"scene_interaction":null}
 
 禁止詞：防禦機制、防衛、自我保護、創傷、被拋棄、心理疾病、人格、診斷、建議你、你應該、試著、深呼吸、離開現場、也許對方、可能對方、對方想、對方覺得、辛苦了、別擔心、慢慢來、已留下。` }] }],
         generationConfig: {
@@ -177,24 +199,32 @@ none：沒有明確情緒線索。
               reflection: { type: 'STRING' },
               unknown: { type: 'STRING' },
               question: { type: 'STRING', nullable: true },
-              scene_detected: { type: 'BOOLEAN' }
+              scene_anchor: { type: 'STRING', nullable: true },
+              scene_interaction: { type: 'STRING', nullable: true }
             },
-            required: ['reflection', 'unknown', 'question', 'scene_detected']
+            required: ['reflection', 'unknown', 'question', 'scene_anchor', 'scene_interaction']
           }
         }
       }
     };
   },
 
-  read(raw: string, current = '', inferenceLevel: PresentInferenceLevel = 'metaphor'): PresentResult {
+  read(raw: string, current = '', inferenceLevel: PresentInferenceLevel = 'metaphor', priorTurns: ConversationTurn[] = []): PresentResult {
     const parsed = (() => {
-      try { return JSON.parse(normalizeCompanionResponse(raw)) as Partial<PresentPayload>; }
+      try { return JSON.parse(normalizeCompanionResponse(raw)) as RawPresentPayload; }
       catch { return null; }
     })();
-    if (!parsed || typeof parsed.reflection !== 'string' || typeof parsed.unknown !== 'string' || typeof parsed.scene_detected !== 'boolean') {
+    if (!parsed || typeof parsed.reflection !== 'string' || typeof parsed.unknown !== 'string') {
       return presentFallback();
     }
-    const sceneDetected = inferenceLevel === 'metaphor' ? false : parsed.scene_detected;
+    const evidenceSource = [...recentUserTurns(priorTurns).map(turn => turn.content.trim()), current].join('\n');
+    const anchorIsAuthentic = isAuthenticEvidence(parsed.scene_anchor, evidenceSource);
+    const interactionIsAuthentic = isAuthenticEvidence(parsed.scene_interaction, evidenceSource);
+    const authenticAnchor = anchorIsAuthentic ? parsed.scene_anchor as string : null;
+    const authenticInteraction = interactionIsAuthentic ? parsed.scene_interaction as string : null;
+    const evidenceIsDistinct = authenticAnchor !== null && authenticInteraction !== null &&
+      normalizeEvidence(authenticAnchor) !== normalizeEvidence(authenticInteraction);
+    const sceneDetected = inferenceLevel !== 'metaphor' && anchorIsAuthentic && interactionIsAuthentic && evidenceIsDistinct;
     const question = sceneDetected ? null : (typeof parsed.question === 'string' ? parsed.question.trim() : null);
     const rawUnknown = parsed.unknown.trim();
     const unknownHasSpeculation = SPECULATION_PATTERNS.some(pattern => pattern.test(rawUnknown)) ||

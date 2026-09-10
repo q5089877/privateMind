@@ -97,7 +97,7 @@ export class GeminiProxyClient {
 
       const task = presentRole.create(clean, priorTurns, inferenceLevel);
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs, signal));
-      return raw ? presentRole.read(raw, clean, inferenceLevel) : presentFallback();
+      return raw ? presentRole.read(raw, clean, inferenceLevel, priorTurns) : presentFallback();
     } catch (err) {
       return signal?.aborted ? { status: 'unavailable' } : presentFallback();
     }
