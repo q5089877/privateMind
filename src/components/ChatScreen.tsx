@@ -32,6 +32,15 @@ interface Props {
   onSaveReply: (momentId: string, reply: string, presentReply?: PresentPayload) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
   onOpenReview: () => void;
+  onConfirmEvent?: (finalText: string) => Promise<void> | void;
+}
+
+type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
+
+interface EventConfirmationCardData {
+  draftText: string;
+  status: EventCardStatus;
+  sourceText: string;
 }
 
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
@@ -49,7 +58,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -62,6 +71,8 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const [exploring, setExploring] = useState(false);
   const [exploration, setExploration] = useState<ExploreResult | null>(null);
   const [activePerspectiveIndex, setActivePerspectiveIndex] = useState(0);
+  const [eventCard, setEventCard] = useState<EventConfirmationCardData | null>(null);
+  const [editingEventText, setEditingEventText] = useState('');
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -80,7 +91,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setExploring(false);
     setExploration(null);
     setActivePerspectiveIndex(0);
+    setEventCard(null);
+    setEditingEventText('');
   }, [moment?.id, moment?.immediateReply]);
+
+  useEffect(() => {
+    if (!eventCard && presentPayload?.scene_detected && moment?.content) {
+      setEventCard({ draftText: moment.content, status: 'pending', sourceText: moment.content });
+    }
+  }, [eventCard, moment?.content, presentPayload?.scene_detected]);
 
   useEffect(() => {
     if (isPresentAcknowledged) {
@@ -149,8 +168,36 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   };
 
   const continueConversation = async () => {
+    if (eventCard?.status === 'editing') return;
     const content = continuation.trim();
     if (content) await onContinue(content);
+  };
+
+  const startEventEditing = () => {
+    if (!eventCard || eventCard.status !== 'pending') return;
+    setEditingEventText(eventCard.draftText);
+    setEventCard({ ...eventCard, status: 'editing' });
+  };
+
+  const cancelEventEditing = () => {
+    if (!eventCard || eventCard.status !== 'editing') return;
+    setEditingEventText(eventCard.draftText);
+    setEventCard({ ...eventCard, status: 'pending' });
+  };
+
+  const dismissEventCard = () => {
+    if (!eventCard || eventCard.status === 'confirmed' || eventCard.status === 'dismissed') return;
+    setEventCard({ ...eventCard, status: 'dismissed' });
+    setEditingEventText('');
+  };
+
+  const confirmEventCard = () => {
+    if (!eventCard || (eventCard.status !== 'pending' && eventCard.status !== 'editing')) return;
+    const finalText = (eventCard.status === 'editing' ? editingEventText : eventCard.draftText).trim();
+    if (!finalText) return;
+    setEventCard({ ...eventCard, draftText: finalText, status: 'confirmed' });
+    setEditingEventText('');
+    void onConfirmEvent?.(finalText);
   };
 
   const requestAngles = async () => {
@@ -247,6 +294,50 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                     <p>{presentPayload.reflection}</p>
                     <p>{presentPayload.unknown}</p>
                     {presentPayload.question && <p>{presentPayload.question}</p>}
+                    {presentPayload.scene_detected && eventCard && (
+                      <div className="mt-4 rounded-2xl border border-accent/25 bg-surface-subtle p-4">
+                        {eventCard.status === 'dismissed' ? (
+                          <p className="text-sm text-ink-muted">這段事件已略過。</p>
+                        ) : eventCard.status === 'confirmed' ? (
+                          <div className="space-y-3">
+                            <p className="text-xs font-medium text-accent">已確認這個事件</p>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{eventCard.draftText}</p>
+                            <div className="border-t border-border-base/60 pt-3">
+                              <p className="text-sm leading-relaxed text-ink-secondary">當這個事件發生時，你當下的身體或感受是什麼？</p>
+                            </div>
+                          </div>
+                        ) : eventCard.status === 'editing' ? (
+                          <div>
+                            <p className="text-xs font-medium text-accent">修改這個事件</p>
+                            <textarea
+                              value={editingEventText}
+                              onChange={event => setEditingEventText(event.target.value)}
+                              onKeyDown={event => event.stopPropagation()}
+                              rows={4}
+                              className="mt-2 w-full resize-none rounded-xl border border-border-base bg-surface p-3 text-sm leading-relaxed text-ink outline-none focus:border-accent"
+                              autoFocus
+                            />
+                            <div className="min-h-[20px] pt-1 text-xs text-red-700">
+                              {!editingEventText.trim() && '請至少留下這個事件的一點文字。'}
+                            </div>
+                            <div className="mt-2 flex items-center justify-end gap-3 border-t border-border-base/60 pt-3">
+                              <button type="button" onClick={cancelEventEditing} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">取消修改</button>
+                              <button type="button" disabled={!editingEventText.trim()} onClick={confirmEventCard} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">儲存修改並繼續</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-xs font-medium text-accent">這次看見的事件</p>
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{eventCard.draftText}</p>
+                            <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-border-base/60 pt-3">
+                              <button type="button" onClick={startEventEditing} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">修改內容</button>
+                              <button type="button" onClick={dismissEventCard} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先不存</button>
+                              <button type="button" onClick={confirmEventCard} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">確認這是我要看的事件</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-body">{turn.content}</p>
@@ -350,7 +441,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
             <p className="text-[11px] font-semibold text-accent">{t.explorePerspectivePrefix}</p>
             <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{continuationGuide}</p>
           </div>}
-          <textarea ref={composerRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event => {
+          <textarea disabled={eventCard?.status === 'editing'} ref={composerRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
               void continueConversation();
@@ -358,7 +449,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
           }} placeholder={continuationGuide ? t.composerPlaceholderGuide : presentPayload?.scene_detected ? t.composerPlaceholderScene : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
           <div className="mt-3 flex items-center justify-between border-t border-border-base/60 pt-3">
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="inline-flex min-h-[44px] items-center px-2 text-sm text-ink-muted hover:text-ink cursor-pointer">{t.composerCancelBtn}</button>
-            <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
+            <button onClick={() => void continueConversation()} disabled={!continuation.trim() || eventCard?.status === 'editing'} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
           </div>
         </div> : <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={() => openComposer()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px cursor-pointer">
