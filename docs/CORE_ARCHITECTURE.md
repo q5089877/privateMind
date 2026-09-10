@@ -143,11 +143,11 @@ session 的開始、續談與收束是獨立責任。目前可由 `HarborFlowEng
 
 AI 依任務分角色，而不是由 UI 任意拼 prompt：
 
-- `Present Companion`：回應當前 Moment。在同一次 session 續談時，必須結合本次 session 內的前文對話作為上下文脈絡（理解代名詞與場景指涉），但絕不讀取跨 session 歷史或個人 Profile。要提供貼著原話的新角度或可續談入口。無法可靠生成時，回傳不可用狀態並讓使用者選擇重試，不以替代文字冒充完成。
+- `Present Companion`：回應當前 Moment。在同一次 session 續談時，必須結合本次 session 內的前文對話作為上下文脈絡（理解代名詞與場景指涉），但絕不讀取跨 session 歷史或個人 Profile。先由獨立分類器判斷情緒是明說、隱喻或不明；分類解析失敗時視為不確定，直接使用溫和 fallback，不進入自由生成。
 
-Present Companion 是使用者進入 `CHAT` 後的主要回報，不是過場提示。起始 Moment 在 `CHAT` 開啟後立即請求；同一 session 的後續 Moment 則在保存後立即請求。正常回應以 45–140 個中文字、2–3 句為生成目標；驗證器接受 30–160 字：先準確映照原話，再提出一個能由原文支持的新理解，最後不得提出問題或留下續談入口。它應比單張角度卡完整，但不得把篇幅用在重述、安慰套話或無依據分析。
+Present Companion 是使用者進入 `CHAT` 後的主要回報，不是過場提示。起始 Moment 在 `CHAT` 開啟後立即請求；同一 session 的後續 Moment 則在保存後立即請求。正常回應以 3 句、30–160 個中文字為生成目標：先做情緒或狀態映照，再指出目前未知的部分，最後只提出一個逐步靠近具體情境的問題。驗證器會檢查問號數量、未知留白、原文錨定、禁止詞與分類規則；驗證失敗時使用溫和 fallback，不把模型原文呈現給使用者。
 
-Present 的結果必須區分三態：通過驗證的 `success` 才能保存為 `immediateReply` 與 assistant turn，並開放 Explore；本地短輸入或純發洩得到的 `acknowledged` 只在當次畫面顯示「已留下。」，不得冒充 AI 分析或寫入對話；網路、Worker、模型或驗證失敗一律為 `unavailable`，顯示重試入口且不保存替代文字。
+Present 的結果必須區分三態：通過驗證的模型回應或溫和 fallback 以 `success` 保存為 `immediateReply` 與 assistant turn，並開放 Explore；本地短輸入或純發洩得到的 `acknowledged` 只在當次畫面顯示「已留下。」，不得冒充 AI 分析或寫入對話；網路或 Worker 無法連線時才是 `unavailable`，顯示重試入口且不保存網路錯誤文字。
 
 `acknowledged` 只允許由呼叫模型前的確定性本地規則產生。像「我快受不了了」這類沒有交代事件、但已清楚表達狀態與強度的完整句子，必須送往 Present Companion；模型不得以「資訊不足」為由回傳「已留下。」。
 - `Explore Companion`：只讀取使用者明確打開的當次 session，協助探索、拆開拉扯與換角度；它可以真實陪談，但每一個可能都要區分於事實，不假裝是結論。若呈現角度卡，每張都必須是一段不同、以口語大白話直指感受的 AI 觀點，加上一句可自行回答的延續問題；嚴禁文學比喻、散文修辭與舞台劇式情境描寫。

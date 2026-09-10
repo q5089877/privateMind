@@ -2,13 +2,21 @@ import type { ConversationTurn, PresentResult } from '../../../domain/harbor';
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCompanionResponse } from './shared';
 
 export const DEFAULT_CIRCUIT_BREAKER_FALLBACK = '已留下。';
+export const PRESENT_WARM_FALLBACK = '這段內容我先不替你下結論，目前只知道它對你有明顯影響。當時最具體發生了什麼？';
+
+export type PresentInferenceLevel = 'explicit' | 'metaphor' | 'none';
+
+export const presentFallback = (): PresentResult => ({
+  status: 'success',
+  reply: PRESENT_WARM_FALLBACK
+});
 
 export const presentAcknowledgement = (): PresentResult => ({
   status: 'acknowledged',
   reply: DEFAULT_CIRCUIT_BREAKER_FALLBACK
 });
 
-const presentUnavailable = (): PresentResult => ({ status: 'unavailable' });
+const presentUnavailable = (): PresentResult => presentFallback();
 
 /**
  * 成本與純發洩短路門 (Cost & Vent Gate)：
@@ -60,7 +68,43 @@ export const shouldShortCircuitLocally = (input: string): boolean => {
 
 /** Rules for the immediate, current-Moment companion (Circuit Breaker). */
 export const presentRole = {
-  create(current: string, priorTurns?: ConversationTurn[]): GeminiRoleRequest {
+  classify(current: string): GeminiRoleRequest {
+    return {
+      timeoutMs: 8_000,
+      context: undefined,
+      payload: {
+        model: FLASH_LITE_MODEL,
+        contents: [{ role: 'user', parts: [{ text: `請只判斷以下使用者輸入中的情緒是否已被明確說出，或需要從隱喻推論。不要解釋，不要重寫原文。\n\n使用者輸入：\n「${current}」` }] }],
+        systemInstruction: {
+          parts: [{ text: '你是情緒表達分類器。只輸出 JSON。explicit 代表使用者直接說出情緒；metaphor 代表情緒藏在比喻、意象或間接語句中；none 代表沒有明確情緒線索。無法確定時輸出 metaphor。' }]
+        },
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 30,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: { inferenceLevel: { type: 'STRING', enum: ['explicit', 'metaphor', 'none'] } },
+            required: ['inferenceLevel']
+          },
+          thinkingConfig: FAST_THINKING_CONFIG
+        }
+      }
+    };
+  },
+
+  readClassification(raw: string): PresentInferenceLevel | null {
+    try {
+      const parsed = JSON.parse(raw) as { inferenceLevel?: unknown };
+      return parsed.inferenceLevel === 'explicit' || parsed.inferenceLevel === 'metaphor' || parsed.inferenceLevel === 'none'
+        ? parsed.inferenceLevel
+        : null;
+    } catch {
+      return null;
+    }
+  },
+
+  create(current: string, priorTurns: ConversationTurn[] = [], inferenceLevel: PresentInferenceLevel = 'metaphor'): GeminiRoleRequest {
     const userPriors = priorTurns?.filter(t => t.role === 'user' && t.content && t.content.trim()) || [];
     const contextBlock = userPriors.length > 0
       ? `【本次對話先前輸入（僅供解析代名詞指涉，核心聚焦最新輸入）】：\n` +
@@ -76,30 +120,22 @@ export const presentRole = {
         contents: [{ role: 'user', parts: [{ text: `${contextBlock}【使用者輸入】：
 「${current}」
 
-你不是心理諮商師，也不是同理心機器。
-你的任務是針對使用者剛留下的思緒，用冷靜平實的日常口語，提供一段值得讀的主要回應。
+你是思緒停靠的 Present Companion。先準確映照使用者的感受，再清楚說明目前還不知道的部分，最後只提出一個具體問題。
 
 【約束條件】
-1. 禁止重複、重組或換句話說（Paraphrase）使用者的語句。
-2. 禁止使用任何情感安撫詞（如：「辛苦了」、「別擔心」、「慢慢來」、「看得出來」、「聽得出來」、「一切正在運作」）。
-3. 嚴格禁止使用電腦程式、系統架構或工程術語（例如：「實體變數」、「外部邊界」、「邏輯推演」、「停止運算」、「變數」、「中斷」、「資料」等）。
-4. 使用 2 至 3 句，繁體中文，總字數 45 至 140 字；不要為了湊字重述原句。
-5. 前兩句先說清楚觀察；禁止提出問題、要求回答或留下任何續談入口。所有內容必須以陳述句結束。
-6. 嚴禁三流文學譬喻（如：暗湧、撕扯、神經訊號、法庭審判）。
+1. 這次分類是「${inferenceLevel}」。${inferenceLevel === 'explicit' ? '只能確認使用者已明說的情緒，不新增情緒或心理解釋。' : inferenceLevel === 'metaphor' ? '可以提出一個低強度的情緒映照，但必須使用「有一種」或「像是」，不能診斷或定義使用者。' : '只陳述原文可確認的狀態，不自行補上情緒。'}
+2. 必須先寫情緒映照，再寫目前還不知道的部分，最後提出一個問題。
+3. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
+4. 不得提供建議、命令、安慰套話或行動指導。
+5. 使用 3 句繁體中文，總字數 45 至 160 字；只能有一個問號。
+6. 只使用原文與本次明確提供的對話內容，不補造事件。
 
-【輸出結構（禁止其他廢話）】
-- [第一句：看見什麼] 指出原話裡已經存在的狀態、落差或拉扯，不必逐字複誦。
-- [第二句：新的角度] 提出一個能由原文支持的新理解；推測必須使用「也許」「可能」「像是」。
-- [第三句（可有可無）] 只能補充一個由原文支持的中性陳述，不得提問。
-- 即使原文沒有交代原因或事件，只要是一句完整的感受或狀態，仍須就「已知的強度」與「尚未知的情境」作出兩句中性回應。
-- 「已留下。」只由呼叫模型前的本地短路規則使用；模型禁止輸出「已留下。」。
+【輸出結構】
+- 第一句：情緒或狀態映照。
+- 第二句：明確說出目前還不知道的部分。
+- 第三句：只問一個逐步靠近具體情境的問題。
 
-【範例對照】
-輸入：我快被這個專案搞瘋了，客戶一直改需求。
-輸出：客戶的需求調整屬於對方的決定，繼續焦慮並不會改變現有進度。今晚反覆琢磨無法得到新答案，事情留到上班再處理。
-
-輸入：我快受不了了。
-輸出：目前能確定的是，難受的程度已經高到接近承受上限，但具體發生了什麼還沒有出現在這句話裡。原因仍然未知，不代表這份難受本身不夠明確。` }] }],
+禁止詞：防禦機制、防衛、自我保護、創傷、被拋棄、心理疾病、人格、診斷、建議你、你應該、試著、深呼吸、離開現場、也許對方、可能對方、對方想、對方覺得、辛苦了、別擔心、慢慢來、已留下。` }] }],
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 200,
@@ -110,7 +146,7 @@ export const presentRole = {
     };
   },
 
-  read(raw: string, _current?: string): PresentResult {
+  read(raw: string, current = '', inferenceLevel: PresentInferenceLevel = 'metaphor'): PresentResult {
     const text = normalizeCompanionResponse(raw);
     if (text === DEFAULT_CIRCUIT_BREAKER_FALLBACK) {
       // Acknowledgement is reserved for the deterministic local gate. If the
@@ -121,13 +157,15 @@ export const presentRole = {
       '辛苦了', '這很正常', '真實的一刻', '一切正在運作', '允許自己', '先停下來', '休息一下',
       '法庭', '審判', '神經訊號', '注意力通道', '看得出來', '聽得出來', '別擔心', '慢慢來', '深呼吸',
       '不用去追問', '這不容易',
+      '防禦機制', '防衛', '自我保護', '創傷', '被拋棄', '心理疾病', '人格', '診斷', '建議你', '你應該', '試著',
+      '離開現場', '喝杯水', '也許對方', '可能對方', '對方想', '對方覺得',
       // 防禦系統提示詞後設語言外洩 (Anti-Meta Prompt Leak)
       '實體變數', '停止運算', '邏輯推演', '外部邊界', '外部變數', '不可控變數', '無法取得新資料', '中斷處理', '運算核心'
     ];
     
-    // 1. Present 永遠不提出問題
+    // 1. Present 必須只提出一個問題
     const questionCount = (text.match(/[?？]/g) || []).length;
-    if (questionCount > 0) {
+    if (questionCount !== 1) {
       return presentUnavailable();
     }
     
@@ -137,6 +175,15 @@ export const presentRole = {
       return presentUnavailable();
     }
     
+    const hasUnknownMarker = ['還不知道', '尚未知道', '目前不確定', '原文沒有', '目前無法確認', '沒有說明'].some(marker => text.includes(marker));
+    if (!hasUnknownMarker) return presentUnavailable();
+
+    if (inferenceLevel === 'explicit' && /(也許|可能|像是)/u.test(text)) return presentUnavailable();
+    if (inferenceLevel === 'metaphor' && (text.match(/也許|可能|像是|有一種/gu) || []).length > 2) return presentUnavailable();
+
+    const sourceWords = current.replace(/[，。、！？\s]/g, ' ').split(' ').filter(word => word.length >= 2);
+    if (sourceWords.length > 0 && !sourceWords.some(word => text.includes(word))) return presentUnavailable();
+
     // 3. 高品質的短回應可通過，但主要回報不能膨脹成報告
     if (text.length > 160 || text.length < 30) {
       return presentUnavailable();

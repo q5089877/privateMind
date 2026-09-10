@@ -10,7 +10,7 @@ import type { ConversationTurn, ExplorePerspective, PresentResult, SessionClosur
 import { exploreRole } from '../services/ai/roles/exploreRole';
 import { landingRole } from '../services/ai/roles/landingRole';
 import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
-import { presentAcknowledgement, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
+import { presentAcknowledgement, presentFallback, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
 import { normalizeCompanionResponse } from '../services/ai/roles/shared';
 import { timelineRole, type TimelineSource } from '../services/ai/roles/timelineRole';
 
@@ -86,12 +86,18 @@ export class GeminiProxyClient {
     if (shouldShortCircuitLocally(clean)) {
       return presentAcknowledgement();
     }
-    const task = presentRole.create(clean, priorTurns);
     const proxyUrl = this.getProxyUrl();
     if (!proxyUrl) return { status: 'unavailable' };
     try {
+      const classificationTask = presentRole.classify(clean);
+      const classificationRaw = await readModelText(await postJsonWithTimeout(proxyUrl, classificationTask.payload, classificationTask.timeoutMs, signal));
+      if (!classificationRaw) return { status: 'unavailable' };
+      const inferenceLevel = presentRole.readClassification(classificationRaw);
+      if (!inferenceLevel) return presentFallback();
+
+      const task = presentRole.create(clean, priorTurns, inferenceLevel);
       const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs, signal));
-      return raw ? presentRole.read(raw, clean) : { status: 'unavailable' };
+      return raw ? presentRole.read(raw, clean, inferenceLevel) : { status: 'unavailable' };
     } catch (err) {
       return { status: 'unavailable' };
     }
