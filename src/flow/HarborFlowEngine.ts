@@ -1,5 +1,5 @@
 import { MindHarborRepository } from '../data/MindHarborRepository';
-import { AnchorEventType, BackupOverview, BackupStatus, DailyAnchorStats, ExploreResult, HarborSession, MindHarborData, Moment, MomentIntent, PatternMirror, PresentResult, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
+import { AnchorEventType, BackupOverview, BackupStatus, DailyAnchorStats, ExploreResult, HarborSession, IcebergLayerRecord, MindHarborData, Moment, MomentIntent, PatternMirror, PresentResult, ReviewReading, SessionClosure, SessionClosureDraft } from '../domain/harbor';
 import { BackupService } from '../services/backup/BackupService';
 import { CompanionService } from '../services/ai/CompanionService';
 import { PatternService } from '../services/memory/PatternService';
@@ -301,6 +301,30 @@ export class HarborFlowEngine {
 
   public async recordAnchorEvent(type: AnchorEventType, durationMs?: number): Promise<DailyAnchorStats> {
     return this.storage.recordAnchorEvent(type, durationMs);
+  }
+
+  public async confirmEventLayer(finalText: string): Promise<void> {
+    const session = this.snapshot.currentSession;
+    const clean = finalText.trim();
+    if (!session || !clean) return;
+    const existing = await this.storage.getIcebergLayers(session.id);
+    if (existing.some(record => record.layer === 'event')) return;
+    const eventRecord: IcebergLayerRecord = {
+      id: this.id('iceberg'),
+      sessionId: session.id,
+      layer: 'event',
+      rawText: clean,
+      promptTemplate: '當這個時刻發生時，你當下的身體或感受是什麼？',
+      confirmed: true,
+      quarantined: false,
+      createdAt: new Date().toISOString()
+    };
+    await this.storage.saveIcebergLayer(eventRecord);
+    this.dispatch({ type: 'SESSION_UPDATED', session });
+  }
+
+  public getIcebergLayers(sessionId: string): Promise<IcebergLayerRecord[]> {
+    return this.storage.getIcebergLayers(sessionId);
   }
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 

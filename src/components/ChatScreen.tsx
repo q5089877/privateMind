@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
-import { ConversationTurn, ExploreResult, HarborSession, Moment, PresentPayload, PresentResult } from '../types';
+import { ConversationTurn, ExploreResult, HarborSession, IcebergLayerRecord, Moment, PresentPayload, PresentResult } from '../types';
 
 const EXPLORE_CONTEXT_LABELS: Record<string, string> = {
   chaos_body: '感受／混亂',
@@ -32,7 +32,8 @@ interface Props {
   onSaveReply: (momentId: string, reply: string, presentReply?: PresentPayload) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
   onOpenReview: () => void;
-  onConfirmEvent?: (finalText: string) => Promise<void> | void;
+  onConfirmEvent: (finalText: string) => Promise<void> | void;
+  getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
 }
 
 type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
@@ -40,7 +41,6 @@ type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
 interface EventConfirmationCardData {
   draftText: string;
   status: EventCardStatus;
-  sourceText: string;
 }
 
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
@@ -58,7 +58,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -96,10 +96,17 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   }, [moment?.id, moment?.immediateReply]);
 
   useEffect(() => {
-    if (!eventCard && presentPayload?.scene_detected && moment?.content) {
-      setEventCard({ draftText: moment.content, status: 'pending', sourceText: moment.content });
-    }
-  }, [eventCard, moment?.content, presentPayload?.scene_detected]);
+    if (!presentPayload?.scene_detected || !moment?.content || !session?.id) return;
+    let active = true;
+    void getIcebergLayers(session.id).then(records => {
+      if (!active) return;
+      const event = records.find(record => record.layer === 'event' && record.confirmed);
+      setEventCard(event
+        ? { draftText: event.rawText, status: 'confirmed' }
+        : { draftText: moment.content, status: 'pending' });
+    });
+    return () => { active = false; };
+  }, [moment?.content, presentPayload?.scene_detected, session?.id]);
 
   useEffect(() => {
     if (isPresentAcknowledged) {

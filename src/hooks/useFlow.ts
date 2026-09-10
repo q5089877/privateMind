@@ -42,6 +42,8 @@ export function useFlow() {
     getSessions: () => engine.getSessions(),
     getTodayAnchorStats: () => engine.getTodayAnchorStats(),
     recordAnchorEvent: (type: 'tap' | 'hold', durationMs?: number) => engine.recordAnchorEvent(type, durationMs),
+    confirmEventLayer: (text: string) => engine.confirmEventLayer(text),
+    getIcebergLayers: (sessionId: string) => engine.getIcebergLayers(sessionId),
     getBackupStatus: () => engine.getBackupStatus(),
     getBackupOverview: () => engine.getBackupOverview(),
     openSession: (sessionId: string) => engine.openSession(sessionId),

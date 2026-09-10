@@ -1,8 +1,9 @@
-import { AnchorEvent, AnchorEventType, DailyAnchorStats, HarborSession, LinkDecision, MindHarborData, Moment, PersistenceState, SessionClosure, ThoughtThread, ThreadLine } from '../types';
+import { AnchorEvent, AnchorEventType, DailyAnchorStats, HarborSession, IcebergLayerRecord, LinkDecision, MindHarborData, Moment, PersistenceState, SessionClosure, ThoughtThread, ThreadLine } from '../types';
 
 const DB_NAME = 'mind_harbor';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'app_state';
+const ICEBERG_STORE_NAME = 'iceberg_layers';
 const STATE_KEY = 'current';
 const LEGACY_THREADS_KEY = 'mind_harbor_threads_v3';
 
@@ -30,6 +31,8 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 export class MindHarborRepository {
   private database: Promise<IDBDatabase> | null = null;
   private memoryCache: MindHarborData | null = null;
+  private icebergCache: IcebergLayerRecord[] = [];
+  private icebergWriteLocks = new Map<string, Promise<void>>();
   private isIndexedDBBroken = false;
 
   public getPersistenceStatus(): PersistenceState {
@@ -46,6 +49,7 @@ export class MindHarborRepository {
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!parsed || !Array.isArray(parsed.moments)) return null;
+      this.icebergCache = Array.isArray(parsed.icebergLayers) ? parsed.icebergLayers : [];
       return {
         version: 2,
         moments: parsed.moments || [],
@@ -72,6 +76,7 @@ export class MindHarborRepository {
         version: data.version,
         moments: data.moments.slice(-10),
         sessions: data.sessions.slice(-3),
+        icebergLayers: this.icebergCache.slice(-500),
         anchorEvents: data.anchorEvents.slice(-500),
         updatedAt: Date.now()
       };
@@ -90,6 +95,10 @@ export class MindHarborRepository {
         request.onupgradeneeded = () => {
           const db = request.result;
           if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+          if (!db.objectStoreNames.contains(ICEBERG_STORE_NAME)) {
+            const store = db.createObjectStore(ICEBERG_STORE_NAME, { keyPath: 'id' });
+            store.createIndex('sessionId', 'sessionId', { unique: false });
+          }
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error || new Error('無法開啟本機資料庫'));
@@ -149,6 +158,63 @@ export class MindHarborRepository {
     const migrated = this.migrateLegacyThreads();
     await this.writeRaw(migrated);
     return migrated;
+  }
+
+  public async saveIcebergLayer(record: IcebergLayerRecord): Promise<void> {
+    const clean = { ...record, rawText: record.rawText.trim() };
+    if (!clean.rawText) return;
+    const previous = this.icebergWriteLocks.get(clean.sessionId) || Promise.resolve();
+    const operation = previous.then(async () => {
+      const existing = await this.getIcebergLayers(clean.sessionId);
+      if (existing.some(item => item.layer === clean.layer)) return;
+
+      this.icebergCache = [...this.icebergCache.filter(item => item.id !== clean.id), clean];
+      try {
+        if (this.isIndexedDBBroken || typeof indexedDB === 'undefined') {
+          this.writeLocalStorage(await this.getData());
+          return;
+        }
+        const db = await this.open();
+        await new Promise<void>((resolve, reject) => {
+          const request = db.transaction(ICEBERG_STORE_NAME, 'readwrite').objectStore(ICEBERG_STORE_NAME).put(clone(clean));
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error || new Error('無法寫入冰山資料'));
+        });
+        this.writeLocalStorage(await this.getData());
+      } catch (error) {
+        console.warn('[MindHarborRepository] Iceberg write failed, persisted to memory/localStorage:', error);
+        this.isIndexedDBBroken = true;
+        this.writeLocalStorage(await this.getData());
+      }
+    });
+    this.icebergWriteLocks.set(clean.sessionId, operation);
+    try {
+      await operation;
+    } finally {
+      if (this.icebergWriteLocks.get(clean.sessionId) === operation) this.icebergWriteLocks.delete(clean.sessionId);
+    }
+  }
+
+  public async getIcebergLayers(sessionId: string): Promise<IcebergLayerRecord[]> {
+    if (this.isIndexedDBBroken || typeof indexedDB === 'undefined') {
+      if (!this.memoryCache) this.readLocalStorage();
+      return this.icebergCache.filter(item => item.sessionId === sessionId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
+    try {
+      const db = await this.open();
+      const records = await new Promise<IcebergLayerRecord[]>((resolve, reject) => {
+        const request = db.transaction(ICEBERG_STORE_NAME, 'readonly').objectStore(ICEBERG_STORE_NAME).index('sessionId').getAll(sessionId);
+        request.onsuccess = () => resolve((request.result as IcebergLayerRecord[]) || []);
+        request.onerror = () => reject(request.error || new Error('無法讀取冰山資料'));
+      });
+      this.icebergCache = [...this.icebergCache.filter(item => item.sessionId !== sessionId), ...records];
+      return records.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    } catch (error) {
+      console.warn('[MindHarborRepository] Iceberg read failed, falling back to memory/localStorage:', error);
+      this.isIndexedDBBroken = true;
+      this.readLocalStorage();
+      return this.icebergCache.filter(item => item.sessionId === sessionId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
   }
 
   public async update(transform: (data: MindHarborData) => MindHarborData): Promise<MindHarborData> {

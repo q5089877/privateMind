@@ -58,6 +58,19 @@ export interface PresentPayload {
   scene_detected: boolean;
 }
 
+export type IcebergLayer = 'event' | 'feeling' | 'meaning' | 'expectation' | 'yearning';
+
+export interface IcebergLayerRecord {
+  id: string;
+  sessionId: string;
+  layer: IcebergLayer;
+  rawText: string;
+  promptTemplate: string;
+  confirmed: boolean;
+  quarantined: boolean;
+  createdAt: string;
+}
+
 /** One spoken turn inside a temporary harbor conversation. */
 export interface ConversationTurn {
   id: string;
