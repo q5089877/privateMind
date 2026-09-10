@@ -31,6 +31,7 @@ interface Props {
   getExploration: (session: HarborSession, excludeAxes?: string[]) => Promise<ExploreResult | null>;
   onSaveReply: (momentId: string, reply: string, presentReply?: PresentPayload) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
+  onOpenReview: () => void;
 }
 
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
@@ -48,7 +49,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -253,6 +254,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
 
                 {isLastAssistant && (
                   <div className="mt-3">
+                    {presentPayload?.scene_detected && turn.content === moment.immediateReply && (
+                      <button
+                        type="button"
+                        onClick={onOpenReview}
+                        className="mb-3 inline-flex min-h-[44px] items-center rounded-full border border-accent/35 px-4 text-sm font-medium text-accent hover:bg-accent/5 transition-colors cursor-pointer"
+                      >
+                        回看這件事
+                      </button>
+                    )}
                     {!showAngles ? (
                       <button
                         type="button"
