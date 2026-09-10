@@ -1,14 +1,25 @@
-import type { ConversationTurn, PresentResult } from '../../../domain/harbor';
+import type { ConversationTurn, PresentPayload, PresentResult } from '../../../domain/harbor';
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCompanionResponse } from './shared';
 
 export const DEFAULT_CIRCUIT_BREAKER_FALLBACK = '已留下。';
-export const PRESENT_WARM_FALLBACK = '這段內容我先不替你下結論，目前只知道它對你有明顯影響。當時最具體發生了什麼？';
+export const PRESENT_WARM_FALLBACK_PAYLOAD: PresentPayload = {
+  reflection: '我正在試著理解你的感受，目前這段訊息比較模糊。',
+  unknown: '目前還不知道具體的事件脈絡。',
+  question: '如果方便，可以多說一點剛才發生了什麼嗎？',
+  scene_detected: false
+};
+export const PRESENT_WARM_FALLBACK = [
+  PRESENT_WARM_FALLBACK_PAYLOAD.reflection,
+  PRESENT_WARM_FALLBACK_PAYLOAD.unknown,
+  PRESENT_WARM_FALLBACK_PAYLOAD.question
+].join(' ');
 
 export type PresentInferenceLevel = 'explicit' | 'metaphor' | 'none';
 
 export const presentFallback = (): PresentResult => ({
   status: 'success',
-  reply: PRESENT_WARM_FALLBACK
+  reply: PRESENT_WARM_FALLBACK,
+  payload: PRESENT_WARM_FALLBACK_PAYLOAD
 });
 
 export const presentAcknowledgement = (): PresentResult => ({
@@ -120,34 +131,57 @@ export const presentRole = {
         contents: [{ role: 'user', parts: [{ text: `${contextBlock}【使用者輸入】：
 「${current}」
 
-你是思緒停靠的 Present Companion。先準確映照使用者的感受，再清楚說明目前還不知道的部分，最後只提出一個具體問題。
+你是思緒停靠的 Present Companion。請輸出合法 JSON，先準確映照使用者的感受，再清楚說明目前還不知道的部分，最後判斷是否已經出現可以回看的具體場景。
 
 【約束條件】
 1. 這次分類是「${inferenceLevel}」。${inferenceLevel === 'explicit' ? '只能確認使用者已明說的情緒，不新增情緒或心理解釋。' : inferenceLevel === 'metaphor' ? '可以提出一個低強度的情緒映照，但必須使用「有一種」或「像是」，不能診斷或定義使用者。' : '只陳述原文可確認的狀態，不自行補上情緒。'}
-2. 必須先寫情緒映照，再寫目前還不知道的部分；第二句必須以「目前還不知道」或「目前不確定」開頭，最後提出一個問題。
-3. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
-4. 不得提供建議、命令、安慰套話或行動指導。
-5. 使用 3 句繁體中文，總字數 45 至 160 字；只能有一個問號。
-6. 只使用原文與本次明確提供的對話內容，不補造事件。
+2. 必須輸出 reflection、unknown、question、scene_detected 四個欄位。unknown 必須以「目前還不知道」或「目前不確定」開頭。
+3. 若已出現明確時間／人物／地點，並且同一場景有具體行為或言詞，scene_detected 設為 true，question 必須是 null；否則 scene_detected 設為 false，question 必須是一個具體問題。
+4. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
+5. 不得提供建議、命令、安慰套話或行動指導。
+6. reflection 與 unknown 使用繁體中文，不能為空；只使用原文與本次明確提供的對話內容，不補造事件。
 
 【輸出結構】
-- 第一句：情緒或狀態映照。
-- 第二句：明確說出目前還不知道的部分。
-- 第三句：只問一個逐步靠近具體情境的問題。
+{"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":"具體問題或 null","scene_detected":false}
 
 禁止詞：防禦機制、防衛、自我保護、創傷、被拋棄、心理疾病、人格、診斷、建議你、你應該、試著、深呼吸、離開現場、也許對方、可能對方、對方想、對方覺得、辛苦了、別擔心、慢慢來、已留下。` }] }],
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 200,
-          responseMimeType: 'text/plain',
-          thinkingConfig: FAST_THINKING_CONFIG
+          thinkingConfig: FAST_THINKING_CONFIG,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              reflection: { type: 'STRING' },
+              unknown: { type: 'STRING' },
+              question: { type: 'STRING', nullable: true },
+              scene_detected: { type: 'BOOLEAN' }
+            },
+            required: ['reflection', 'unknown', 'question', 'scene_detected']
+          }
         }
       }
     };
   },
 
   read(raw: string, current = '', inferenceLevel: PresentInferenceLevel = 'metaphor'): PresentResult {
-    const text = normalizeCompanionResponse(raw);
+    const parsed = (() => {
+      try { return JSON.parse(normalizeCompanionResponse(raw)) as Partial<PresentPayload>; }
+      catch { return null; }
+    })();
+    if (!parsed || typeof parsed.reflection !== 'string' || typeof parsed.unknown !== 'string' || typeof parsed.scene_detected !== 'boolean') {
+      return presentFallback();
+    }
+    const sceneDetected = parsed.scene_detected;
+    const question = sceneDetected ? null : (typeof parsed.question === 'string' ? parsed.question.trim() : null);
+    const payload: PresentPayload = {
+      reflection: parsed.reflection.trim(),
+      unknown: parsed.unknown.trim(),
+      question,
+      scene_detected: sceneDetected
+    };
+    const text = [payload.reflection, payload.unknown, payload.question].filter(Boolean).join(' ');
     if (text === DEFAULT_CIRCUIT_BREAKER_FALLBACK) {
       // Acknowledgement is reserved for the deterministic local gate. If the
       // remote model returns it, the requested Present analysis was unavailable.
@@ -165,7 +199,7 @@ export const presentRole = {
     
     // 1. Present 必須只提出一個問題
     const questionCount = (text.match(/[?？]/g) || []).length;
-    if (questionCount !== 1) {
+    if ((!sceneDetected && questionCount !== 1) || (sceneDetected && questionCount !== 0)) {
       return presentUnavailable();
     }
     
@@ -175,7 +209,7 @@ export const presentRole = {
       return presentUnavailable();
     }
     
-    const hasUnknownMarker = /(?:目前還不知道|目前不確定)/u.test(text);
+    const hasUnknownMarker = /^(?:目前還不知道|目前不確定)/u.test(payload.unknown);
     if (!hasUnknownMarker) return presentUnavailable();
 
     if (inferenceLevel === 'explicit' && /(也許|可能|像是)/u.test(text)) return presentUnavailable();
@@ -193,6 +227,6 @@ export const presentRole = {
       return presentUnavailable();
     }
     
-    return { status: 'success', reply: text };
+    return { status: 'success', reply: text, payload };
   }
 };

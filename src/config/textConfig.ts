@@ -72,6 +72,7 @@ export const UI_TEXT = {
     composerTitle: '還想補充什麼？',
     composerPlaceholderDefault: '把剛才還沒說完的，接下來……',
     composerPlaceholderGuide: '從這個視角，接續寫下……',
+    composerPlaceholderScene: '如果還想補充可以繼續打字，也可以先停在這裡……',
     composerCancelBtn: '先這樣',
     composerSubmitBtn: '接續留下',
     exploreLoading: '正在看另一個角度…',

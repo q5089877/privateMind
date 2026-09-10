@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
-import { ConversationTurn, ExploreResult, HarborSession, Moment, PresentResult } from '../types';
+import { ConversationTurn, ExploreResult, HarborSession, Moment, PresentPayload, PresentResult } from '../types';
 
 const EXPLORE_CONTEXT_LABELS: Record<string, string> = {
   chaos_body: '感受／混亂',
@@ -29,7 +29,7 @@ interface Props {
   onContinue: (content: string) => Promise<void>;
   getPresentReply: (moment: Moment, session?: HarborSession | null, force?: boolean) => Promise<PresentResult>;
   getExploration: (session: HarborSession, excludeAxes?: string[]) => Promise<ExploreResult | null>;
-  onSaveReply: (momentId: string, reply: string) => Promise<void>;
+  onSaveReply: (momentId: string, reply: string, presentReply?: PresentPayload) => Promise<void>;
   onBeginLanding: (session: HarborSession) => Promise<void>;
 }
 
@@ -50,6 +50,7 @@ const isFallbackReply = (text?: string | null) => {
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
 export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding }) => {
   const [reply, setReply] = useState('');
+  const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [replyUnavailable, setReplyUnavailable] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -67,6 +68,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     const hasAcknowledgement = isAcknowledgementReply(moment?.immediateReply);
     const hasValidReply = moment?.immediateReply && !hasAcknowledgement && !isFallbackReply(moment.immediateReply);
     setReply(hasValidReply ? normalizeCompanionResponse(moment!.immediateReply!) : '');
+    setPresentPayload(moment?.presentReply || null);
     setAcknowledged(hasAcknowledgement);
     setReplyUnavailable(Boolean(moment?.immediateReply && !hasAcknowledgement && isFallbackReply(moment.immediateReply)));
     setIsRetrying(false);
@@ -107,7 +109,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
         const clean = normalizeCompanionResponse(value.reply);
         setReply(clean);
         setAcknowledged(false);
-        await onSaveReply(moment.id, clean);
+        await onSaveReply(moment.id, clean, value.payload);
         setReplyUnavailable(false);
       } else if (value.status === 'acknowledged') {
         setReply('');
@@ -239,7 +241,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                 <p className="whitespace-pre-wrap text-[17px] leading-[1.65] tracking-[-0.015em] text-ink">{turn.content}</p>
               </article>
             : <article key={turn.id} className="mr-3 sm:mr-10 border-l-2 border-accent/50 py-1 pl-4 sm:pl-5">
-                <p className="whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-body">{turn.content}</p>
+                {presentPayload && turn.momentId === moment.id && turn.content === moment.immediateReply ? (
+                  <div className="space-y-2 text-[16px] leading-[1.85] text-ink-body">
+                    <p>{presentPayload.reflection}</p>
+                    <p>{presentPayload.unknown}</p>
+                    {presentPayload.question && <p>{presentPayload.question}</p>}
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap text-[16px] leading-[1.85] text-ink-body">{turn.content}</p>
+                )}
 
                 {isLastAssistant && (
                   <div className="mt-3">
@@ -335,7 +345,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
               event.preventDefault();
               void continueConversation();
             }
-          }} placeholder={continuationGuide ? t.composerPlaceholderGuide : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
+          }} placeholder={continuationGuide ? t.composerPlaceholderGuide : presentPayload?.scene_detected ? t.composerPlaceholderScene : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
           <div className="mt-3 flex items-center justify-between border-t border-border-base/60 pt-3">
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="inline-flex min-h-[44px] items-center px-2 text-sm text-ink-muted hover:text-ink cursor-pointer">{t.composerCancelBtn}</button>
             <button onClick={() => void continueConversation()} disabled={!continuation.trim()} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>

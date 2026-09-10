@@ -28,6 +28,7 @@ export interface Moment {
   /** Lifecycle is persisted for new records; legacy records default to docked during normalisation. */
   lifecycle?: MomentLifecycle;
   immediateReply?: string;
+  presentReply?: PresentPayload;
   /** Set when the user settles a moment: hidden from Review feed, still in Pattern pool. */
   settledAt?: number;
   /** Set when the user hard-deletes: hidden everywhere. Backup still exports it. */
@@ -50,6 +51,13 @@ export interface Moment {
 
 export type ConversationRole = 'user' | 'assistant';
 
+export interface PresentPayload {
+  reflection: string;
+  unknown: string;
+  question: string | null;
+  scene_detected: boolean;
+}
+
 /** One spoken turn inside a temporary harbor conversation. */
 export interface ConversationTurn {
   id: string;
@@ -61,7 +69,7 @@ export interface ConversationTurn {
 
 /** Explicit outcome of a Present request; only success is persisted as AI text. */
 export type PresentResult =
-  | { status: 'success'; reply: string }
+  | { status: 'success'; reply: string; payload: PresentPayload }
   | { status: 'acknowledged'; reply: '已留下。' }
   | { status: 'unavailable' };
 

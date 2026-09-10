@@ -268,10 +268,10 @@ export class MindHarborRepository {
   }
 
   /** Used when an AI turn is accepted, so the visible reply and conversation history cannot diverge. */
-  public async saveReplyAndSession(momentId: string, reply: string, session: HarborSession): Promise<MindHarborData> {
+  public async saveReplyAndSession(momentId: string, reply: string, session: HarborSession, presentReply?: import('../domain/harbor').PresentPayload): Promise<MindHarborData> {
     return this.update(data => ({
       ...data,
-      moments: data.moments.map(moment => moment.id === momentId ? { ...moment, immediateReply: reply.trim() } : moment),
+      moments: data.moments.map(moment => moment.id === momentId ? { ...moment, immediateReply: reply.trim(), ...(presentReply ? { presentReply } : {}) } : moment),
       sessions: [...data.sessions.filter(item => item.id !== session.id), session],
       backup: { ...data.backup, pendingChanges: data.backup.pendingChanges + 1 }
     }));

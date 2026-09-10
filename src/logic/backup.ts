@@ -29,6 +29,13 @@ const validateMoment = (value: unknown, index: number): Moment => {
   if (value.immediateReply !== undefined && typeof value.immediateReply !== 'string') {
     throw new Error(`備份中的 Moment #${index + 1} immediateReply 無效。`);
   }
+  if (value.presentReply !== undefined) {
+    const reply = value.presentReply as Record<string, unknown>;
+    if (typeof reply.reflection !== 'string' || typeof reply.unknown !== 'string' ||
+      (reply.question !== null && typeof reply.question !== 'string') || typeof reply.scene_detected !== 'boolean') {
+      throw new Error(`備份中的 Moment #${index + 1} presentReply 無效。`);
+    }
+  }
   if (value.temporalValidation !== undefined) {
     if (!isRecord(value.temporalValidation) || !['pending', 'still', 'faded', 'resolved'].includes(value.temporalValidation.status as string)) {
       throw new Error(`備份中的 Moment #${index + 1} temporalValidation 無效。`);

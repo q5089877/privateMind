@@ -226,7 +226,7 @@ export class HarborFlowEngine {
     return this.pattern.canMirror((await this.storage.getData()).moments);
   }
 
-  public async saveImmediateReply(momentId: string, reply: string) {
+  public async saveImmediateReply(momentId: string, reply: string, presentReply?: import('../domain/harbor').PresentPayload) {
     const clean = reply.trim();
     if (!clean) return;
     const data = await this.storage.getData();
@@ -238,8 +238,8 @@ export class HarborFlowEngine {
     const draftSession = storedSession || (this.snapshot.currentSession?.momentIds.includes(momentId) ? this.snapshot.currentSession : null);
     const session = draftSession ? this.appendAssistantTurn(draftSession, momentId, clean) : null;
     const next = session
-      ? await this.storage.saveReplyAndSession(momentId, clean, session)
-      : await this.storage.updateMoment(momentId, moment => ({ ...moment, immediateReply: clean }));
+      ? await this.storage.saveReplyAndSession(momentId, clean, session, presentReply)
+      : await this.storage.updateMoment(momentId, moment => ({ ...moment, immediateReply: clean, ...(presentReply ? { presentReply } : {}) }));
     // The reply remains durable even if the user already left CHAT, but stale
     // async completion must not repopulate HOME/LAND with an old conversation.
     const visibleSessionId = this.snapshot.currentSession?.id;
@@ -377,7 +377,7 @@ export class HarborFlowEngine {
 
   private async applyPresentResult(moment: Moment, session: HarborSession, result: PresentResult): Promise<void> {
     if (result.status === 'success') {
-      await this.saveImmediateReply(moment.id, result.reply);
+      await this.saveImmediateReply(moment.id, result.reply, result.payload);
       return;
     }
     if (
