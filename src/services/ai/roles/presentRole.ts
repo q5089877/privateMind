@@ -28,7 +28,7 @@ const recentUserTurns = (priorTurns: ConversationTurn[]): ConversationTurn[] =>
   priorTurns.filter(turn => turn.role === 'user' && turn.content?.trim()).slice(-2);
 
 const normalizeEvidence = (text: string): string =>
-  text.normalize('NFC').replace(/[\s\p{P}]/gu, '').toLocaleLowerCase();
+  text.normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu, '').toLocaleLowerCase();
 
 const isAuthenticEvidence = (value: unknown, sourceText: string): value is string => {
   if (typeof value !== 'string') return false;
