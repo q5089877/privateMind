@@ -145,7 +145,7 @@ AI 依任務分角色，而不是由 UI 任意拼 prompt：
 
 - `Present Companion`：回應當前 Moment。在同一次 session 續談時，必須結合本次 session 內的前文對話作為上下文脈絡（理解代名詞與場景指涉），但絕不讀取跨 session 歷史或個人 Profile。先由獨立分類器判斷情緒是明說、隱喻或不明；分類解析失敗時視為不確定，直接使用溫和 fallback，不進入自由生成。
 
-Present Companion 是使用者進入 `CHAT` 後的主要回報，不是過場提示。起始 Moment 在 `CHAT` 開啟後立即請求；同一 session 的後續 Moment 則在保存後立即請求。正常回應以 3 句、45–160 個中文字為生成目標：先做情緒或狀態映照，再指出目前未知的部分，最後只提出一個逐步靠近具體情境的問題。第二句固定以「目前還不知道」或「目前不確定」開頭；驗證器會檢查問號數量、未知留白、原文字元錨定、禁止詞與分類規則；驗證失敗時使用溫和 fallback，不把模型原文呈現給使用者。
+Present Companion 是使用者進入 `CHAT` 後的主要回報，不是過場提示。起始 Moment 在 `CHAT` 開啟後立即請求；同一 session 的後續 Moment 則在保存後立即請求。模型回應固定為 `PresentPayload`：`reflection`、`unknown`、`question`、`scene_detected` 四欄。正常回應以 3 句、45–160 個中文字為生成目標：先做情緒或狀態映照，再指出目前未知的部分，最後只提出一個逐步靠近具體情境的問題。第二句固定以「目前還不知道」或「目前不確定」開頭；若 `scene_detected` 為真，`question` 必須為 null。驗證器會檢查問號數量、未知留白、原文字元錨定、禁止詞與分類規則；驗證失敗時使用溫和 fallback，不把模型原文呈現給使用者。
 
 Present 的結果必須區分三態：通過驗證的模型回應或溫和 fallback 以 `success` 保存為 `immediateReply` 與 assistant turn，並開放 Explore；本地短輸入或純發洩得到的 `acknowledged` 只在當次畫面顯示「已留下。」，不得冒充 AI 分析或寫入對話；網路或 Worker 無法連線時才是 `unavailable`，顯示重試入口且不保存網路錯誤文字。
 
