@@ -35,9 +35,9 @@ export class CompanionService {
     const source = last.content.replace(/\s+/g, ' ').trim().slice(0, 28);
     if (source.length < 2) return null;
     return [
-      { id: 'fact', title: '事實', content: '現在可以確定的，只是眼前親口說出的這件事；其餘猜測與原因都還在未知之中。', followUp: '只看已經確定的事實，發生了什麼？', sourcePhrases: [source] },
-      { id: 'control', title: '控制', content: '現在不一定要把整個局面扭轉，也許先讓眼前能做的事少消耗你一點就足夠了。', followUp: '此刻哪件微小的事在自己掌控之中？', sourcePhrases: [source] },
-      { id: 'time', title: '時間', content: '拉開時間跨度來看，此時此刻的沉重感很滿，但未必代表之後也會一直是這樣。', followUp: '如果拉長到幾天後看，什麼最重要？', sourcePhrases: [source] },
+      { id: 'chaos_body', title: '身體在哪裡', content: '先只看原文已經說出的感受，不替它補上原因或更大的結論。', followUp: '這份感受在身體哪裡最明顯？', sourcePhrases: [source] },
+      { id: 'chaos_now', title: '現在最滿的是什麼', content: '目前能確定的只有這句話裡已經出現的狀態，其餘原因仍然沒有被說明。', followUp: '現在最佔住你的部分是什麼？', sourcePhrases: [source] },
+      { id: 'chaos_exception', title: '哪裡還沒被填滿', content: '這件事很滿，但原文沒有說明它是否影響了所有部分；仍有一些範圍需要由你自己確認。', followUp: '還有哪一小部分沒有被影響？', sourcePhrases: [source] },
     ];
   }
 }

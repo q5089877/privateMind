@@ -83,11 +83,9 @@ export interface SessionClosureDraft {
 
 /** A non-persistent session-only exploration group. It is never a user label. */
 export type ExplorePerspectiveId =
-  | 'fact' | 'time' | 'control' | 'defusion'
-  | 'need' | 'body' | 'context' | 'exception'
-  | 'other' | 'scale' | 'assumption' | 'action'
-  | 'change' | 'suspend' | 'values' | 'constraint' | 'reversible'
-  | 'self' | 'unknown' | 'observer' | 'system';
+  | 'chaos_body' | 'chaos_now' | 'chaos_trigger' | 'chaos_exception'
+  | 'decision_priorities' | 'decision_criteria' | 'decision_irreversible' | 'decision_cost'
+  | 'interpersonal_unknown' | 'interpersonal_cared' | 'interpersonal_controllable' | 'interpersonal_observable';
 
 /** One distinct, user-invoked AI angle grounded in this session's own user turns. */
 export interface ExplorePerspective {

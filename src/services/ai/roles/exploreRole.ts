@@ -2,32 +2,45 @@ import type { ConversationTurn, ExplorePerspective, ExplorePerspectiveId } from 
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, parseJson } from './shared';
 
 export const ORTHOGONAL_AXIS_DEFINITIONS: Record<string, { title: string; instruction: string }> = {
-  fact: { title: '事實', instruction: '拿掉原因、動機與腦補，只還原目前百分之百能確定的客觀事實。' },
-  time: { title: '時間', instruction: '把現在放進更大的時間尺度；現在的狀態很重，不代表接下來也會一直是這樣。' },
-  control: { title: '控制', instruction: '分清現在能改變什麼 vs 只能承受什麼；不強求心情變好，只看此刻能掌握的最小邊界。' },
-  defusion: { title: '解離', instruction: '狀態不等於自己；你正在經歷這個感受，不等於你就是這樣的人。' },
-  need: { title: '需求', instruction: '情緒背後往往是具體匱乏；比起逼自己振作，先看當下缺休息、陪伴、還是某種期待。' },
-  body: { title: '身體', instruction: '從心理分析切換到生理感官（睡眠、體力、飲食）；停止大腦空轉，先看身體的物質基礎。' },
-  context: { title: '情境', instruction: '不問「我怎麼了」，改看環境或角色推力；最近的生活或環境裡，有沒有什麼在持續消耗你。' },
-  exception: { title: '例外', instruction: '尋找問題沒有出現的縫隙；最近有沒有哪怕只有半小時，情況其實沒有這麼糟？' },
-  other: { title: '他者', instruction: '換成旁觀者或重要他人的位置；如果是你在乎的人遇到這事，你大概不會要求他立刻解決。' },
-  scale: { title: '尺度', instruction: '從整個人生縮小到眼前具體一小部分；今天最卡住的可能只是局部，不代表全局瓦解。' },
-  assumption: { title: '假設', instruction: '挑戰偷偷存在的前提；例如「非得現在想出原因嗎？」、「這件事一定非做不可嗎？」' },
-  action: { title: '行動', instruction: '從想通切換到最小下一步；如果今天只讓自己稍微喘口氣或舒服 5%，做什麼最容易？' }
+  chaos_body: { title: '身體在哪裡', instruction: '只從原文已提到的身體或感官線索靠近，不假設症狀，也不替感受命名。' },
+  chaos_now: { title: '現在最滿的是什麼', instruction: '只整理當下最佔據注意力的原文，不追問原因，也不延伸成結論。' },
+  chaos_trigger: { title: '哪一個時刻感受最強', instruction: '找出原文已提到的時間、場景或互動轉折，不自行創造觸發原因。' },
+  chaos_exception: { title: '哪裡還沒被填滿', instruction: '尋找原文中仍然沒有被這件事影響的具體部分，不強迫使用者找正面答案。' },
+  decision_priorities: { title: '真正想保住的是什麼', instruction: '只指出原文已說出的價值、底線或不願失去的事，不替使用者排序。' },
+  decision_criteria: { title: '到底在比較哪些東西', instruction: '拆出原文中同時被放在一起衡量的選項或條件，不提供選擇建議。' },
+  decision_irreversible: { title: '什麼決定很難回頭', instruction: '只區分原文裡明確不可逆與可調整的部分，不替使用者預測後果。' },
+  decision_cost: { title: '確定要承擔的代價是什麼', instruction: '只整理選項已明確帶來的成本或限制，不把猜測寫成代價。' },
+  interpersonal_unknown: { title: '還不知道什麼', instruction: '清楚分開原文看見的對方行為與尚未知道的原因，不猜第三方動機。' },
+  interpersonal_cared: { title: '我在意什麼', instruction: '指出使用者親口說出的落差、感受、期待或界線，不替使用者命名深層需求。' },
+  interpersonal_controllable: { title: '我能管什麼', instruction: '分開對方的反應與使用者能決定的互動範圍，不把它寫成行動命令。' },
+  interpersonal_observable: { title: '實際看得到什麼', instruction: '只描述原文中的可觀察行為、時間與互動，不加入任何心理解釋。' }
 };
 
-const ORTHOGONAL_CLUSTERS = [
-  ['fact', 'body', 'context', 'scale'],
-  ['control', 'action', 'assumption', 'exception'],
-  ['defusion', 'time', 'need', 'other']
-];
+export const EXPLORE_CONTEXTS = {
+  context_chaos: ['chaos_body', 'chaos_now', 'chaos_trigger', 'chaos_exception'],
+  context_decision: ['decision_priorities', 'decision_criteria', 'decision_irreversible', 'decision_cost'],
+  context_interpersonal: ['interpersonal_unknown', 'interpersonal_cared', 'interpersonal_controllable', 'interpersonal_observable']
+} as const;
 
-export function sampleOrthogonalAxes(excludeAxes: string[] = []): string[] {
-  return ORTHOGONAL_CLUSTERS.map(cluster => {
-    const available = cluster.filter(axis => !excludeAxes.includes(axis));
-    const pool = available.length > 0 ? available : cluster;
-    return pool[Math.floor(Math.random() * pool.length)];
-  });
+const contextForAxis = (axis: string) =>
+  (Object.entries(EXPLORE_CONTEXTS).find(([, axes]) => axes.includes(axis as never))?.[0] || 'context_chaos') as keyof typeof EXPLORE_CONTEXTS;
+
+const contextForTranscript = (transcript: string): keyof typeof EXPLORE_CONTEXTS => {
+  if (/(對方|他|她|同事|主管|朋友|家人|伴侶|關係|聊天|溝通|冷淡|疏遠|陌生人|爭吵)/u.test(transcript)) {
+    return 'context_interpersonal';
+  }
+  if (/(選擇|決定|要不要|該不該|取捨|比較|離職|分手|搬家|答應|拒絕)/u.test(transcript)) {
+    return 'context_decision';
+  }
+  return 'context_chaos';
+};
+
+export function sampleOrthogonalAxes(transcript: string, excludeAxes: string[] = []): string[] {
+  const context = contextForTranscript(transcript);
+  const axes = [...EXPLORE_CONTEXTS[context]];
+  const available = axes.filter(axis => !excludeAxes.includes(axis));
+  const pool = available.length >= 3 ? available : axes;
+  return [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
 }
 
 const transcriptFrom = (turns: ConversationTurn[]) => turns
@@ -41,7 +54,7 @@ export const exploreRole = {
     const transcript = transcriptFrom(turns);
     if (!transcript) return null;
     const excluded = Array.isArray(excludeAxes) ? excludeAxes : [];
-    const targetAxes = sampleOrthogonalAxes(excluded);
+    const targetAxes = sampleOrthogonalAxes(transcript, excluded);
     const responseSchema = {
       type: 'OBJECT', properties: {
         perspectives: {
@@ -103,8 +116,10 @@ ${instructions}
     }).filter((card): card is ExplorePerspective => Boolean(card));
 
     const normalized = valid.map(card => card.content.replace(/[\s\p{P}]/gu, ''));
-    return valid.length >= 3 && valid.length <= 4
+    const contexts = new Set(valid.map(card => contextForAxis(card.id)));
+    return valid.length === 3
       && new Set(valid.map(card => card.id)).size === valid.length
+      && contexts.size === 1
       && new Set(normalized).size === valid.length
       ? valid
       : null;
