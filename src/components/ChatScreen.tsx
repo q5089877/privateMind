@@ -34,9 +34,12 @@ interface Props {
   onOpenReview: () => void;
   onConfirmEvent: (finalText: string) => Promise<void> | void;
   getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
+  onRecordFeeling: (rawText: string) => Promise<void>;
+  onAppendFeeling: (additionalText: string) => Promise<void>;
 }
 
 type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
+type FeelingStatus = 'input' | 'confirmed' | 'appending' | 'next';
 
 interface EventConfirmationCardData {
   draftText: string;
@@ -58,7 +61,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, onRecordFeeling, onAppendFeeling }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -73,6 +76,10 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const [activePerspectiveIndex, setActivePerspectiveIndex] = useState(0);
   const [eventCard, setEventCard] = useState<EventConfirmationCardData | null>(null);
   const [editingEventText, setEditingEventText] = useState('');
+  const [feelingRecord, setFeelingRecord] = useState<IcebergLayerRecord | null>(null);
+  const [feelingStatus, setFeelingStatus] = useState<FeelingStatus>('input');
+  const [feelingText, setFeelingText] = useState('');
+  const [feelingAppendText, setFeelingAppendText] = useState('');
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +100,10 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setActivePerspectiveIndex(0);
     setEventCard(null);
     setEditingEventText('');
+    setFeelingRecord(null);
+    setFeelingStatus('input');
+    setFeelingText('');
+    setFeelingAppendText('');
   }, [moment?.id, moment?.immediateReply]);
 
   useEffect(() => {
@@ -101,9 +112,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     void getIcebergLayers(session.id).then(records => {
       if (!active) return;
       const event = records.find(record => record.layer === 'event' && record.confirmed);
+      const feeling = records.find(record => record.layer === 'feeling' && record.confirmed) || null;
       setEventCard(event
         ? { draftText: event.rawText, status: 'confirmed' }
         : { draftText: moment.content, status: 'pending' });
+      setFeelingRecord(feeling);
+      setFeelingStatus(feeling ? 'confirmed' : 'input');
     });
     return () => { active = false; };
   }, [moment?.content, presentPayload?.scene_detected, session?.id]);
@@ -166,6 +180,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   if (reply && !hasCurrentAssistant) turns.push({ id: `visible-reply-${moment.id}`, role: 'assistant', content: reply, createdAt: Date.now(), momentId: moment.id });
 
   const isMultiTurn = turns.length >= 2;
+  const feelingInteractionActive = eventCard?.status === 'confirmed' && (feelingStatus === 'input' || feelingStatus === 'appending');
 
   const openComposer = (guide = '') => {
     setContinuation('');
@@ -175,7 +190,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   };
 
   const continueConversation = async () => {
-    if (eventCard?.status === 'editing') return;
+    if (eventCard?.status === 'editing' || feelingInteractionActive) return;
     const content = continuation.trim();
     if (content) await onContinue(content);
   };
@@ -204,7 +219,33 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     if (!finalText) return;
     setEventCard({ ...eventCard, draftText: finalText, status: 'confirmed' });
     setEditingEventText('');
-    void onConfirmEvent?.(finalText);
+    void onConfirmEvent(finalText);
+  };
+
+  const confirmFeeling = async () => {
+    const clean = feelingText.trim();
+    if (!clean || feelingStatus !== 'input') return;
+    await onRecordFeeling(clean);
+    const records = await getIcebergLayers(session.id);
+    const feeling = records.find(record => record.layer === 'feeling' && record.confirmed) || null;
+    if (feeling) {
+      setFeelingRecord(feeling);
+      setFeelingText('');
+      setFeelingStatus('confirmed');
+    }
+  };
+
+  const saveFeelingAppend = async () => {
+    const clean = feelingAppendText.trim();
+    if (!clean || feelingStatus !== 'appending') return;
+    await onAppendFeeling(clean);
+    const records = await getIcebergLayers(session.id);
+    const feeling = records.find(record => record.layer === 'feeling' && record.confirmed) || null;
+    if (feeling) {
+      setFeelingRecord(feeling);
+      setFeelingAppendText('');
+      setFeelingStatus('confirmed');
+    }
   };
 
   const requestAngles = async () => {
@@ -312,6 +353,64 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                             <div className="border-t border-border-base/60 pt-3">
                               <p className="text-sm leading-relaxed text-ink-secondary">當這個事件發生時，你當下的身體或感受是什麼？</p>
                             </div>
+                            {feelingStatus === 'input' && (
+                              <div className="mt-3 rounded-xl border border-border-base bg-surface p-3">
+                                <textarea
+                                  value={feelingText}
+                                  onChange={event => setFeelingText(event.target.value)}
+                                  onKeyDown={event => event.stopPropagation()}
+                                  rows={3}
+                                  placeholder="用你自己的話寫下當下的感受……"
+                                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted"
+                                  autoFocus
+                                />
+                                <div className="min-h-[20px] pt-1 text-xs text-red-700">
+                                  {!feelingText.trim() && '請至少留下這一刻的一點感受。'}
+                                </div>
+                                <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
+                                  <button type="button" onClick={() => void onBeginLanding(session)} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
+                                  <button type="button" disabled={!feelingText.trim()} onClick={() => void confirmFeeling()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">確認感受</button>
+                                </div>
+                              </div>
+                            )}
+                            {feelingStatus === 'confirmed' && feelingRecord && (
+                              <div className="mt-3 rounded-xl border border-border-base bg-surface p-3">
+                                <p className="text-xs font-medium text-accent">已停靠的感受</p>
+                                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{feelingRecord.rawText}</p>
+                                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-base/60 pt-3">
+                                  <button type="button" onClick={() => setFeelingStatus('next')} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">往下一層</button>
+                                  <button type="button" onClick={() => { setFeelingAppendText(''); setFeelingStatus('appending'); }} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">再補充這一層</button>
+                                  <button type="button" onClick={() => void onBeginLanding(session)} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先停在這裡</button>
+                                </div>
+                              </div>
+                            )}
+                            {feelingStatus === 'appending' && feelingRecord && (
+                              <div className="mt-3 rounded-xl border border-border-base bg-surface p-3">
+                                <p className="text-xs font-medium text-accent">補充這一層</p>
+                                <p className="mt-2 whitespace-pre-wrap border-b border-border-base/60 pb-3 text-sm leading-relaxed text-ink-muted">{feelingRecord.rawText}</p>
+                                <textarea
+                                  value={feelingAppendText}
+                                  onChange={event => setFeelingAppendText(event.target.value)}
+                                  onKeyDown={event => event.stopPropagation()}
+                                  rows={3}
+                                  placeholder="只寫想補充的部分……"
+                                  className="mt-3 w-full resize-none bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted"
+                                  autoFocus
+                                />
+                                <div className="min-h-[20px] pt-1 text-xs text-red-700">
+                                  {!feelingAppendText.trim() && '請至少留下補充的一點文字。'}
+                                </div>
+                                <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
+                                  <button type="button" onClick={() => setFeelingStatus('confirmed')} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">取消補充</button>
+                                  <button type="button" disabled={!feelingAppendText.trim()} onClick={() => void saveFeelingAppend()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">儲存補充</button>
+                                </div>
+                              </div>
+                            )}
+                            {feelingStatus === 'next' && (
+                              <div className="mt-3 rounded-xl border border-border-base bg-surface p-3 text-sm leading-relaxed text-ink-muted">
+                                meaning 層會在下一步開放。這一層目前先停在這裡。
+                              </div>
+                            )}
                           </div>
                         ) : eventCard.status === 'editing' ? (
                           <div>
@@ -448,7 +547,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
             <p className="text-[11px] font-semibold text-accent">{t.explorePerspectivePrefix}</p>
             <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{continuationGuide}</p>
           </div>}
-          <textarea disabled={eventCard?.status === 'editing'} ref={composerRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event => {
+          <textarea disabled={eventCard?.status === 'editing' || feelingInteractionActive} ref={composerRef} id="continue-thought" value={continuation} onChange={event => setContinuation(event.target.value)} onKeyDown={event => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
               void continueConversation();
@@ -456,7 +555,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
           }} placeholder={continuationGuide ? t.composerPlaceholderGuide : presentPayload?.scene_detected ? t.composerPlaceholderScene : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
           <div className="mt-3 flex items-center justify-between border-t border-border-base/60 pt-3">
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="inline-flex min-h-[44px] items-center px-2 text-sm text-ink-muted hover:text-ink cursor-pointer">{t.composerCancelBtn}</button>
-            <button onClick={() => void continueConversation()} disabled={!continuation.trim() || eventCard?.status === 'editing'} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
+            <button onClick={() => void continueConversation()} disabled={!continuation.trim() || eventCard?.status === 'editing' || feelingInteractionActive} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
           </div>
         </div> : <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={() => openComposer()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px cursor-pointer">

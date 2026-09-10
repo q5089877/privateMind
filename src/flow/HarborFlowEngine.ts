@@ -19,6 +19,7 @@ export class HarborFlowEngine {
   private readonly backup = new BackupService();
   private listeners: Array<() => void> = [];
   private readonly presentReplyRequests = new Map<string, Promise<PresentResult>>();
+  private readonly feelingAppendRequests = new Map<string, Promise<void>>();
   private activePresentAbortController: AbortController | null = null;
   private activeLandingAbortController: AbortController | null = null;
 
@@ -325,6 +326,47 @@ export class HarborFlowEngine {
 
   public getIcebergLayers(sessionId: string): Promise<IcebergLayerRecord[]> {
     return this.storage.getIcebergLayers(sessionId);
+  }
+
+  public async recordFeelingLayer(rawText: string): Promise<void> {
+    const session = this.snapshot.currentSession;
+    const clean = rawText.trim();
+    if (!session || !clean) return;
+    const existing = await this.storage.getIcebergLayers(session.id);
+    if (existing.some(record => record.layer === 'feeling')) return;
+    await this.storage.saveIcebergLayer({
+      id: this.id('iceberg'),
+      sessionId: session.id,
+      layer: 'feeling',
+      rawText: clean,
+      promptTemplate: `如果你願意看一看，這份【${clean}】對你來說代表了什麼？`,
+      confirmed: true,
+      quarantined: false,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  public async appendFeelingLayer(additionalText: string): Promise<void> {
+    const session = this.snapshot.currentSession;
+    const clean = additionalText.trim();
+    if (!session || !clean) return;
+    const previous = this.feelingAppendRequests.get(session.id) || Promise.resolve();
+    const operation = previous.then(async () => {
+      const existing = (await this.storage.getIcebergLayers(session.id)).find(record => record.layer === 'feeling');
+      if (!existing) return;
+      const rawText = `${existing.rawText}\n${clean}`.trim();
+      await this.storage.updateIcebergLayer({
+        ...existing,
+        rawText,
+        promptTemplate: `如果你願意看一看，這份【${rawText}】對你來說代表了什麼？`
+      });
+    });
+    this.feelingAppendRequests.set(session.id, operation);
+    try {
+      await operation;
+    } finally {
+      if (this.feelingAppendRequests.get(session.id) === operation) this.feelingAppendRequests.delete(session.id);
+    }
   }
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 

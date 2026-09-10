@@ -195,6 +195,29 @@ export class MindHarborRepository {
     }
   }
 
+  public async updateIcebergLayer(record: IcebergLayerRecord): Promise<void> {
+    const clean = { ...record, rawText: record.rawText.trim() };
+    if (!clean.rawText) return;
+    this.icebergCache = [...this.icebergCache.filter(item => item.id !== clean.id), clean];
+    try {
+      if (this.isIndexedDBBroken || typeof indexedDB === 'undefined') {
+        this.writeLocalStorage(await this.getData());
+        return;
+      }
+      const db = await this.open();
+      await new Promise<void>((resolve, reject) => {
+        const request = db.transaction(ICEBERG_STORE_NAME, 'readwrite').objectStore(ICEBERG_STORE_NAME).put(clone(clean));
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error || new Error('無法更新冰山資料'));
+      });
+      this.writeLocalStorage(await this.getData());
+    } catch (error) {
+      console.warn('[MindHarborRepository] Iceberg update failed, persisted to memory/localStorage:', error);
+      this.isIndexedDBBroken = true;
+      this.writeLocalStorage(await this.getData());
+    }
+  }
+
   public async getIcebergLayers(sessionId: string): Promise<IcebergLayerRecord[]> {
     if (this.isIndexedDBBroken || typeof indexedDB === 'undefined') {
       if (!this.memoryCache) this.readLocalStorage();
