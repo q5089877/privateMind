@@ -124,7 +124,7 @@ export const presentRole = {
 
 【約束條件】
 1. 這次分類是「${inferenceLevel}」。${inferenceLevel === 'explicit' ? '只能確認使用者已明說的情緒，不新增情緒或心理解釋。' : inferenceLevel === 'metaphor' ? '可以提出一個低強度的情緒映照，但必須使用「有一種」或「像是」，不能診斷或定義使用者。' : '只陳述原文可確認的狀態，不自行補上情緒。'}
-2. 必須先寫情緒映照，再寫目前還不知道的部分，最後提出一個問題。
+2. 必須先寫情緒映照，再寫目前還不知道的部分；第二句必須以「目前還不知道」或「目前不確定」開頭，最後提出一個問題。
 3. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
 4. 不得提供建議、命令、安慰套話或行動指導。
 5. 使用 3 句繁體中文，總字數 45 至 160 字；只能有一個問號。
@@ -175,17 +175,21 @@ export const presentRole = {
       return presentUnavailable();
     }
     
-    const hasUnknownMarker = ['還不知道', '尚未知道', '目前不確定', '原文沒有', '目前無法確認', '沒有說明'].some(marker => text.includes(marker));
+    const hasUnknownMarker = /(?:目前還不知道|目前不確定)/u.test(text);
     if (!hasUnknownMarker) return presentUnavailable();
 
     if (inferenceLevel === 'explicit' && /(也許|可能|像是)/u.test(text)) return presentUnavailable();
     if (inferenceLevel === 'metaphor' && (text.match(/也許|可能|像是|有一種/gu) || []).length > 2) return presentUnavailable();
 
-    const sourceWords = current.replace(/[，。、！？\s]/g, ' ').split(' ').filter(word => word.length >= 2);
-    if (sourceWords.length > 0 && !sourceWords.some(word => text.includes(word))) return presentUnavailable();
+    // 中文沒有可靠的空白分詞；以有意義字元重疊確認回應仍錨定原文，避免要求整句逐字複誦。
+    const sourceChars = [...new Set(Array.from(current).filter(char => /[\p{L}\p{N}]/u.test(char)))];
+    const replyChars = new Set(Array.from(text));
+    const overlapCount = sourceChars.filter(char => replyChars.has(char)).length;
+    const minimumOverlap = sourceChars.length >= 8 ? 2 : sourceChars.length > 0 ? 1 : 0;
+    if (overlapCount < minimumOverlap) return presentUnavailable();
 
     // 3. 高品質的短回應可通過，但主要回報不能膨脹成報告
-    if (text.length > 160 || text.length < 30) {
+    if (text.length > 160 || text.length < 45) {
       return presentUnavailable();
     }
     
