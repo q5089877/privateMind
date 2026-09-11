@@ -46,6 +46,7 @@ export function useFlow() {
     getIcebergLayers: (sessionId: string) => engine.getIcebergLayers(sessionId),
     recordFeelingLayer: (text: string) => engine.recordFeelingLayer(text),
     appendFeelingLayer: (text: string) => engine.appendFeelingLayer(text),
+    recordMeaningLayer: (text: string) => engine.recordMeaningLayer(text),
     getBackupStatus: () => engine.getBackupStatus(),
     getBackupOverview: () => engine.getBackupOverview(),
     openSession: (sessionId: string) => engine.openSession(sessionId),

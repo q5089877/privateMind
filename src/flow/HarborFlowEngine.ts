@@ -368,6 +368,24 @@ export class HarborFlowEngine {
       if (this.feelingAppendRequests.get(session.id) === operation) this.feelingAppendRequests.delete(session.id);
     }
   }
+
+  public async recordMeaningLayer(rawText: string): Promise<void> {
+    const session = this.snapshot.currentSession;
+    if (!session) throw new Error('Cannot record meaning without an active session');
+    const clean = rawText.trim();
+    if (!clean) throw new Error('Meaning text cannot be empty');
+    const existing = await this.storage.getIcebergLayers(session.id);
+    const feeling = existing.find(record => record.layer === 'feeling' && record.confirmed);
+    if (!feeling) throw new Error('Cannot record meaning without confirmed feeling layer');
+    if (existing.some(record => record.layer === 'meaning' && record.confirmed)) return;
+    const feelingPreview = feeling.rawText.replace(/\\s+/gu, ' ').trim().slice(0, 40);
+    await this.storage.saveIcebergLayer({
+      id: this.id('iceberg'), sessionId: session.id, layer: 'meaning', rawText: clean,
+      promptTemplate: `\u5982\u679c\u4f60\u9858\u610f\u770b\u4e00\u770b\uff0c\u9019\u4efd\u3010${feelingPreview}\u3011\u5c0d\u4f60\u4f86\u8aaa\u4ee3\u8868\u4e86\u4ec0\u9ebc\uff1f`,
+      confirmed: true, quarantined: false, createdAt: new Date().toISOString()
+    });
+  }
+
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 
   public async getBackupOverview(): Promise<BackupOverview> {

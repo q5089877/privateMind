@@ -36,10 +36,12 @@ interface Props {
   getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
   onRecordFeeling: (rawText: string) => Promise<void>;
   onAppendFeeling: (additionalText: string) => Promise<void>;
+  onRecordMeaning: (rawText: string) => Promise<void>;
 }
 
 type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
 type FeelingStatus = 'input' | 'confirmed' | 'appending' | 'next';
+type MeaningStatus = 'locked' | 'input' | 'saving' | 'confirmed';
 
 interface EventConfirmationCardData {
   draftText: string;
@@ -61,7 +63,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, onRecordFeeling, onAppendFeeling }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, onRecordFeeling, onAppendFeeling, onRecordMeaning }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -80,6 +82,10 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const [feelingStatus, setFeelingStatus] = useState<FeelingStatus>('input');
   const [feelingText, setFeelingText] = useState('');
   const [feelingAppendText, setFeelingAppendText] = useState('');
+  const [meaningRecord, setMeaningRecord] = useState<IcebergLayerRecord | null>(null);
+  const [meaningStatus, setMeaningStatus] = useState<MeaningStatus>('locked');
+  const [meaningDraft, setMeaningDraft] = useState('');
+  const [meaningError, setMeaningError] = useState('');
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +110,10 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setFeelingStatus('input');
     setFeelingText('');
     setFeelingAppendText('');
+    setMeaningRecord(null);
+    setMeaningStatus('locked');
+    setMeaningDraft('');
+    setMeaningError('');
   }, [moment?.id, moment?.immediateReply]);
 
   useEffect(() => {
@@ -113,11 +123,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
       if (!active) return;
       const event = records.find(record => record.layer === 'event' && record.confirmed);
       const feeling = records.find(record => record.layer === 'feeling' && record.confirmed) || null;
+      const meaning = records.find(record => record.layer === 'meaning' && record.confirmed) || null;
       setEventCard(event
         ? { draftText: event.rawText, status: 'confirmed' }
         : { draftText: moment.content, status: 'pending' });
       setFeelingRecord(feeling);
       setFeelingStatus(feeling ? 'confirmed' : 'input');
+      setMeaningRecord(meaning);
+      setMeaningStatus(meaning ? 'confirmed' : 'locked');
+      setMeaningDraft(meaning?.rawText || '');
     });
     return () => { active = false; };
   }, [moment?.content, presentPayload?.scene_detected, session?.id]);
@@ -180,7 +194,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   if (reply && !hasCurrentAssistant) turns.push({ id: `visible-reply-${moment.id}`, role: 'assistant', content: reply, createdAt: Date.now(), momentId: moment.id });
 
   const isMultiTurn = turns.length >= 2;
-  const feelingInteractionActive = eventCard?.status === 'confirmed' && (feelingStatus === 'input' || feelingStatus === 'appending');
+  const feelingInteractionActive = eventCard?.status === 'confirmed' && (feelingStatus === 'input' || feelingStatus === 'appending' || meaningStatus === 'input' || meaningStatus === 'saving');
 
   const openComposer = (guide = '') => {
     setContinuation('');
@@ -245,6 +259,32 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
       setFeelingRecord(feeling);
       setFeelingAppendText('');
       setFeelingStatus('confirmed');
+    }
+  };
+
+  const openMeaning = () => {
+    if (!feelingRecord || meaningStatus !== 'locked') return;
+    setMeaningError('');
+    setFeelingStatus('next');
+    setMeaningStatus('input');
+  };
+
+  const confirmMeaning = async () => {
+    const clean = meaningDraft.trim();
+    if (!clean || meaningStatus !== 'input') return;
+    setMeaningError('');
+    setMeaningStatus('saving');
+    try {
+      await onRecordMeaning(clean);
+      const records = await getIcebergLayers(session.id);
+      const meaning = records.find(record => record.layer === 'meaning' && record.confirmed) || null;
+      if (!meaning) throw new Error('Meaning layer was not persisted');
+      setMeaningRecord(meaning);
+      setMeaningDraft(meaning.rawText);
+      setMeaningStatus('confirmed');
+    } catch {
+      setMeaningError('這段理解目前還沒有存下來，原文先留在這裡。');
+      setMeaningStatus('input');
     }
   };
 
@@ -378,7 +418,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                 <p className="text-xs font-medium text-accent">已停靠的感受</p>
                                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{feelingRecord.rawText}</p>
                                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-base/60 pt-3">
-                                  <button type="button" onClick={() => setFeelingStatus('next')} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">往下一層</button>
+                                  <button type="button" onClick={openMeaning} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">往下一層</button>
                                   <button type="button" onClick={() => { setFeelingAppendText(''); setFeelingStatus('appending'); }} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">再補充這一層</button>
                                   <button type="button" onClick={() => void onBeginLanding(session)} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先停在這裡</button>
                                 </div>
@@ -408,7 +448,41 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                             )}
                             {feelingStatus === 'next' && (
                               <div className="mt-3 rounded-xl border border-border-base bg-surface p-3 text-sm leading-relaxed text-ink-muted">
-                                meaning 層會在下一步開放。這一層目前先停在這裡。
+                                已停在感受層。
+                              </div>
+                            )}
+                            {meaningStatus !== 'locked' && (
+                              <div className="mt-3 rounded-xl border border-accent/25 bg-surface p-3">
+                                <p className="text-xs font-medium text-accent">意義層 · 我如何理解這件事</p>
+                                {meaningRecord && <p className="mt-2 rounded-xl bg-surface-subtle px-3 py-2 text-sm leading-relaxed text-ink-muted">感受：{meaningRecord.rawText}</p>}
+                                {meaningStatus === 'confirmed' && meaningRecord ? (
+                                  <div className="mt-3">
+                                    <p className="text-xs font-medium text-accent">已停靠的理解</p>
+                                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{meaningRecord.rawText}</p>
+                                  </div>
+                                ) : (
+                                  <div className="mt-3">
+                                    <p className="text-sm leading-relaxed text-ink-secondary">{meaningRecord?.promptTemplate || '如果你願意看一看，這份感受對你來說代表了什麼？'}</p>
+                                    <textarea
+                                      value={meaningDraft}
+                                      onChange={event => setMeaningDraft(event.target.value)}
+                                      onKeyDown={event => event.stopPropagation()}
+                                      disabled={meaningStatus === 'saving'}
+                                      rows={3}
+                                      placeholder="用你自己的話寫下這份感受對你的意義……"
+                                      className="mt-3 w-full resize-none rounded-xl border border-border-base bg-surface-subtle p-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted disabled:opacity-60"
+                                      autoFocus
+                                    />
+                                    <div className="min-h-[20px] pt-1 text-xs text-red-700">
+                                      {!meaningDraft.trim() && '請至少留下這一層的一點文字。'}
+                                      {meaningError}
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
+                                      <button type="button" disabled={meaningStatus === 'saving'} onClick={() => void onBeginLanding(session)} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer disabled:opacity-40">先停在這裡</button>
+                                      <button type="button" disabled={!meaningDraft.trim() || meaningStatus === 'saving'} onClick={() => void confirmMeaning()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{meaningStatus === 'saving' ? '儲存中……' : '確認這個理解'}</button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
