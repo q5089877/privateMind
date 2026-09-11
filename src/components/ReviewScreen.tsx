@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronRight, HardDrive, MessageSquare, Sparkles, Waves, X } from 'lucide-react';
-import { HarborSession, Moment, PatternMirror } from '../types';
+import { HarborSession, IcebergLayerRecord, Moment, PatternMirror } from '../types';
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
@@ -21,6 +21,7 @@ interface Props {
   onClose: () => void;
   getMoments: () => Promise<Moment[]>;
   getSessions: () => Promise<HarborSession[]>;
+  getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
   onOpenSession: (sessionId: string) => Promise<void>;
   canShowPatternMirror: () => Promise<boolean>;
   onRequestPatternMirror: () => Promise<PatternMirror | null>;
@@ -59,6 +60,7 @@ export const ReviewScreen: React.FC<Props> = ({
   onClose,
   getMoments,
   getSessions,
+  getIcebergLayers,
   onOpenSession,
   canShowPatternMirror,
   onRequestPatternMirror,
@@ -79,6 +81,7 @@ export const ReviewScreen: React.FC<Props> = ({
   const [settleAllNotice, setSettleAllNotice] = useState<string | null>(null);
   const [temporalCandidate, setTemporalCandidate] = useState<Moment | null>(null);
   const [activeDrawerSession, setActiveDrawerSession] = useState<HarborSession | null>(null);
+  const [activeDrawerLayers, setActiveDrawerLayers] = useState<IcebergLayerRecord[]>([]);
 
   // Pattern Passive Mirroring state
   const [patternEligible, setPatternEligible] = useState(false);
@@ -86,6 +89,18 @@ export const ReviewScreen: React.FC<Props> = ({
   const [mirrorOpen, setMirrorOpen] = useState(false);
   const [mirrorLoading, setMirrorLoading] = useState(false);
   const [patternMomentIds, setPatternMomentIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!activeDrawerSession) {
+      setActiveDrawerLayers([]);
+      return;
+    }
+    let active = true;
+    void getIcebergLayers(activeDrawerSession.id).then(records => {
+      if (active) setActiveDrawerLayers(records.filter(record => record.confirmed));
+    });
+    return () => { active = false; };
+  }, [activeDrawerSession?.id]);
 
   const reload = useCallback(() => {
     void Promise.all([
@@ -804,6 +819,21 @@ export const ReviewScreen: React.FC<Props> = ({
                       </div>
                     );
                   })}
+                {activeDrawerLayers.length > 0 && (
+                  <div className="border-t border-[#F2F0EC] pt-4">
+                    <p className="mb-3 text-[11.5px] font-medium text-[#7A8B82]">冰山停靠紀錄</p>
+                    <div className="space-y-3">
+                      {activeDrawerLayers.map(layer => (
+                        <div key={layer.id} className="rounded-xl border border-[#E3ECE6] bg-[#F4F7F5] px-3.5 py-3">
+                          <p className="text-[11px] font-medium text-[#387358]">
+                            {layer.layer === 'event' ? '事件' : layer.layer === 'feeling' ? '感受' : layer.layer === 'meaning' ? '意義' : layer.layer === 'expectation' ? '期待' : '渴望'}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#1B2822]">{layer.rawText}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Drawer Footer */}
