@@ -1,4 +1,5 @@
 import { AnchorEvent, AnchorEventType, DailyAnchorStats, HarborSession, IcebergLayerRecord, LinkDecision, MindHarborData, Moment, PersistenceState, SessionClosure, ThoughtThread, ThreadLine } from '../types';
+import { IcebergLayerRecord as NormalizedIcebergLayerRecord, normalizeLayerRecord } from '../domain/IcebergDomain';
 
 const DB_NAME = 'mind_harbor';
 const DB_VERSION = 2;
@@ -23,6 +24,25 @@ const emptyData = (): MindHarborData => ({
 });
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+/** Keep legacy storage readers working while the domain uses explicit statuses. */
+export function toStorageLayerRecord(record: NormalizedIcebergLayerRecord): IcebergLayerRecord {
+  const confirmed = record.status === 'confirmed' || record.status === 'anchored';
+  return {
+    id: record.id,
+    sessionId: record.sessionId,
+    layer: record.layer,
+    rawText: record.rawText,
+    promptTemplate: record.promptTemplate,
+    confirmed,
+    quarantined: false,
+    createdAt: new Date(record.confirmedAt ?? record.updatedAt).toISOString(),
+    status: record.status,
+    confirmedAt: record.confirmedAt,
+    supplementCount: record.supplementCount,
+    updatedAt: record.updatedAt,
+  } as IcebergLayerRecord;
+}
 
 /**
  * The source of truth is a small IndexedDB record instead of browser localStorage.
@@ -238,6 +258,15 @@ export class MindHarborRepository {
       this.readLocalStorage();
       return this.icebergCache.filter(item => item.sessionId === sessionId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     }
+  }
+
+  /** Read iceberg data through the current domain contract without rewriting legacy storage yet. */
+  public async getNormalizedIcebergLayers(sessionId: string): Promise<NormalizedIcebergLayerRecord[]> {
+    const records = await this.getIcebergLayers(sessionId);
+    return records
+      .map(record => normalizeLayerRecord(record))
+      .filter((record): record is NormalizedIcebergLayerRecord => record !== null)
+      .sort((a, b) => a.updatedAt - b.updatedAt);
   }
 
   public async update(transform: (data: MindHarborData) => MindHarborData): Promise<MindHarborData> {

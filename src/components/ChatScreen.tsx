@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, MessageCircle, RotateCw, Waves } from 'lucide-react';
 import { ConversationTurn, ExploreResult, HarborSession, IcebergLayerRecord, Moment, PresentPayload, PresentResult } from '../types';
+import { SessionAnchorState } from '../flow/HarborFlowEngine';
+import { AnchorResumeView } from './AnchorResumeView';
 
 const EXPLORE_CONTEXT_LABELS: Record<string, string> = {
   chaos_body: '感受／混亂',
@@ -34,6 +36,7 @@ interface Props {
   onOpenReview: () => void;
   onConfirmEvent: (finalText: string) => Promise<void> | void;
   getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
+  getSessionAnchorState: (sessionId: string) => Promise<SessionAnchorState>;
   onRecordFeeling: (rawText: string) => Promise<void>;
   onAppendFeeling: (additionalText: string) => Promise<void>;
   onRecordMeaning: (rawText: string) => Promise<void>;
@@ -69,7 +72,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, onRecordFeeling, onAppendFeeling, onRecordMeaning }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onRecordFeeling, onAppendFeeling, onRecordMeaning }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -93,6 +96,8 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const [meaningDraft, setMeaningDraft] = useState('');
   const [meaningError, setMeaningError] = useState('');
   const [icebergHydrated, setIcebergHydrated] = useState(false);
+  const [anchorState, setAnchorState] = useState<SessionAnchorState | null>(null);
+  const [showAnchorResume, setShowAnchorResume] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -122,7 +127,32 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setMeaningDraft('');
     setMeaningError('');
     setIcebergHydrated(false);
+    setAnchorState(null);
+    setShowAnchorResume(false);
   }, [moment?.id, moment?.immediateReply]);
+
+  useEffect(() => {
+    if (!session?.id) return;
+    let active = true;
+    void getSessionAnchorState(session.id).then(state => {
+      if (!active) return;
+      setAnchorState(state);
+      setShowAnchorResume(state.isAnchored);
+      if (!state.isAnchored) return;
+
+      const event = state.layers.find(record => record.layer === 'event' && (record.status === 'confirmed' || record.status === 'anchored'));
+      const feeling = state.layers.find(record => record.layer === 'feeling' && (record.status === 'confirmed' || record.status === 'anchored')) || null;
+      const meaning = state.layers.find(record => record.layer === 'meaning' && (record.status === 'confirmed' || record.status === 'anchored')) || null;
+      if (event) setEventCard({ draftText: event.rawText, status: 'confirmed' });
+      setFeelingRecord(feeling);
+      setFeelingStatus(feeling ? 'confirmed' : 'input');
+      setMeaningRecord(meaning);
+      setMeaningStatus(meaning ? 'confirmed' : 'locked');
+      setMeaningDraft(meaning?.rawText || '');
+      setIcebergHydrated(true);
+    });
+    return () => { active = false; };
+  }, [session?.id]);
 
   useEffect(() => {
     if ((!presentPayload?.scene_detected && moment?.intent !== 'follow_up') || !moment?.content || !session?.id) return;
@@ -367,6 +397,16 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
       )}
     </header>
 
+    {showAnchorResume && anchorState?.isAnchored ? (
+      <AnchorResumeView
+        targetRecord={anchorState.anchoredLayer || anchorState.deepestConfirmedLayer!}
+        historyLayers={anchorState.layers.filter(layer => layer.status === 'confirmed' || layer.status === 'anchored')}
+        sessionTurns={session.turns}
+        canAdvance={Boolean(anchorState.nextLayerToUnlock)}
+        onAdvance={() => setShowAnchorResume(false)}
+        onStartNewSession={onLeave}
+      />
+    ) : (
     <main className="pt-3 sm:pt-5">
       {!isMultiTurn && (
         <div className="mb-8">
@@ -692,5 +732,6 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
         </div>}
       </section>
     </main>
+    )}
   </div>;
 };

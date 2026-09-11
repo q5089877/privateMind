@@ -44,6 +44,7 @@ export function useFlow() {
     recordAnchorEvent: (type: 'tap' | 'hold', durationMs?: number) => engine.recordAnchorEvent(type, durationMs),
     confirmEventLayer: (text: string) => engine.confirmEventLayer(text),
     getIcebergLayers: (sessionId: string) => engine.getIcebergLayers(sessionId),
+    getSessionAnchorState: (sessionId: string) => engine.getSessionAnchorState(sessionId),
     recordFeelingLayer: (text: string) => engine.recordFeelingLayer(text),
     appendFeelingLayer: (text: string) => engine.appendFeelingLayer(text),
     recordMeaningLayer: (text: string) => engine.recordMeaningLayer(text),

@@ -6,8 +6,19 @@ import { PatternService } from '../services/memory/PatternService';
 import { HarborIntent, HarborUserIntent } from '../state/harborIntent';
 import { harborReducer } from '../state/harborReducer';
 import { HarborAppState, initialHarborState } from '../state/harborState';
+import { LAYER_ORDER, IcebergLayerRecord as NormalizedIcebergLayerRecord, IcebergLayerType } from '../domain/IcebergDomain';
 
 export const MEANING_PROMPT_TEMPLATE = '如果願意停下來看一看，這對你來說代表了什麼？';
+
+export interface SessionAnchorState {
+  session: HarborSession | null;
+  layers: NormalizedIcebergLayerRecord[];
+  anchoredLayer: NormalizedIcebergLayerRecord | null;
+  deepestConfirmedLayer: NormalizedIcebergLayerRecord | null;
+  effectiveTargetLayer: NormalizedIcebergLayerRecord | null;
+  nextLayerToUnlock: IcebergLayerType | null;
+  isAnchored: boolean;
+}
 
 /**
  * The single MVI coordinator. UI sends a human intent here; persistence and AI
@@ -328,6 +339,46 @@ export class HarborFlowEngine {
 
   public getIcebergLayers(sessionId: string): Promise<IcebergLayerRecord[]> {
     return this.storage.getIcebergLayers(sessionId);
+  }
+
+  /** Read-only session anchor projection. It stops at the first missing or incomplete layer. */
+  public async getSessionAnchorState(sessionId: string): Promise<SessionAnchorState> {
+    const [data, layers] = await Promise.all([
+      this.storage.getData(),
+      this.storage.getNormalizedIcebergLayers(sessionId),
+    ]);
+    const session = data.sessions.find(item => item.id === sessionId) || null;
+    const layerMap = new Map(layers.map(layer => [layer.layer, layer] as const));
+    let anchoredLayer: NormalizedIcebergLayerRecord | null = null;
+    let deepestConfirmedLayer: NormalizedIcebergLayerRecord | null = null;
+
+    for (const layerType of LAYER_ORDER) {
+      const record = layerMap.get(layerType);
+      if (!record) break;
+      if (record.status === 'anchored') {
+        anchoredLayer = record;
+        deepestConfirmedLayer = record;
+        break;
+      }
+      if (record.status !== 'confirmed') break;
+      deepestConfirmedLayer = record;
+    }
+
+    const effectiveTargetLayer = anchoredLayer || deepestConfirmedLayer;
+    const currentIndex = effectiveTargetLayer ? LAYER_ORDER.indexOf(effectiveTargetLayer.layer) : -1;
+    const nextLayerToUnlock = currentIndex >= 0 && currentIndex < LAYER_ORDER.length - 1
+      ? LAYER_ORDER[currentIndex + 1]
+      : null;
+
+    return {
+      session,
+      layers,
+      anchoredLayer,
+      deepestConfirmedLayer,
+      effectiveTargetLayer,
+      nextLayerToUnlock,
+      isAnchored: Boolean(anchoredLayer),
+    };
   }
 
   public async recordFeelingLayer(rawText: string): Promise<void> {
