@@ -7,6 +7,8 @@ import { HarborIntent, HarborUserIntent } from '../state/harborIntent';
 import { harborReducer } from '../state/harborReducer';
 import { HarborAppState, initialHarborState } from '../state/harborState';
 
+export const MEANING_PROMPT_TEMPLATE = '如果願意停下來看一看，這對你來說代表了什麼？';
+
 /**
  * The single MVI coordinator. UI sends a human intent here; persistence and AI
  * effects happen here or in services, never inside a screen component.
@@ -339,7 +341,7 @@ export class HarborFlowEngine {
       sessionId: session.id,
       layer: 'feeling',
       rawText: clean,
-      promptTemplate: `如果你願意看一看，這份【${clean}】對你來說代表了什麼？`,
+        promptTemplate: MEANING_PROMPT_TEMPLATE,
       confirmed: true,
       quarantined: false,
       createdAt: new Date().toISOString()
@@ -358,7 +360,7 @@ export class HarborFlowEngine {
       await this.storage.updateIcebergLayer({
         ...existing,
         rawText,
-        promptTemplate: `如果你願意看一看，這份【${rawText}】對你來說代表了什麼？`
+        promptTemplate: MEANING_PROMPT_TEMPLATE
       });
     });
     this.feelingAppendRequests.set(session.id, operation);
@@ -378,10 +380,9 @@ export class HarborFlowEngine {
     const feeling = existing.find(record => record.layer === 'feeling' && record.confirmed);
     if (!feeling) throw new Error('Cannot record meaning without confirmed feeling layer');
     if (existing.some(record => record.layer === 'meaning' && record.confirmed)) return;
-    const feelingPreview = feeling.rawText.replace(/\\s+/gu, ' ').trim().slice(0, 40);
     await this.storage.saveIcebergLayer({
       id: this.id('iceberg'), sessionId: session.id, layer: 'meaning', rawText: clean,
-      promptTemplate: `\u5982\u679c\u4f60\u9858\u610f\u770b\u4e00\u770b\uff0c\u9019\u4efd\u3010${feelingPreview}\u3011\u5c0d\u4f60\u4f86\u8aaa\u4ee3\u8868\u4e86\u4ec0\u9ebc\uff1f`,
+      promptTemplate: MEANING_PROMPT_TEMPLATE,
       confirmed: true, quarantined: false, createdAt: new Date().toISOString()
     });
   }
