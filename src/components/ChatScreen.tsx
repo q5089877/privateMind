@@ -37,6 +37,7 @@ interface Props {
   onConfirmEvent: (finalText: string) => Promise<void> | void;
   getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
   getSessionAnchorState: (sessionId: string) => Promise<SessionAnchorState>;
+  onAnchorLayer: (layer: 'event' | 'feeling' | 'meaning') => Promise<void>;
   onRecordFeeling: (rawText: string) => Promise<void>;
   onAppendFeeling: (additionalText: string) => Promise<void>;
   onRecordMeaning: (rawText: string) => Promise<void>;
@@ -72,7 +73,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onRecordFeeling, onAppendFeeling, onRecordMeaning }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onAnchorLayer, onRecordFeeling, onAppendFeeling, onRecordMeaning }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -256,6 +257,16 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     if (eventInteractionActive) return;
     const content = continuation.trim();
     if (content) await onContinue(content);
+  };
+
+  const anchorAndLand = async () => {
+    const layer = meaningRecord?.confirmed
+      ? 'meaning'
+      : feelingRecord?.confirmed
+        ? 'feeling'
+        : eventCard?.status === 'confirmed' ? 'event' : null;
+    if (layer) await onAnchorLayer(layer);
+    await onBeginLanding(session);
   };
 
   const startEventEditing = () => {
@@ -494,7 +505,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                   {!feelingText.trim() && '請至少留下這一刻的一點感受。'}
                                 </div>
                                 <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
-                                  <button type="button" onClick={() => void onBeginLanding(session)} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
+                                  <button type="button" onClick={() => void anchorAndLand()} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
                                   <button type="button" disabled={!feelingText.trim()} onClick={() => void confirmFeeling()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">確認感受</button>
                                 </div>
                               </div>
@@ -506,7 +517,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-base/60 pt-3">
                                   <button type="button" onClick={openMeaning} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">往下一層</button>
                                   <button type="button" onClick={() => { setFeelingAppendText(''); setFeelingStatus('appending'); }} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">再補充這一層</button>
-                                  <button type="button" onClick={() => void onBeginLanding(session)} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先停在這裡</button>
+                                  <button type="button" onClick={() => void anchorAndLand()} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先停在這裡</button>
                                 </div>
                               </div>
                             )}
@@ -569,7 +580,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                       {meaningError}
                                     </div>
                                     <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
-                                      <button type="button" disabled={meaningStatus === 'saving'} onClick={() => void onBeginLanding(session)} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer disabled:opacity-40">先停在這裡</button>
+                                      <button type="button" disabled={meaningStatus === 'saving'} onClick={() => void anchorAndLand()} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer disabled:opacity-40">先停在這裡</button>
                                       <button type="button" disabled={!meaningDraft.trim() || meaningStatus === 'saving'} onClick={() => void confirmMeaning()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{meaningStatus === 'saving' ? '儲存中……' : '確認這個理解'}</button>
                                     </div>
                                   </div>

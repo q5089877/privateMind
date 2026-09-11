@@ -341,6 +341,19 @@ export class HarborFlowEngine {
     return this.storage.getIcebergLayers(sessionId);
   }
 
+  /** Mark the deepest confirmed iceberg layer as the user's explicit stop point. */
+  public async anchorLayer(layer: IcebergLayerType): Promise<void> {
+    const session = this.snapshot.currentSession;
+    if (!session) return;
+    const existing = (await this.storage.getIcebergLayers(session.id)).find(record => record.layer === layer);
+    if (!existing || !existing.confirmed) return;
+    await this.storage.updateIcebergLayer({
+      ...existing,
+      status: 'anchored',
+      updatedAt: Date.now(),
+    } as IcebergLayerRecord);
+  }
+
   /** Read-only session anchor projection. It stops at the first missing or incomplete layer. */
   public async getSessionAnchorState(sessionId: string): Promise<SessionAnchorState> {
     const [data, layers] = await Promise.all([
