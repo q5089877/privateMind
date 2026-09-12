@@ -66,7 +66,7 @@ const ICEBERG_LAYER_LABELS = {
   yearning: '渴望',
 } as const;
 const DEFAULT_FEELING_TAGS = ['委屈', '生氣', '煩躁', '焦慮', '無力', '難過', '孤單', '開心'] as const;
-const DEFAULT_EXPECTATION_TAGS = ['我原本希望事情能被說清楚', '我期待對方先聽完再回應', '我希望自己可以有選擇', '我希望接下來不要再發生同樣的事'] as const;
+const DEFAULT_EXPECTATION_TAGS = ['好好休息', '大家都開心', '有時間陪伴', '不用急著決定'] as const;
 
 const meaningSuggestionsFor = (eventText: string, feelingText: string): string[] => {
   const source = `${eventText} ${feelingText}`;
@@ -260,8 +260,9 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   if (reply && !hasCurrentAssistant) turns.push({ id: `visible-reply-${moment.id}`, role: 'assistant', content: reply, createdAt: Date.now(), momentId: moment.id });
 
   const isMultiTurn = turns.length >= 2;
-  const feelingInteractionActive = eventCard?.status === 'confirmed' && (feelingStatus === 'input' || feelingStatus === 'appending' || meaningStatus === 'input' || meaningStatus === 'saving');
-  const eventInteractionActive = eventCard?.status === 'pending' || eventCard?.status === 'editing' || feelingInteractionActive;
+  const depthInteractionActive = meaningStatus !== 'locked' || expectationStatus !== 'closed' || yearningStatus !== 'closed';
+  const feelingInteractionActive = eventCard?.status === 'confirmed' && (feelingStatus === 'input' || feelingStatus === 'appending');
+  const eventInteractionActive = eventCard?.status === 'pending' || eventCard?.status === 'editing' || feelingInteractionActive || depthInteractionActive;
   const currentIcebergLayer = useMemo(() => {
     if (!icebergHydrated) return null;
     if (meaningStatus !== 'locked' || meaningRecord?.confirmed) return 'meaning';
@@ -609,11 +610,13 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                               <div className="mt-3 rounded-xl border border-border-base bg-surface p-3">
                                 <p className="text-xs font-medium text-accent">已停靠的感受</p>
                                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{feelingRecord.rawText}</p>
-                                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-base/60 pt-3">
-                                  <button type="button" onClick={openMeaning} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">往下一層</button>
-                                  <button type="button" onClick={() => { setFeelingAppendText(''); setFeelingStatus('appending'); }} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">再補充這一層</button>
-                                  <button type="button" onClick={() => void anchorAndLand()} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先停在這裡</button>
-                                </div>
+                                {meaningStatus === 'locked' && expectationStatus === 'closed' && yearningStatus === 'closed' && (
+                                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-base/60 pt-3">
+                                    <button type="button" onClick={openMeaning} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white cursor-pointer">往下一層</button>
+                                    <button type="button" onClick={() => { setFeelingAppendText(''); setFeelingStatus('appending'); }} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">再補充這一層</button>
+                                    <button type="button" onClick={() => void anchorAndLand()} className="min-h-[44px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">先停在這裡</button>
+                                  </div>
+                                )}
                               </div>
                             )}
                             {feelingStatus === 'appending' && feelingRecord && (

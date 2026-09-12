@@ -486,7 +486,7 @@ export class HarborFlowEngine {
       layer,
       rawText: clean,
       promptTemplate: layer === 'expectation'
-        ? '你原本希望的是什麼？'
+        ? '回到當時，你原本希望對方或自己怎麼做？'
         : '如果你願意，可以寫下這份期待背後對你而言最重要的是什麼。',
       confirmed: true,
       quarantined: false,
