@@ -802,7 +802,7 @@ export const ReviewScreen: React.FC<Props> = ({
               </div>
 
               {/* Messages Stream */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div className="flex-none max-h-[65vh] overflow-y-auto p-4 sm:p-5 space-y-3">
                 {activeDrawerSession.turns
                   .filter(t => !isFallbackReply(t.content) && !isAcknowledgementReply(t.content))
                   .map((turn, idx) => {
