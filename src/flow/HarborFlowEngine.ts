@@ -451,6 +451,35 @@ export class HarborFlowEngine {
     });
   }
 
+  /** Record optional depth drawers using the same confirmed dependency guard. */
+  public async recordOptionalLayer(layer: 'expectation' | 'yearning', rawText: string): Promise<void> {
+    const session = this.snapshot.currentSession;
+    const clean = rawText.trim();
+    if (!session) throw new Error('Cannot record an optional layer without an active session');
+    if (!clean) throw new Error(`${layer} text cannot be empty`);
+
+    const records = await this.storage.getIcebergLayers(session.id);
+    const previousLayer = layer === 'expectation' ? 'meaning' : 'expectation';
+    const previous = records.find(record => record.layer === previousLayer);
+    if (!previous || !previous.confirmed) {
+      throw new Error(`Cannot record ${layer} without confirmed ${previousLayer} layer`);
+    }
+    if (records.some(record => record.layer === layer && record.confirmed)) return;
+
+    await this.storage.saveIcebergLayer({
+      id: this.id('iceberg'),
+      sessionId: session.id,
+      layer,
+      rawText: clean,
+      promptTemplate: layer === 'expectation'
+        ? '你原本希望的是什麼？'
+        : '如果你願意，可以寫下這份期待背後對你而言最重要的是什麼。',
+      confirmed: true,
+      quarantined: false,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   public async getBackupStatus(): Promise<BackupStatus> { return (await this.storage.getData()).backup; }
 
   public async getBackupOverview(): Promise<BackupOverview> {

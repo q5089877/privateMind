@@ -10,7 +10,7 @@ import type { ConversationTurn, ExplorePerspective, PresentResult, SessionClosur
 import { exploreRole } from '../services/ai/roles/exploreRole';
 import { landingRole } from '../services/ai/roles/landingRole';
 import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
-import { presentAcknowledgement, presentFallback, presentRole, shouldShortCircuitLocally } from '../services/ai/roles/presentRole';
+import { presentFallback, presentRole } from '../services/ai/roles/presentRole';
 import { normalizeCompanionResponse } from '../services/ai/roles/shared';
 import { timelineRole, type TimelineSource } from '../services/ai/roles/timelineRole';
 
@@ -82,10 +82,8 @@ export class GeminiProxyClient {
   /** Present Companion (Circuit Breaker): one current Moment, with in-session context if available. */
   public static async getCompanionResponse(current: string, priorTurns?: ConversationTurn[], signal?: AbortSignal): Promise<PresentResult> {
     const clean = current.trim();
-    // 本地短路過濾：長度過短、純髒話/虛詞、純符號、或高重複字元，直接短路返回熔斷文字
-    if (shouldShortCircuitLocally(clean)) {
-      return presentAcknowledgement();
-    }
+    // Guided Depth does not treat short or unusual text as invalid input.
+    // It is still passed through the same bounded Present validator.
     const proxyUrl = this.getProxyUrl();
     if (!proxyUrl) return presentFallback();
     try {

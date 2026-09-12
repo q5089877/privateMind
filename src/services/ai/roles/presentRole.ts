@@ -3,10 +3,12 @@ import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCom
 
 export const DEFAULT_CIRCUIT_BREAKER_FALLBACK = '已留下。';
 export const PRESENT_WARM_FALLBACK_PAYLOAD: PresentPayload = {
-  reflection: '我正在試著理解你的感受，目前這段訊息比較模糊。',
+  reflection: '你剛才說：「這一刻」',
   unknown: '目前還不知道具體的事件脈絡。',
   question: '如果方便，可以多說一點剛才發生了什麼嗎？',
-  scene_detected: false
+  scene_detected: false,
+  inferenceLevel: 'none',
+  stage: 'event'
 };
 export const PRESENT_WARM_FALLBACK = [
   PRESENT_WARM_FALLBACK_PAYLOAD.reflection,
@@ -17,11 +19,10 @@ export const PRESENT_WARM_FALLBACK = [
 export type PresentInferenceLevel = 'explicit' | 'metaphor' | 'none';
 
 interface RawPresentPayload {
-  reflection?: unknown;
   unknown?: unknown;
   question?: unknown;
-  scene_anchor?: unknown;
-  scene_interaction?: unknown;
+  inferenceLevel?: unknown;
+  stage?: unknown;
 }
 
 const recentUserTurns = (priorTurns: ConversationTurn[]): ConversationTurn[] =>
@@ -122,13 +123,13 @@ export const presentRole = {
         model: FLASH_LITE_MODEL,
         contents: [{ role: 'user', parts: [{ text: `請只判斷以下使用者輸入中的情緒是否已被明確說出，或需要從隱喻推論。不要解釋，不要重寫原文。\n\n使用者輸入：\n「${current}」` }] }],
         systemInstruction: {
-          parts: [{ text: `你是情緒表達分類器。只輸出 JSON。
+          parts: [{ text: `你是思緒停靠的分類器。只輸出 JSON。
 explicit：使用者直接說出情緒，或提供有時間、真實人物／機構及具體程序的字面事件。
 metaphor：情緒藏在比喻、意象或間接語句中。
 none：沒有明確情緒線索。
 「法官、法庭、牢籠、深淵、黑洞、繩索、牆壁、懸崖、審判」若沒有明確時間、真實人物／機構與具體程序，一律視為 metaphor。
 例如「我覺得主管像法官一樣判我死刑」是 metaphor；「今天下午兩點人資寄信說我試用期沒過」是 explicit。
-無法確定時輸出 metaphor。` }]
+無法確定時輸出 none。不要替使用者增加情緒、動機或事件。` }]
         },
         generationConfig: {
           temperature: 0,
@@ -145,14 +146,14 @@ none：沒有明確情緒線索。
     };
   },
 
-  readClassification(raw: string): PresentInferenceLevel | null {
+  readClassification(raw: string): PresentInferenceLevel {
     try {
       const parsed = JSON.parse(raw) as { inferenceLevel?: unknown };
       return parsed.inferenceLevel === 'explicit' || parsed.inferenceLevel === 'metaphor' || parsed.inferenceLevel === 'none'
         ? parsed.inferenceLevel
-        : null;
+        : 'none';
     } catch {
-      return null;
+      return 'none';
     }
   },
 
@@ -172,24 +173,22 @@ none：沒有明確情緒線索。
         contents: [{ role: 'user', parts: [{ text: `${contextBlock}【使用者輸入】：
 「${current}」
 
-你是思緒停靠的 Present Companion。請輸出合法 JSON，先準確映照使用者的感受，再清楚說明目前還不知道的部分，最後從原文逐字摘錄可驗證的場景證據。場景是否成立由程式判斷，不由你宣告。
+你是思緒停靠的 Present Companion。請輸出合法 JSON，只提供目前還不知道的客觀空白、最多一個開放式問題、分類與階段。reflection 由程式組裝；不要輸出 reflection，也不要摘錄或判定事件卡。
 
 【約束條件】
-1. 這次分類是「${inferenceLevel}」。${inferenceLevel === 'explicit' ? '只能確認使用者已明說的情緒，不新增情緒或心理解釋。' : inferenceLevel === 'metaphor' ? '可以提出一個低強度的情緒映照，但必須使用「有一種」或「像是」，不能診斷或定義使用者。' : '只陳述原文可確認的狀態，不自行補上情緒。'}
-2. 必須輸出 reflection、unknown、question、scene_anchor、scene_interaction 五個欄位。unknown 必須以「目前還不知道」或「目前不確定」開頭。
-3. scene_anchor 只能逐字摘錄最新輸入或提供的最近兩個使用者回合中，最短且足以辨識時間、人物或地點的片段；scene_interaction 只能逐字摘錄同一脈絡中具體行為、言詞或互動結果的片段。不得改寫、補標點或把同一整句複製到兩欄。缺少任何一項時填 null。
-4. 只有 scene_anchor 與 scene_interaction 都能逐字摘錄且分類不是 metaphor 時，question 填 null；否則 question 必須是一個具體問題。分類為 metaphor 時兩個證據欄位都填 null。
+1. 這次分類是「${inferenceLevel}」。只能依使用者明說的內容，不新增情緒或心理解釋。
+2. 必須輸出 unknown、question、inferenceLevel、stage 四個欄位。unknown 必須以「目前還不知道」或「目前不確定」開頭。
+3. question 最多一個；若已足夠形成可供使用者確認的事件，仍可保留一個簡短開放式問題，但不得自動推進或產生事件卡。
+4. stage 只能是 event、feeling、meaning、expectation、yearning_emerged。只有使用者明確表達渴望、需要或最重要的價值時才可用 yearning_emerged，否則用 event。
 5. 不得替第三方猜動機，不得使用心理診斷、創傷、人格或防禦機制等標籤。
 6. 不得提供建議、命令、安慰套話或行動指導。
-7. reflection 與 unknown 使用繁體中文，不能為空；只使用原文與本次明確提供的對話內容，不補造事件。unknown 只能指出頻率、持續時間、當下環境或身體狀態等客觀空白，禁止列出第三方可能原因或替對方找理由。
-8. 若最新輸入是「好機車」、「很煩」、「超雷」等抽象評價或情緒抒發，不得一次索取時間、地點、人物與行為等多個欄位。只追問一個具體互動：對方剛才做了什麼，或說了哪一句話。unknown 也只保留一個最貼近的客觀空白。
-9. 嚴禁情緒代入：使用者未明確說出的情緒詞（例如「困擾」、「不滿」、「生氣」、「挫折」）不得自行加入 reflection。遇到抽象評價時，優先使用「你提到……」或「你形容……」引述使用者原詞，不把評價改寫成情緒判斷。
-10. unknown 與 question 必須分工，禁止重複。unknown 只用一句話指出目前缺少的客觀片段；question 再提出一個靠近該片段的問題，不得把「目前還不知道客戶做了什麼」原句重複成「客戶做了什麼」。
+7. unknown 只能指出一個客觀空白，禁止替對方找理由。
+8. 若最新輸入是抽象評價，不得一次索取時間、地點、人物與行為等多個欄位，只問一個具體互動。
+9. 嚴禁情緒代入：使用者未明確說出的情緒詞不得自行加入任何欄位。
+10. AI 不得決定何時形成事件、不得輸出 scene_detected，也不得要求使用者完成任何層級。
 
 【輸出結構】
-形成具體場景時：{"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":null,"scene_anchor":"逐字錨點","scene_interaction":"逐字互動"}
-尚未形成場景時：{"reflection":"情緒或狀態映照","unknown":"目前還不知道……","question":"一個具體問題？","scene_anchor":null,"scene_interaction":null}
-抽象評價的合格示例：{"reflection":"你形容今天的客戶很機車。","unknown":"目前還不知道哪一段具體互動對應這個形容。","question":"哪一個片段最先讓你想到「好機車」？","scene_anchor":null,"scene_interaction":null}
+{"unknown":"目前還不知道……","question":"一個具體問題？","inferenceLevel":"none","stage":"event"}
 
 禁止詞：防禦機制、防衛、自我保護、創傷、被拋棄、心理疾病、人格、診斷、建議你、你應該、試著、深呼吸、離開現場、也許對方、可能對方、對方想、對方覺得、辛苦了、別擔心、慢慢來、已留下。` }] }],
         generationConfig: {
@@ -200,13 +199,12 @@ none：沒有明確情緒線索。
           responseSchema: {
             type: 'OBJECT',
             properties: {
-              reflection: { type: 'STRING' },
               unknown: { type: 'STRING' },
               question: { type: 'STRING', nullable: true },
-              scene_anchor: { type: 'STRING', nullable: true },
-              scene_interaction: { type: 'STRING', nullable: true }
+              inferenceLevel: { type: 'STRING', enum: ['explicit', 'metaphor', 'none'] },
+              stage: { type: 'STRING', enum: ['event', 'feeling', 'meaning', 'expectation', 'yearning_emerged'] }
             },
-            required: ['reflection', 'unknown', 'question', 'scene_anchor', 'scene_interaction']
+            required: ['unknown', 'question', 'inferenceLevel', 'stage']
           }
         }
       }
@@ -218,26 +216,23 @@ none：沒有明確情緒線索。
       try { return JSON.parse(normalizeCompanionResponse(raw)) as RawPresentPayload; }
       catch { return null; }
     })();
-    if (!parsed || typeof parsed.reflection !== 'string' || typeof parsed.unknown !== 'string') {
+    if (!parsed || typeof parsed.unknown !== 'string') {
       return presentFallback();
     }
-    const evidenceSource = [...recentUserTurns(priorTurns).map(turn => turn.content.trim()), current].join('\n');
-    const anchorIsAuthentic = isAuthenticEvidence(parsed.scene_anchor, evidenceSource);
-    const interactionIsAuthentic = isAuthenticEvidence(parsed.scene_interaction, evidenceSource);
-    const authenticAnchor = anchorIsAuthentic ? parsed.scene_anchor as string : null;
-    const authenticInteraction = interactionIsAuthentic ? parsed.scene_interaction as string : null;
-    const evidenceIsDistinct = authenticAnchor !== null && authenticInteraction !== null &&
-      normalizeEvidence(authenticAnchor) !== normalizeEvidence(authenticInteraction);
-    const sceneDetected = inferenceLevel !== 'metaphor' && anchorIsAuthentic && interactionIsAuthentic && evidenceIsDistinct;
-    const question = sceneDetected ? null : (typeof parsed.question === 'string' ? parsed.question.trim() : null);
+    const reflection = `你剛才說：「${current.trim()}」`;
+    const question = typeof parsed.question === 'string' ? parsed.question.trim() : null;
     const rawUnknown = parsed.unknown.trim();
     const unknownHasSpeculation = SPECULATION_PATTERNS.some(pattern => pattern.test(rawUnknown)) ||
       BANNED_UNKNOWN_WORDS.some(word => rawUnknown.includes(word));
     const payload: PresentPayload = {
-      reflection: parsed.reflection.trim(),
+      reflection,
       unknown: unknownHasSpeculation ? NEUTRAL_UNKNOWN : rawUnknown,
       question,
-      scene_detected: sceneDetected
+      scene_detected: false,
+      inferenceLevel,
+      stage: parsed.stage === 'feeling' || parsed.stage === 'meaning' || parsed.stage === 'expectation' || parsed.stage === 'yearning_emerged'
+        ? parsed.stage
+        : 'event'
     };
     const text = [payload.reflection, payload.unknown, payload.question].filter(Boolean).join(' ');
     if (text === DEFAULT_CIRCUIT_BREAKER_FALLBACK) {
@@ -257,7 +252,7 @@ none：沒有明確情緒線索。
     
     // 1. Present 必須只提出一個問題
     const questionCount = (text.match(/[?？]/g) || []).length;
-    if ((!sceneDetected && questionCount !== 1) || (sceneDetected && questionCount !== 0)) {
+    if (questionCount > 1) {
       return presentUnavailable();
     }
     
@@ -271,7 +266,6 @@ none：沒有明確情緒線索。
     if (!hasUnknownMarker) return presentUnavailable();
 
     if (inferenceLevel === 'explicit' && /(也許|可能|像是)/u.test(text)) return presentUnavailable();
-    if (inferenceLevel === 'metaphor' && (text.match(/也許|可能|像是|有一種/gu) || []).length > 2) return presentUnavailable();
 
     // 中文沒有可靠的空白分詞；以有意義字元重疊確認回應仍錨定原文，避免要求整句逐字複誦。
     const sourceChars = [...new Set(Array.from(current).filter(char => /[\p{L}\p{N}]/u.test(char)))];
@@ -281,7 +275,7 @@ none：沒有明確情緒線索。
     if (overlapCount < minimumOverlap) return presentUnavailable();
 
     // 3. 高品質的短回應可通過，但主要回報不能膨脹成報告
-    if (text.length > 160 || text.length < 45) {
+    if (text.length > 160 || text.length < 8) {
       return presentUnavailable();
     }
     

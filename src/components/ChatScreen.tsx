@@ -37,15 +37,17 @@ interface Props {
   onConfirmEvent: (finalText: string) => Promise<void> | void;
   getIcebergLayers: (sessionId: string) => Promise<IcebergLayerRecord[]>;
   getSessionAnchorState: (sessionId: string) => Promise<SessionAnchorState>;
-  onAnchorLayer: (layer: 'event' | 'feeling' | 'meaning') => Promise<void>;
+  onAnchorLayer: (layer: 'event' | 'feeling' | 'meaning' | 'expectation' | 'yearning') => Promise<void>;
   onRecordFeeling: (rawText: string) => Promise<void>;
   onAppendFeeling: (additionalText: string) => Promise<void>;
   onRecordMeaning: (rawText: string) => Promise<void>;
+  onRecordOptionalLayer: (layer: 'expectation' | 'yearning', rawText: string) => Promise<void>;
 }
 
 type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
 type FeelingStatus = 'input' | 'confirmed' | 'appending' | 'next';
 type MeaningStatus = 'locked' | 'input' | 'saving' | 'confirmed';
+type OptionalLayerStatus = 'closed' | 'input' | 'saving' | 'confirmed';
 
 interface EventConfirmationCardData {
   draftText: string;
@@ -58,6 +60,8 @@ const ICEBERG_LAYER_LABELS = {
   event: '事件',
   feeling: '感受',
   meaning: '我如何理解這件事',
+  expectation: '期待',
+  yearning: '渴望',
 } as const;
 const DEFAULT_FEELING_TAGS = ['委屈', '生氣', '煩躁', '焦慮', '無力', '難過', '孤單', '開心'] as const;
 
@@ -73,7 +77,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onAnchorLayer, onRecordFeeling, onAppendFeeling, onRecordMeaning }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onAnchorLayer, onRecordFeeling, onAppendFeeling, onRecordMeaning, onRecordOptionalLayer }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -96,6 +100,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const [meaningStatus, setMeaningStatus] = useState<MeaningStatus>('locked');
   const [meaningDraft, setMeaningDraft] = useState('');
   const [meaningError, setMeaningError] = useState('');
+  const [expectationRecord, setExpectationRecord] = useState<IcebergLayerRecord | null>(null);
+  const [expectationStatus, setExpectationStatus] = useState<OptionalLayerStatus>('closed');
+  const [expectationDraft, setExpectationDraft] = useState('');
+  const [yearningRecord, setYearningRecord] = useState<IcebergLayerRecord | null>(null);
+  const [yearningStatus, setYearningStatus] = useState<OptionalLayerStatus>('closed');
+  const [yearningDraft, setYearningDraft] = useState('');
   const [icebergHydrated, setIcebergHydrated] = useState(false);
   const [anchorState, setAnchorState] = useState<SessionAnchorState | null>(null);
   const [showAnchorResume, setShowAnchorResume] = useState(false);
@@ -127,6 +137,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setMeaningStatus('locked');
     setMeaningDraft('');
     setMeaningError('');
+    setExpectationRecord(null);
+    setExpectationStatus('closed');
+    setExpectationDraft('');
+    setYearningRecord(null);
+    setYearningStatus('closed');
+    setYearningDraft('');
     setIcebergHydrated(false);
     setAnchorState(null);
     setShowAnchorResume(false);
@@ -139,43 +155,28 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
       if (!active) return;
       setAnchorState(state);
       setShowAnchorResume(state.isAnchored);
-      if (!state.isAnchored) return;
 
       const event = state.layers.find(record => record.layer === 'event' && (record.status === 'confirmed' || record.status === 'anchored'));
       const feeling = state.layers.find(record => record.layer === 'feeling' && (record.status === 'confirmed' || record.status === 'anchored')) || null;
       const meaning = state.layers.find(record => record.layer === 'meaning' && (record.status === 'confirmed' || record.status === 'anchored')) || null;
+      const expectation = state.layers.find(record => record.layer === 'expectation' && (record.status === 'confirmed' || record.status === 'anchored')) || null;
+      const yearning = state.layers.find(record => record.layer === 'yearning' && (record.status === 'confirmed' || record.status === 'anchored')) || null;
       if (event) setEventCard({ draftText: event.rawText, status: 'confirmed' });
       setFeelingRecord(feeling);
       setFeelingStatus(feeling ? 'confirmed' : 'input');
       setMeaningRecord(meaning);
       setMeaningStatus(meaning ? 'confirmed' : 'locked');
       setMeaningDraft(meaning?.rawText || '');
+      setExpectationRecord(expectation);
+      setExpectationStatus(expectation ? 'confirmed' : 'closed');
+      setExpectationDraft(expectation?.rawText || '');
+      setYearningRecord(yearning);
+      setYearningStatus(yearning ? 'confirmed' : 'closed');
+      setYearningDraft(yearning?.rawText || '');
       setIcebergHydrated(true);
     });
     return () => { active = false; };
   }, [session?.id]);
-
-  useEffect(() => {
-    if ((!presentPayload?.scene_detected && moment?.intent !== 'follow_up') || !moment?.content || !session?.id) return;
-    let active = true;
-    setIcebergHydrated(false);
-    void getIcebergLayers(session.id).then(records => {
-      if (!active) return;
-      const event = records.find(record => record.layer === 'event' && record.confirmed);
-      const feeling = records.find(record => record.layer === 'feeling' && record.confirmed) || null;
-      const meaning = records.find(record => record.layer === 'meaning' && record.confirmed) || null;
-      setEventCard(event
-        ? { draftText: event.rawText, status: 'confirmed' }
-        : (moment.intent === 'follow_up' ? { draftText: moment.content, status: 'pending' } : null));
-      setFeelingRecord(feeling);
-      setFeelingStatus(feeling ? 'confirmed' : 'input');
-      setMeaningRecord(meaning);
-      setMeaningStatus(meaning ? 'confirmed' : 'locked');
-      setMeaningDraft(meaning?.rawText || '');
-      setIcebergHydrated(true);
-    });
-    return () => { active = false; };
-  }, [moment?.content, presentPayload?.scene_detected, session?.id]);
 
   useEffect(() => {
     if (isPresentAcknowledged) {
@@ -225,7 +226,6 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   if (!moment || !session) return null;
 
   const t = UI_TEXT.chat;
-  const isFollowUpMoment = moment.intent === 'follow_up';
   const hasLegacyAcknowledgement = session.turns.some(turn =>
     turn.role === 'assistant' && turn.momentId === moment.id && isAcknowledgementReply(turn.content)
   );
@@ -260,11 +260,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   };
 
   const anchorAndLand = async () => {
-    const layer = meaningRecord?.confirmed
-      ? 'meaning'
-      : feelingRecord?.confirmed
-        ? 'feeling'
-        : eventCard?.status === 'confirmed' ? 'event' : null;
+    const layer = yearningRecord?.confirmed
+      ? 'yearning'
+      : expectationRecord?.confirmed
+        ? 'expectation'
+        : meaningRecord?.confirmed
+          ? 'meaning'
+          : feelingRecord?.confirmed
+            ? 'feeling'
+            : eventCard?.status === 'confirmed' ? 'event' : null;
     if (layer) await onAnchorLayer(layer);
     await onBeginLanding(session);
   };
@@ -294,6 +298,13 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setEventCard({ ...eventCard, draftText: finalText, status: 'confirmed' });
     setEditingEventText('');
     void onConfirmEvent(finalText);
+  };
+
+  // Event cards are an explicit user choice. Present never creates one by
+  // counting turns or interpreting scene_detected.
+  const offerEventCard = () => {
+    if (eventCard || eventInteractionActive || !moment.content.trim()) return;
+    setEventCard({ draftText: moment.content.trim(), status: 'pending' });
   };
 
   const confirmFeeling = async () => {
@@ -354,6 +365,43 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
       setMeaningError('這段理解目前還沒有存下來，原文先留在這裡。');
       setMeaningStatus('input');
     }
+  };
+
+  const openExpectation = () => {
+    if (meaningStatus !== 'confirmed' || expectationStatus !== 'closed') return;
+    setExpectationStatus(expectationRecord ? 'confirmed' : 'input');
+  };
+
+  const confirmOptionalLayer = async (layer: 'expectation' | 'yearning') => {
+    const draft = layer === 'expectation' ? expectationDraft : yearningDraft;
+    const status = layer === 'expectation' ? expectationStatus : yearningStatus;
+    const clean = draft.trim();
+    if (!clean || status !== 'input') return;
+    if (layer === 'expectation') setExpectationStatus('saving');
+    else setYearningStatus('saving');
+    try {
+      await onRecordOptionalLayer(layer, clean);
+      const records = await getIcebergLayers(session.id);
+      const record = records.find(item => item.layer === layer && item.confirmed) || null;
+      if (!record) throw new Error(`${layer} layer was not persisted`);
+      if (layer === 'expectation') {
+        setExpectationRecord(record);
+        setExpectationDraft(record.rawText);
+        setExpectationStatus('confirmed');
+      } else {
+        setYearningRecord(record);
+        setYearningDraft(record.rawText);
+        setYearningStatus('confirmed');
+      }
+    } catch {
+      if (layer === 'expectation') setExpectationStatus('input');
+      else setYearningStatus('input');
+    }
+  };
+
+  const openYearning = () => {
+    if (expectationStatus !== 'confirmed' || yearningStatus !== 'closed') return;
+    setYearningStatus(yearningRecord ? 'confirmed' : 'input');
   };
 
   const requestAngles = async () => {
@@ -459,7 +507,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                   <div className="space-y-2 text-[16px] leading-[1.85] text-ink-body">
                     <p>{presentPayload.reflection}</p>
                     <p>{presentPayload.unknown}</p>
-                    {presentPayload.question && !isFollowUpMoment && <p>{presentPayload.question}</p>}
+                    {presentPayload.question && <p>{presentPayload.question}</p>}
                     {eventCard && (
                       <div className="mt-4 rounded-2xl border border-accent/25 bg-surface-subtle p-4">
                         {eventCard.status === 'dismissed' ? (
@@ -587,6 +635,53 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                 )}
                               </div>
                             )}
+                            {meaningStatus === 'confirmed' && meaningRecord && expectationStatus === 'closed' && (
+                              <button type="button" onClick={openExpectation} className="mt-3 min-h-[44px] rounded-full border border-accent/35 px-4 text-xs font-medium text-accent cursor-pointer">
+                                打開期待抽屜
+                              </button>
+                            )}
+                            {expectationStatus !== 'closed' && (
+                              <div className="mt-3 rounded-xl border border-accent/25 bg-surface p-3">
+                                <p className="text-xs font-medium text-accent">期待</p>
+                                {expectationStatus === 'confirmed' && expectationRecord ? (
+                                  <>
+                                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{expectationRecord.rawText}</p>
+                                    {yearningStatus === 'closed' && (
+                                      <button type="button" onClick={openYearning} className="mt-3 min-h-[44px] rounded-full border border-accent/35 px-4 text-xs font-medium text-accent cursor-pointer">打開渴望抽屜</button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="mt-2 text-sm font-medium leading-relaxed text-ink-secondary">你原本希望的是什麼？</p>
+                                    <textarea value={expectationDraft} onChange={event => setExpectationDraft(event.target.value)} onKeyDown={event => event.stopPropagation()} disabled={expectationStatus === 'saving'} rows={3} placeholder="用你自己的話寫下來……" className="mt-3 w-full resize-none rounded-xl border border-border-base bg-surface-subtle p-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted disabled:opacity-60" autoFocus />
+                                    <div className="min-h-[20px] pt-1 text-xs text-red-700">{!expectationDraft.trim() && '請至少留下這一層的一點文字。'}</div>
+                                    <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
+                                      <button type="button" disabled={expectationStatus === 'saving'} onClick={() => setExpectationStatus('closed')} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
+                                      <button type="button" disabled={!expectationDraft.trim() || expectationStatus === 'saving'} onClick={() => void confirmOptionalLayer('expectation')} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{expectationStatus === 'saving' ? '儲存中……' : '確認期待'}</button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {yearningStatus !== 'closed' && (
+                              <div className="mt-3 rounded-xl border border-accent/25 bg-surface p-3">
+                                <p className="text-xs font-medium text-accent">渴望</p>
+                                {yearningStatus === 'confirmed' && yearningRecord ? (
+                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{yearningRecord.rawText}</p>
+                                ) : (
+                                  <>
+                                    <p className="mt-2 text-sm leading-relaxed text-ink-secondary">如果你願意，可以寫下這份期待背後對你而言最重要的是什麼。</p>
+                                    <div className="mt-2 flex flex-wrap gap-2">{['尊重', '被看見', '被理解', '公平', '安全感', '自由'].map(tag => <button key={tag} type="button" onClick={() => setYearningDraft(previous => previous.includes(tag) ? previous : (previous.trim() ? `${previous.trim()} ${tag}` : tag))} className="min-h-[40px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">{tag}</button>)}</div>
+                                    <textarea value={yearningDraft} onChange={event => setYearningDraft(event.target.value)} onKeyDown={event => event.stopPropagation()} disabled={yearningStatus === 'saving'} rows={3} placeholder="也可以完全用自己的話輸入……" className="mt-3 w-full resize-none rounded-xl border border-border-base bg-surface-subtle p-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted disabled:opacity-60" autoFocus />
+                                    <div className="min-h-[20px] pt-1 text-xs text-red-700">{!yearningDraft.trim() && '可以留白，準備好時再寫。'}</div>
+                                    <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
+                                      <button type="button" disabled={yearningStatus === 'saving'} onClick={() => setYearningStatus('closed')} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
+                                      <button type="button" disabled={!yearningDraft.trim() || yearningStatus === 'saving'} onClick={() => void confirmOptionalLayer('yearning')} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{yearningStatus === 'saving' ? '儲存中……' : '確認渴望'}</button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ) : eventCard.status === 'editing' ? (
                           <div>
@@ -627,73 +722,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
 
                 {isLastAssistant && (
                   <div className="mt-3">
-                    {presentPayload?.scene_detected && turn.content === moment.immediateReply && (
+                    {!eventCard && turn.content === moment.immediateReply && (
                       <button
                         type="button"
-                        onClick={onOpenReview}
+                        onClick={offerEventCard}
                         className="mb-3 inline-flex min-h-[44px] items-center rounded-full border border-accent/35 px-4 text-sm font-medium text-accent hover:bg-accent/5 transition-colors cursor-pointer"
                       >
-                        回看這件事
+                        把這段收成事件
                       </button>
                     )}
-                    {presentPayload?.scene_detected && eventCard?.status === 'confirmed' && (!showAngles ? (
-                      <button
-                        type="button"
-                        disabled={exploring}
-                        onClick={() => void requestAngles()}
-                        className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-4 py-1.5 text-xs font-medium text-accent transition-all hover:bg-accent/12 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
-                      >
-                        <RotateCw size={13} className={exploring ? 'animate-spin' : ''} />
-                        <span>{exploring ? t.exploreLoading : t.exploreBtn}</span>
-                      </button>
-                    ) : (
-                      <div className="mt-2 rounded-2xl border border-accent/25 bg-surface-subtle p-4 shadow-xs">
-                        {exploring ? (
-                          <p className="flex items-center gap-2 text-xs font-medium text-ink-muted min-h-[44px]">
-                            <RotateCw size={14} className="animate-spin text-accent" />
-                            {t.exploreLoading}
-                          </p>
-                        ) : exploration && exploration.perspectives.length > 0 ? (() => {
-                          const currentPerspective = exploration.perspectives[activePerspectiveIndex % exploration.perspectives.length];
-                          return (
-                            <div>
-                              <div className="flex items-center justify-between text-xs font-medium text-accent">
-                                <span>{EXPLORE_CONTEXT_LABELS[currentPerspective.id] || t.explorePerspectivePrefix} · {currentPerspective.title}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowAngles(false)}
-                                  className="inline-flex min-h-[36px] items-center px-2 text-ink-muted hover:text-ink transition-colors cursor-pointer"
-                                >
-                                  {t.closeExploreBtn}
-                                </button>
-                              </div>
-                              <p className="mt-2 text-[15px] leading-relaxed text-ink">{currentPerspective.content}</p>
-                              <div className="mt-3.5 flex items-center justify-between border-t border-border-base/60 pt-2.5 text-xs">
-                                <button
-                                  type="button"
-                                  disabled={exploring}
-                                  onClick={() => void nextPerspective()}
-                                  className="inline-flex min-h-[44px] items-center gap-1.5 font-medium text-accent hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
-                                >
-                                  <RotateCw size={13} className={exploring ? 'animate-spin' : ''} />
-                                  <span>{exploring ? t.exploreLoading : t.exploreNextBtn}</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => openComposer(currentPerspective.followUp)}
-                                  className="inline-flex min-h-[44px] items-center gap-1 font-medium text-ink-secondary hover:text-accent transition-colors cursor-pointer"
-                                >
-                                  <span>{t.exploreAdoptBtn}</span>
-                                  <ArrowDown size={13} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })() : (
-                          <p className="text-xs text-ink-muted py-2">{t.exploreEmpty}</p>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 )}
               </article>;
@@ -728,7 +765,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
               event.preventDefault();
               void continueConversation();
             }
-          }} placeholder={continuationGuide ? t.composerPlaceholderGuide : presentPayload?.scene_detected ? t.composerPlaceholderScene : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
+          }} placeholder={continuationGuide ? t.composerPlaceholderGuide : t.composerPlaceholderDefault} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted"/>
           <div className="mt-3 flex items-center justify-between border-t border-border-base/60 pt-3">
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="inline-flex min-h-[44px] items-center px-2 text-sm text-ink-muted hover:text-ink cursor-pointer">{t.composerCancelBtn}</button>
             <button onClick={() => void continueConversation()} disabled={!continuation.trim() || eventInteractionActive} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>

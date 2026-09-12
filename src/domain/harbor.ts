@@ -56,6 +56,9 @@ export interface PresentPayload {
   unknown: string;
   question: string | null;
   scene_detected: boolean;
+  /** Guided Depth metadata. The UI uses buttons to advance; AI never advances it. */
+  inferenceLevel?: 'explicit' | 'metaphor' | 'none';
+  stage?: 'event' | 'feeling' | 'meaning' | 'expectation' | 'yearning_emerged';
 }
 
 export type IcebergLayer = 'event' | 'feeling' | 'meaning' | 'expectation' | 'yearning';
@@ -160,6 +163,9 @@ export interface HarborSession {
   status: HarborSessionStatus;
   createdAt: number;
   updatedAt: number;
+  /** Optional, additive Guided Depth state. Existing sessions remain valid. */
+  guidedStage?: 'event' | 'feeling' | 'meaning' | 'expectation' | 'yearning_emerged';
+  guidedStatus?: 'active' | 'paused' | 'completed' | 'abandoned';
   closure?: SessionClosure;
   /** Set when the user settles a session: hidden from Review feed, still in Pattern pool. */
   settledAt?: number;
