@@ -5,6 +5,14 @@ import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 
 const legacyFallbackReply = '這一刻先留在這裡。想接著說，或先停在這裡都可以。';
 const acknowledgementReply = '已留下。';
+const ICEBERG_LAYER_ORDER: IcebergLayerRecord['layer'][] = ['event', 'feeling', 'meaning', 'expectation', 'yearning'];
+const ICEBERG_LAYER_LABELS: Record<IcebergLayerRecord['layer'], string> = {
+  event: '事件',
+  feeling: '感受',
+  meaning: '意義',
+  expectation: '期待',
+  yearning: '渴望',
+};
 
 const isAcknowledgementReply = (text?: string | null) =>
   Boolean(text && normalizeCompanionResponse(text) === acknowledgementReply);
@@ -821,16 +829,20 @@ export const ReviewScreen: React.FC<Props> = ({
                   })}
                 {activeDrawerLayers.length > 0 && (
                   <div className="border-t border-[#F2F0EC] pt-4">
-                    <p className="mb-3 text-[11.5px] font-medium text-[#7A8B82]">冰山停靠紀錄</p>
-                    <div className="space-y-3">
-                      {activeDrawerLayers.map(layer => (
-                        <div key={layer.id} className="rounded-xl border border-[#E3ECE6] bg-[#F4F7F5] px-3.5 py-3">
-                          <p className="text-[11px] font-medium text-[#387358]">
-                            {layer.layer === 'event' ? '事件' : layer.layer === 'feeling' ? '感受' : layer.layer === 'meaning' ? '意義' : layer.layer === 'expectation' ? '期待' : '渴望'}
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#1B2822]">{layer.rawText}</p>
-                        </div>
-                      ))}
+                    <p className="mb-3 text-[11.5px] font-medium text-[#7A8B82]">地質岩芯・冰山停靠紀錄</p>
+                    <div className="overflow-hidden rounded-xl border border-[#E3ECE6] bg-[#FAFBF9]">
+                      {[...activeDrawerLayers]
+                        .filter(layer => layer.rawText.trim())
+                        .sort((a, b) => ICEBERG_LAYER_ORDER.indexOf(a.layer) - ICEBERG_LAYER_ORDER.indexOf(b.layer))
+                        .map(layer => (
+                          <div key={layer.id} className="flex gap-3 border-b border-[#E3ECE6] px-3.5 py-3 last:border-b-0">
+                            <span className="mt-1 h-4 w-1 shrink-0 rounded-full bg-[#86A995]" aria-hidden="true" />
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-medium text-[#387358]">{ICEBERG_LAYER_LABELS[layer.layer]}</p>
+                              <p className="mt-1 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#1B2822]">{layer.rawText}</p>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 )}
