@@ -25,6 +25,7 @@ export function useFlow() {
     dismissDockedMoment: () => engine.dismissDockedMoment(),
     requestPresentReply: (moment: Moment, session?: HarborSession, force?: boolean) => engine.requestPresentReply(moment, session, force),
     requestExploration: (session: HarborSession, excludeAxes?: string[]) => engine.requestExploration(session, excludeAxes),
+    requestGuidedDepthGuide: (layer: 'meaning' | 'expectation' | 'yearning', source: { event?: string; feeling?: string; meaning?: string; expectation?: string }) => engine.requestGuidedDepthGuide(layer, source),
     saveImmediateReply: (momentId: string, reply: string, presentReply?: PresentPayload) => engine.saveImmediateReply(momentId, reply, presentReply),
     beginLanding: (session: HarborSession) => engine.beginLanding(session),
     beginLandingFromMoment: (momentId: string) => engine.beginLandingFromMoment(momentId),

@@ -7,8 +7,9 @@ import { HarborIntent, HarborUserIntent } from '../state/harborIntent';
 import { harborReducer } from '../state/harborReducer';
 import { HarborAppState, initialHarborState } from '../state/harborState';
 import { LAYER_ORDER, IcebergLayerRecord as NormalizedIcebergLayerRecord, IcebergLayerType } from '../domain/IcebergDomain';
+import { GuidedDepthGuide, GuidedDepthLayer, GuidedDepthSource } from '../services/ai/roles/guidedDepthRole';
 
-export const MEANING_PROMPT_TEMPLATE = '如果願意停下來看一看，這對你來說代表了什麼？';
+export const MEANING_PROMPT_TEMPLATE = '聽到這些消息時，你心裡第一個冒出來的念頭是什麼？';
 
 export interface SessionAnchorState {
   session: HarborSession | null;
@@ -179,6 +180,19 @@ export class HarborFlowEngine {
     }
     this.dispatch({ type: 'SET_REQUEST', request: 'idle', ...(result ? {} : { error: '暫時找不到可用的新角度。' }) });
     return result;
+  }
+
+  /** AI only supplies a contextual question; opening and confirmation remain UI intents. */
+  public async requestGuidedDepthGuide(layer: GuidedDepthLayer, source: GuidedDepthSource): Promise<GuidedDepthGuide> {
+    this.dispatch({ type: 'SET_REQUEST', request: 'thinking' });
+    try {
+      const guide = await this.companion.guideDepth(layer, source);
+      this.dispatch({ type: 'SET_REQUEST', request: 'idle' });
+      return guide;
+    } catch {
+      this.dispatch({ type: 'SET_REQUEST', request: 'idle' });
+      return this.companion.guideDepth(layer, {});
+    }
   }
 
   /** Enter LAND with a visible draft first; no closure has been persisted yet. */

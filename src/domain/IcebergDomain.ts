@@ -13,7 +13,7 @@ export const LAYER_ORDER: readonly IcebergLayerType[] = [
 export const LAYER_PROMPTS: Record<IcebergLayerType, string> = {
   event: '這件事中，實際發生了什麼？',
   feeling: '當這件事發生時，你當下的身體或感受是什麼？',
-  meaning: '如果願意停下來看一看，這對你來說代表了什麼？',
+  meaning: '聽到這些消息時，你心裡第一個冒出來的念頭是什麼？',
   expectation: '當你這樣理解時，你原本期待對方或自己怎麼做？',
   yearning: '在這份期待背後，對你而言最重要的是什麼？',
 };
@@ -95,4 +95,3 @@ export function normalizeLayerRecord(raw: unknown): IcebergLayerRecord | null {
     updatedAt,
   };
 }
-

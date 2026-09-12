@@ -1,5 +1,6 @@
 import { ExplorePerspective, ExploreResult, HarborSession, Moment, PresentResult, SessionClosureDraft } from '../../domain/harbor';
 import { GeminiProxyClient } from '../../logic/geminiProxyClient';
+import { GuidedDepthGuide, GuidedDepthLayer, GuidedDepthSource } from './roles/guidedDepthRole';
 
 
 /**
@@ -19,6 +20,11 @@ export class CompanionService {
     // Short thoughts do not need an AI summary; preserve the user's exact words.
     if (totalChars < 20) return Promise.resolve(null);
     return GeminiProxyClient.getSessionClosure(session.turns, signal);
+  }
+
+  /** User-invoked, source-grounded guidance for the three deeper drawers. */
+  public guideDepth(layer: GuidedDepthLayer, source: GuidedDepthSource): Promise<GuidedDepthGuide> {
+    return GeminiProxyClient.getGuidedDepthGuide(layer, source);
   }
 
   /** Exploration is explicit, session-only, and uses three sampled orthogonal axes. */

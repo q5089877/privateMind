@@ -13,6 +13,7 @@ import { memoryRole, type MemorySource } from '../services/ai/roles/memoryRole';
 import { presentFallback, presentRole } from '../services/ai/roles/presentRole';
 import { normalizeCompanionResponse } from '../services/ai/roles/shared';
 import { timelineRole, type TimelineSource } from '../services/ai/roles/timelineRole';
+import { guidedDepthFallback, guidedDepthRole, type GuidedDepthGuide, type GuidedDepthLayer, type GuidedDepthSource } from '../services/ai/roles/guidedDepthRole';
 
 export { normalizeCompanionResponse } from '../services/ai/roles/shared';
 
@@ -124,6 +125,19 @@ export class GeminiProxyClient {
       return raw ? landingRole.read(raw) : null;
     } catch {
       return null;
+    }
+  }
+
+  /** Guided Depth Companion: one question, grounded only in the current iceberg layers. */
+  public static async getGuidedDepthGuide(layer: GuidedDepthLayer, source: GuidedDepthSource): Promise<GuidedDepthGuide> {
+    const task = guidedDepthRole.create(layer, source);
+    const proxyUrl = this.getProxyUrl();
+    if (!proxyUrl) return guidedDepthFallback(layer);
+    try {
+      const raw = await readModelText(await postJsonWithTimeout(proxyUrl, task.payload, task.timeoutMs));
+      return raw ? (guidedDepthRole.read(raw, layer) || guidedDepthFallback(layer)) : guidedDepthFallback(layer);
+    } catch {
+      return guidedDepthFallback(layer);
     }
   }
 

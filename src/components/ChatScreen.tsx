@@ -20,6 +20,7 @@ const EXPLORE_CONTEXT_LABELS: Record<string, string> = {
 };
 import { normalizeCompanionResponse } from '../logic/geminiProxyClient';
 import { UI_TEXT } from '../config/textConfig';
+import type { GuidedDepthGuide, GuidedDepthLayer } from '../services/ai/roles/guidedDepthRole';
 
 interface Props {
   moment: Moment | null;
@@ -42,6 +43,7 @@ interface Props {
   onAppendFeeling: (additionalText: string) => Promise<void>;
   onRecordMeaning: (rawText: string) => Promise<void>;
   onRecordOptionalLayer: (layer: 'expectation' | 'yearning', rawText: string) => Promise<void>;
+  getGuidedDepthGuide: (layer: GuidedDepthLayer, source: { event?: string; feeling?: string; meaning?: string; expectation?: string }) => Promise<GuidedDepthGuide>;
 }
 
 type EventCardStatus = 'pending' | 'confirmed' | 'editing' | 'dismissed';
@@ -64,6 +66,24 @@ const ICEBERG_LAYER_LABELS = {
   yearning: '渴望',
 } as const;
 const DEFAULT_FEELING_TAGS = ['委屈', '生氣', '煩躁', '焦慮', '無力', '難過', '孤單', '開心'] as const;
+const DEFAULT_EXPECTATION_TAGS = ['我原本希望事情能被說清楚', '我期待對方先聽完再回應', '我希望自己可以有選擇', '我希望接下來不要再發生同樣的事'] as const;
+
+const meaningSuggestionsFor = (eventText: string, feelingText: string): string[] => {
+  const source = `${eventText} ${feelingText}`;
+  const suggestions = ['我腦中第一個想到的是……'];
+  if (/(裁員|工作|公司|職位|主管)/u.test(source)) {
+    suggestions.push('我最在意的是工作會不會保住', '我擔心接下來會發生變化', '這讓我覺得事情變得不確定');
+  } else if (/(生氣|煩躁)/u.test(feelingText)) {
+    suggestions.push('我覺得這不應該發生', '我在意的是有沒有被公平對待', '我希望事情能被說清楚');
+  } else if (/(委屈|難過|孤單)/u.test(feelingText)) {
+    suggestions.push('我覺得自己的付出沒有被看見', '我在意的是對方有沒有理解我', '我希望自己不是被隨便帶過');
+  } else if (/(焦慮|無力|慌|害怕|擔心)/u.test(feelingText)) {
+    suggestions.push('我擔心接下來會發生變化', '我覺得事情變得不確定', '我最在意的是能不能保有選擇');
+  } else {
+    suggestions.push('我最在意的是……', '這讓我想到……', '我想先弄清楚的是……');
+  }
+  return [...new Set(suggestions)].slice(0, 4);
+};
 
 const isAcknowledgementReply = (text?: string | null) =>
   Boolean(text && normalizeCompanionResponse(text) === acknowledgementReply);
@@ -77,7 +97,7 @@ const isFallbackReply = (text?: string | null) => {
 };
 
 /** The CHAT scene: one visible conversation, with no historic data pulled in. */
-export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onAnchorLayer, onRecordFeeling, onAppendFeeling, onRecordMeaning, onRecordOptionalLayer }) => {
+export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking, isPresentAcknowledged, isPresentUnavailable, onLeave, onContinue, getPresentReply, getExploration, onSaveReply, onBeginLanding, onOpenReview, onConfirmEvent, getIcebergLayers, getSessionAnchorState, onAnchorLayer, onRecordFeeling, onAppendFeeling, onRecordMeaning, onRecordOptionalLayer, getGuidedDepthGuide }) => {
   const [reply, setReply] = useState('');
   const [presentPayload, setPresentPayload] = useState<PresentPayload | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -106,6 +126,8 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const [yearningRecord, setYearningRecord] = useState<IcebergLayerRecord | null>(null);
   const [yearningStatus, setYearningStatus] = useState<OptionalLayerStatus>('closed');
   const [yearningDraft, setYearningDraft] = useState('');
+  const [depthGuides, setDepthGuides] = useState<Partial<Record<GuidedDepthLayer, string>>>({});
+  const [depthGuideLoading, setDepthGuideLoading] = useState<GuidedDepthLayer | null>(null);
   const [icebergHydrated, setIcebergHydrated] = useState(false);
   const [anchorState, setAnchorState] = useState<SessionAnchorState | null>(null);
   const [showAnchorResume, setShowAnchorResume] = useState(false);
@@ -143,6 +165,8 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     setYearningRecord(null);
     setYearningStatus('closed');
     setYearningDraft('');
+    setDepthGuides({});
+    setDepthGuideLoading(null);
     setIcebergHydrated(false);
     setAnchorState(null);
     setShowAnchorResume(false);
@@ -328,6 +352,14 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     });
   };
 
+  const appendMeaningTag = (tag: string) => {
+    setMeaningDraft(previous => previous.includes(tag) ? previous : (previous.trim() ? `${previous.trim()} ${tag}` : tag));
+  };
+
+  const appendExpectationTag = (tag: string) => {
+    setExpectationDraft(previous => previous.includes(tag) ? previous : (previous.trim() ? `${previous.trim()} ${tag}` : tag));
+  };
+
   const saveFeelingAppend = async () => {
     const clean = feelingAppendText.trim();
     if (!clean || feelingStatus !== 'appending') return;
@@ -341,11 +373,22 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
     }
   };
 
+  const requestDepthGuide = async (layer: GuidedDepthLayer, source: { event?: string; feeling?: string; meaning?: string; expectation?: string }) => {
+    setDepthGuideLoading(layer);
+    try {
+      const guide = await getGuidedDepthGuide(layer, source);
+      setDepthGuides(previous => ({ ...previous, [layer]: guide.question }));
+    } finally {
+      setDepthGuideLoading(previous => previous === layer ? null : previous);
+    }
+  };
+
   const openMeaning = () => {
     if (!feelingRecord || meaningStatus !== 'locked') return;
     setMeaningError('');
     setFeelingStatus('next');
     setMeaningStatus('input');
+    void requestDepthGuide('meaning', { event: eventCard?.draftText, feeling: feelingRecord.rawText });
   };
 
   const confirmMeaning = async () => {
@@ -370,6 +413,9 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const openExpectation = () => {
     if (meaningStatus !== 'confirmed' || expectationStatus !== 'closed') return;
     setExpectationStatus(expectationRecord ? 'confirmed' : 'input');
+    if (!expectationRecord) {
+      void requestDepthGuide('expectation', { event: eventCard?.draftText, feeling: feelingRecord?.rawText, meaning: meaningRecord?.rawText });
+    }
   };
 
   const confirmOptionalLayer = async (layer: 'expectation' | 'yearning') => {
@@ -402,6 +448,9 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
   const openYearning = () => {
     if (expectationStatus !== 'confirmed' || yearningStatus !== 'closed') return;
     setYearningStatus(yearningRecord ? 'confirmed' : 'input');
+    if (!yearningRecord) {
+      void requestDepthGuide('yearning', { event: eventCard?.draftText, feeling: feelingRecord?.rawText, meaning: meaningRecord?.rawText, expectation: expectationRecord?.rawText });
+    }
   };
 
   const requestAngles = async () => {
@@ -549,16 +598,14 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                   className="w-full resize-none bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted"
                                   autoFocus
                                 />
-                                <div className="min-h-[20px] pt-1 text-xs text-red-700">
-                                  {!feelingText.trim() && '請至少留下這一刻的一點感受。'}
-                                </div>
+                                <div className="min-h-[20px] pt-1 text-xs" aria-hidden="true" />
                                 <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
                                   <button type="button" onClick={() => void anchorAndLand()} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
                                   <button type="button" disabled={!feelingText.trim()} onClick={() => void confirmFeeling()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">確認感受</button>
                                 </div>
                               </div>
                             )}
-                            {feelingStatus === 'confirmed' && feelingRecord && (
+                            {(feelingStatus === 'confirmed' || feelingStatus === 'next') && feelingRecord && (
                               <div className="mt-3 rounded-xl border border-border-base bg-surface p-3">
                                 <p className="text-xs font-medium text-accent">已停靠的感受</p>
                                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{feelingRecord.rawText}</p>
@@ -582,18 +629,11 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                   className="mt-3 w-full resize-none bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted"
                                   autoFocus
                                 />
-                                <div className="min-h-[20px] pt-1 text-xs text-red-700">
-                                  {!feelingAppendText.trim() && '請至少留下補充的一點文字。'}
-                                </div>
+                                <div className="min-h-[20px] pt-1 text-xs" aria-hidden="true" />
                                 <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
                                   <button type="button" onClick={() => setFeelingStatus('confirmed')} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">取消補充</button>
                                   <button type="button" disabled={!feelingAppendText.trim()} onClick={() => void saveFeelingAppend()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">儲存補充</button>
                                 </div>
-                              </div>
-                            )}
-                            {feelingStatus === 'next' && (
-                              <div className="mt-3 rounded-xl border border-border-base bg-surface p-3 text-sm leading-relaxed text-ink-muted">
-                                已停在感受層。
                               </div>
                             )}
                             {meaningStatus !== 'locked' && (
@@ -612,7 +652,16 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                   </div>
                                 ) : (
                                   <div className="mt-3">
-                                    <p className="text-sm font-medium leading-relaxed text-ink-secondary">{meaningRecord?.promptTemplate || '如果願意停下來看一看，這對你來說代表了什麼？'}</p>
+                                    <p className="text-sm font-medium leading-relaxed text-ink-secondary">
+                                      {depthGuideLoading === 'meaning' ? '正在根據你剛才留下的文字整理一個問題……' : (depthGuides.meaning || meaningRecord?.promptTemplate || '聽到這些消息時，你心裡第一個冒出的念頭是什麼？')}
+                                    </p>
+                                    <p className="mt-3 text-xs text-ink-muted">可參考，不代表你的答案；也可以自己輸入：</p>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {meaningSuggestionsFor(eventCard?.draftText || '', feelingRecord?.rawText || '').map(tag => {
+                                        const selected = meaningDraft.includes(tag);
+                                        return <button key={tag} type="button" onClick={() => appendMeaningTag(tag)} className={`min-h-[40px] rounded-full border px-3 text-xs transition-colors cursor-pointer ${selected ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border-base text-ink-secondary hover:border-accent/40 hover:text-accent'}`}>{tag}</button>;
+                                      })}
+                                    </div>
                                     <textarea
                                       value={meaningDraft}
                                       onChange={event => setMeaningDraft(event.target.value)}
@@ -623,10 +672,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                       className="mt-3 w-full resize-none rounded-xl border border-border-base bg-surface-subtle p-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted disabled:opacity-60"
                                       autoFocus
                                     />
-                                    <div className="min-h-[20px] pt-1 text-xs text-red-700">
-                                      {!meaningDraft.trim() && '請至少留下這一層的一點文字。'}
-                                      {meaningError}
-                                    </div>
+                                    <div className="min-h-[20px] pt-1 text-xs" aria-live="polite">{meaningError}</div>
                                     <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
                                       <button type="button" disabled={meaningStatus === 'saving'} onClick={() => void anchorAndLand()} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer disabled:opacity-40">先停在這裡</button>
                                       <button type="button" disabled={!meaningDraft.trim() || meaningStatus === 'saving'} onClick={() => void confirmMeaning()} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{meaningStatus === 'saving' ? '儲存中……' : '確認這個理解'}</button>
@@ -652,9 +698,15 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                   </>
                                 ) : (
                                   <>
-                                    <p className="mt-2 text-sm font-medium leading-relaxed text-ink-secondary">你原本希望的是什麼？</p>
+                                    <p className="mt-2 text-sm font-medium leading-relaxed text-ink-secondary">
+                                      {depthGuideLoading === 'expectation' ? '正在根據前面的文字整理一個問題……' : (depthGuides.expectation || '回到當時，你原本希望對方或自己怎麼做？')}
+                                    </p>
+                                    <p className="mt-3 text-xs text-ink-muted">可參考，不代表你的答案；也可以自己輸入：</p>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {DEFAULT_EXPECTATION_TAGS.map(tag => <button key={tag} type="button" onClick={() => appendExpectationTag(tag)} className="min-h-[40px] rounded-full border border-border-base px-3 text-xs text-ink-secondary hover:border-accent/40 hover:text-accent cursor-pointer">{tag}</button>)}
+                                    </div>
                                     <textarea value={expectationDraft} onChange={event => setExpectationDraft(event.target.value)} onKeyDown={event => event.stopPropagation()} disabled={expectationStatus === 'saving'} rows={3} placeholder="用你自己的話寫下來……" className="mt-3 w-full resize-none rounded-xl border border-border-base bg-surface-subtle p-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted disabled:opacity-60" autoFocus />
-                                    <div className="min-h-[20px] pt-1 text-xs text-red-700">{!expectationDraft.trim() && '請至少留下這一層的一點文字。'}</div>
+                                    <div className="min-h-[20px] pt-1 text-xs" aria-hidden="true" />
                                     <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
                                       <button type="button" disabled={expectationStatus === 'saving'} onClick={() => setExpectationStatus('closed')} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
                                       <button type="button" disabled={!expectationDraft.trim() || expectationStatus === 'saving'} onClick={() => void confirmOptionalLayer('expectation')} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{expectationStatus === 'saving' ? '儲存中……' : '確認期待'}</button>
@@ -670,10 +722,12 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                                   <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{yearningRecord.rawText}</p>
                                 ) : (
                                   <>
-                                    <p className="mt-2 text-sm leading-relaxed text-ink-secondary">如果你願意，可以寫下這份期待背後對你而言最重要的是什麼。</p>
+                                    <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+                                      {depthGuideLoading === 'yearning' ? '正在根據前面的文字整理一個問題……' : (depthGuides.yearning || '在這份期待下面，對你而言最重要的是什麼？')}
+                                    </p>
                                     <div className="mt-2 flex flex-wrap gap-2">{['尊重', '被看見', '被理解', '公平', '安全感', '自由'].map(tag => <button key={tag} type="button" onClick={() => setYearningDraft(previous => previous.includes(tag) ? previous : (previous.trim() ? `${previous.trim()} ${tag}` : tag))} className="min-h-[40px] rounded-full border border-border-base px-3 text-xs text-ink-secondary cursor-pointer">{tag}</button>)}</div>
                                     <textarea value={yearningDraft} onChange={event => setYearningDraft(event.target.value)} onKeyDown={event => event.stopPropagation()} disabled={yearningStatus === 'saving'} rows={3} placeholder="也可以完全用自己的話輸入……" className="mt-3 w-full resize-none rounded-xl border border-border-base bg-surface-subtle p-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted disabled:opacity-60" autoFocus />
-                                    <div className="min-h-[20px] pt-1 text-xs text-red-700">{!yearningDraft.trim() && '可以留白，準備好時再寫。'}</div>
+                                    <div className="min-h-[20px] pt-1 text-xs" aria-hidden="true" />
                                     <div className="mt-2 flex items-center justify-between border-t border-border-base/60 pt-3">
                                       <button type="button" disabled={yearningStatus === 'saving'} onClick={() => setYearningStatus('closed')} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">先停在這裡</button>
                                       <button type="button" disabled={!yearningDraft.trim() || yearningStatus === 'saving'} onClick={() => void confirmOptionalLayer('yearning')} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">{yearningStatus === 'saving' ? '儲存中……' : '確認渴望'}</button>
@@ -694,9 +748,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
                               className="mt-2 w-full resize-none rounded-xl border border-border-base bg-surface p-3 text-sm leading-relaxed text-ink outline-none focus:border-accent"
                               autoFocus
                             />
-                            <div className="min-h-[20px] pt-1 text-xs text-red-700">
-                              {!editingEventText.trim() && '請至少留下這個事件的一點文字。'}
-                            </div>
+                            <div className="min-h-[20px] pt-1 text-xs" aria-hidden="true" />
                             <div className="mt-2 flex items-center justify-end gap-3 border-t border-border-base/60 pt-3">
                               <button type="button" onClick={cancelEventEditing} className="min-h-[44px] px-2 text-xs text-ink-muted cursor-pointer">取消修改</button>
                               <button type="button" disabled={!editingEventText.trim()} onClick={confirmEventCard} className="min-h-[44px] rounded-full bg-accent px-4 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer">儲存修改並繼續</button>
@@ -754,7 +806,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
       </section>
 
       <section className="mt-8 border-t border-border-base/70 pt-6">
-        {showComposer ? <div className="rounded-[24px] border border-accent/25 bg-surface p-4.5 shadow-[0_5px_18px_rgba(47,70,54,0.08)]">
+        {showComposer && !eventInteractionActive ? <div className="rounded-[24px] border border-accent/25 bg-surface p-4.5 shadow-[0_5px_18px_rgba(47,70,54,0.08)]">
           <label htmlFor="continue-thought" className="text-sm font-medium text-ink">{t.composerTitle}</label>
           {continuationGuide && <div className="mt-2.5 rounded-2xl bg-surface-subtle px-3.5 py-2.5">
             <p className="text-[11px] font-semibold text-accent">{t.explorePerspectivePrefix}</p>
@@ -770,7 +822,7 @@ export const ChatScreen: React.FC<Props> = ({ moment, session, isPresentThinking
             <button onClick={() => { setShowComposer(false); setContinuation(''); setContinuationGuide(''); }} className="inline-flex min-h-[44px] items-center px-2 text-sm text-ink-muted hover:text-ink cursor-pointer">{t.composerCancelBtn}</button>
             <button onClick={() => void continueConversation()} disabled={!continuation.trim() || eventInteractionActive} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-medium text-white disabled:opacity-35 cursor-pointer active:scale-95 shadow-xs">{t.composerSubmitBtn} <ArrowDown size={15}/></button>
           </div>
-        </div> : <div className="flex flex-wrap items-center gap-3">
+        </div> : eventInteractionActive ? null : <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={() => openComposer()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white shadow-sm transition-transform hover:-translate-y-px active:translate-y-px cursor-pointer">
             <MessageCircle size={16}/>{t.continueBtn}
           </button>
