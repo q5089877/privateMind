@@ -56,7 +56,8 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
 10. 輸出欄位：lens、coreQuestion、answer、plainLanguage、reflectionQuestion。lens 必須符合指定閱讀視角。` }] },
         generationConfig: {
           temperature: 0.15,
-          maxOutputTokens: 300,
+          // 回答本身仍受 80–180 字限制；這裡保留足夠空間讓完整 JSON 不被截斷。
+          maxOutputTokens: 520,
           thinkingConfig: FAST_THINKING_CONFIG,
           responseMimeType: 'application/json',
           responseSchema: { type: 'OBJECT', properties: { lens: { type: 'STRING', enum: ['diamond_sutra', 'i_ching'] }, coreQuestion: { type: 'STRING' }, answer: { type: 'STRING' }, plainLanguage: { type: 'STRING' }, reflectionQuestion: { type: 'STRING' } }, required: ['lens', 'coreQuestion', 'answer', 'plainLanguage', 'reflectionQuestion'] }
