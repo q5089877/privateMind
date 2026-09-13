@@ -46,7 +46,7 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
 規則：
 1. ${lensInstructions}
 2. 直接回答，不要開場客套、不要解釋你是 AI、不要重複使用者問題，也不要說「以下將從四個面向分析」。
-3. answer 控制在 140–480 個中文字，使用 2–3 個短小標題與換行；金剛經可使用「破四相」「應無所住而生其心」「法尚應捨」，易經可使用「眼前局勢」「變化」「可調整之處」。
+3. answer 控制在 80–180 個中文字，不使用 Markdown 標題、不列長清單，只保留一段精簡的核心說明；金剛經可自然帶入「破四相」「應無所住而生其心」「法尚應捨」，易經可自然帶入「眼前局勢」「變化」「可調整之處」。
 4. 先承認眼前發生的事，再指出哪些仍未知；不可把一次事件擴大成關係或人格結論。
 5. 家庭或人際衝突中，可以提出理解方向，但只能用「可能、也許、看起來」；不可把任何動機或情緒寫成確定事實，也不可暗示某一方才是需要改變的人。若使用「法尚應捨」，應以雙向且開放的說法呈現：女兒的反應方式、家長的溝通方式，以及彼此當下的互動，都可以留待之後重新看待。
 6. 必須附上簡短白話說明；不用堆砌經文，不用說教。
@@ -56,7 +56,7 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
 10. 輸出欄位：lens、coreQuestion、answer、plainLanguage、reflectionQuestion。lens 必須符合指定閱讀視角。` }] },
         generationConfig: {
           temperature: 0.15,
-          maxOutputTokens: 520,
+          maxOutputTokens: 300,
           thinkingConfig: FAST_THINKING_CONFIG,
           responseMimeType: 'application/json',
           responseSchema: { type: 'OBJECT', properties: { lens: { type: 'STRING', enum: ['diamond_sutra', 'i_ching'] }, coreQuestion: { type: 'STRING' }, answer: { type: 'STRING' }, plainLanguage: { type: 'STRING' }, reflectionQuestion: { type: 'STRING' } }, required: ['lens', 'coreQuestion', 'answer', 'plainLanguage', 'reflectionQuestion'] }
@@ -68,7 +68,7 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
     try {
       const value = JSON.parse(normalizeCompanionResponse(raw)) as Partial<CoreAnswer>;
       if ((value.lens !== 'diamond_sutra' && value.lens !== 'i_ching') || !CORE_QUESTIONS.includes(value.coreQuestion as never)) return null;
-      if (!valid(value.answer, 60, 520) || !valid(value.plainLanguage, 12, 180) || !valid(value.reflectionQuestion, 8, 60)) return null;
+      if (!valid(value.answer, 35, 220) || !valid(value.plainLanguage, 12, 120) || !valid(value.reflectionQuestion, 8, 60)) return null;
       const combined = `${value.answer || ''}${value.plainLanguage || ''}${value.reflectionQuestion || ''}`;
       if (value.lens === 'i_ching' && ['法尚應捨', '應無所住', '破四相', '能量', '氣場', '天氣'].some(word => combined.includes(word))) return null;
       if ((value.reflectionQuestion!.match(/[？?]/gu) || []).length !== 1) return null;
