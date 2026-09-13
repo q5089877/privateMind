@@ -170,21 +170,21 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
 規則：
 1. ${lensInstructions}
 2. 直接回答，不要開場客套、不要解釋你是 AI、不要重複使用者問題，也不要說「以下將從四個面向分析」。
-3. answer 是完整的「對應解說」，控制在 180–420 個中文字；先用 2–3 個有意義的 Markdown 三級標題分段，再逐段解釋前面的 quote 如何對應使用者原文。標題不可只是「分析一」「核心觀點」等空泛字樣，也不要列長清單。金剛經聚焦念頭與事實、四相、無所住與法尚應捨；道德經聚焦用力、控制、留白與順勢。經典只作為回答依據，不要把道德經寫成命令或泛泛的人生格言。
+3. answer 是完整的「對應解說」，控制在 120–520 個中文字；先用 2–3 個有意義的 Markdown 三級標題分段，再逐段解釋前面的 quote 如何對應使用者原文。標題不可只是「分析一」「核心觀點」等空泛字樣，也不要列長清單。金剛經聚焦念頭與事實、四相、無所住與法尚應捨；道德經聚焦用力、控制、留白與順勢。經典只作為回答依據，不要把道德經寫成命令或泛泛的人生格言。
 4. 先承認眼前發生的事，再指出哪些仍未知；不可把一次事件擴大成關係或人格結論。
 5. 面對任何人際或生活情境，只能提出可能的理解方向；不可把任何動機或情緒寫成確定事實，也不可暗示某一方才是需要改變的人。保留不同當事人與互動方式重新被看見的空間。
-6. 必須附上 25–70 個中文字的簡短白話說明；白話說明是給使用者先看的摘要，不得重述 answer。answer 必須補充「這個視角如何套用到使用者原文」的觀察依據，不能只是把白話說明寫長。不用說教。
+6. 必須附上 15–100 個中文字的簡短白話說明；白話說明是給使用者先看的摘要，不得重述 answer。answer 必須補充「這個視角如何套用到使用者原文」的觀察依據，不能只是把白話說明寫長。不用說教。
 7. 不診斷、不預言、不替使用者決定、不命令，不使用「你其實」或「你真正想要」。
 8. 不命令使用者，也不提供保證有效的處方；若有幫助，可以提出一個冷靜、體面、可自行選擇的具體行動方向。
-9. reflectionQuestion 只留一個具體、開放、可跳過的問題。
+9. reflectionQuestion 只留一個具體、開放、可跳過的問題，文字不必冗長。
 10. quoteId 必須根據使用者原文，從下列經文與適用情境中選出最符合的一句；不要總是選第一句：${CORE_QUOTES[targetLens].map((quote) => `${quote.id}：「${quote.text}」（${quote.useWhen}）`).join('、')}。程式會依 quoteId 顯示原文，不能自行輸出或改寫經文。
-11. evidence 必須從使用者目前文字或同次對話前文逐字摘錄 4–24 個字，作為分析依據，不可自行改寫或捏造。
+11. evidence 必須從使用者目前文字或最近 3 則同次對話前文逐字摘錄 2–32 個字，作為分析依據，不可自行改寫或捏造；優先使用完整詞組，不要自行拼接不同句子。
 12. title 必須根據使用者原文與所選經文，產生 4–18 個中文字的短標題；不要使用「金剛經視角」「道德經視角」「核心回答」等固定標題，也不要使用 Markdown。
 13. 輸出欄位：lens、title、quoteId、evidence、coreQuestion、answer、plainLanguage、reflectionQuestion。lens 必須符合指定閱讀視角。` }] },
         generationConfig: {
           temperature: 0.15,
           // 對應解說與白話說明有字數限制；這裡保留足夠空間讓思考型模型完成 JSON。
-          maxOutputTokens: 3072,
+          maxOutputTokens: 4096,
           thinkingConfig: FAST_THINKING_CONFIG,
           responseMimeType: 'application/json',
           responseSchema: { type: 'OBJECT', properties: { lens: { type: 'STRING', enum: [targetLens] }, title: { type: 'STRING' }, quoteId: { type: 'STRING', enum: allowedQuoteIds }, evidence: { type: 'STRING' }, coreQuestion: { type: 'STRING', enum: [...CORE_QUESTIONS] }, answer: { type: 'STRING' }, plainLanguage: { type: 'STRING' }, reflectionQuestion: { type: 'STRING' } }, required: ['lens', 'title', 'quoteId', 'evidence', 'coreQuestion', 'answer', 'plainLanguage', 'reflectionQuestion'] }
@@ -212,12 +212,12 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
     const evidenceSources = [source.content, ...getRecentContext(source)].filter(Boolean).map((text) => sanitize(text).toLocaleLowerCase());
     const compactEvidence = sanitize(evidence).toLocaleLowerCase();
     const evidenceLength = Array.from(compactEvidence).length;
-    if (evidenceLength < 4 || evidenceLength > 24 || !evidenceSources.some((text) => text.includes(compactEvidence))) return { ok: false, reason: 'invalid_evidence' };
-      const answerFailure = textFailure(answer, 180, 420);
+      if (evidenceLength < 2 || evidenceLength > 32 || !evidenceSources.some((text) => text.includes(compactEvidence))) return { ok: false, reason: 'invalid_evidence' };
+      const answerFailure = textFailure(answer, 120, 520);
       if (answerFailure) return { ok: false, reason: answerFailure === 'banned' ? 'banned_content' : 'invalid_answer_length' };
-      const plainLanguageFailure = textFailure(plainLanguage, 25, 70);
+      const plainLanguageFailure = textFailure(plainLanguage, 15, 100);
       if (plainLanguageFailure) return { ok: false, reason: plainLanguageFailure === 'banned' ? 'banned_content' : 'invalid_plain_language' };
-      const reflectionFailure = textFailure(reflectionQuestion, 8, 60);
+      const reflectionFailure = textFailure(reflectionQuestion, 6, 80);
       if (reflectionFailure) return { ok: false, reason: reflectionFailure === 'banned' ? 'banned_content' : 'invalid_reflection' };
     const compactAnswer = sanitize(answer);
     const compactPlainLanguage = sanitize(plainLanguage);

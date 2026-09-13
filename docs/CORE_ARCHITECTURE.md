@@ -120,9 +120,9 @@ interface CoreAnswer {
 回答規則：
 
 - 從固定核心問題中選擇一個切入點。
-- `answer` 是完整對應解說，目標約 180–420 個中文字，包含 2–3 個 Markdown 三級標題。
+- `answer` 是完整對應解說，目標約 120–520 個中文字，包含 2–3 個 Markdown 三級標題。
 - 不使用 Markdown 標題或長篇清單。
-- `plainLanguage` 目標約 25–70 個中文字，且不得與 `answer` 完全重複。
+- `plainLanguage` 目標約 15–100 個中文字，且不得與 `answer` 完全重複。
 - `answer` 必須說明本視角如何套用到使用者原文，不得只是延長白話說明。
 - 回答附帶目前文字或同次對話前文中的 4–24 字證據片段，並由程式驗證其確實存在；英文字母比對不區分大小寫。
 - Schema 會依目前視角限制 `lens` 與 `quoteId`，並將 `coreQuestion` 限定為固定問題清單。
@@ -141,7 +141,7 @@ AI 回傳必須通過 `coreAnswerRole.read()` 的基本驗證：
 - `coreQuestion` 必須來自固定核心問題。
 - `answer`、`plainLanguage` 與 `reflectionQuestion` 不得為空，且符合長度限制。
 - 反思問題只能包含一個問號。
-- `evidence` 必須逐字存在於使用者目前輸入中。
+- `evidence` 必須逐字存在於使用者目前文字或最近 3 則同次對話前文中。
 - 不得包含診斷、命令、預言或固定人格判斷。
 - `readResult()` 直接接收完整 `CoreAnswerSource`，自行合併目前文字與同次對話前文並保留結構化失敗原因；對外的 `read()` 仍回傳 `null`，維持現有服務介面相容。
 
