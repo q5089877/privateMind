@@ -245,7 +245,7 @@ Cloudflare Worker 只做安全轉送。Gemini API key 只能存在 Worker Secret
 
 ### 核心問題模式（Core Question Mode）
 
-目前實作採最小核心版本：只保留畫面、輕按／長按定心互動，以及金剛經先回答、易經由使用者主動追加的核心對話。五層冰山、Session、IndexedDB 回看、備份、Landing、Explore 與舊流程控制器已從前端執行路徑移除，後續若要恢復功能，必須重新提出明確的資料與 UI 契約。
+目前實作採最小核心版本：只保留畫面、輕按／長按定心互動，以及金剛經先回答、道德經由使用者主動追加的核心對話。五層冰山、Session、IndexedDB 回看、備份、Landing、Explore 與舊流程控制器已從前端執行路徑移除，後續若要恢復功能，必須重新提出明確的資料與 UI 契約。
 
 產品主流程不再要求使用者依序完成 Event、Feeling、Meaning、Expectation、Yearning 五層。這些名稱只保留作為舊資料的相容格式，不得在新 UI 中形成通關式輸入流程。
 
