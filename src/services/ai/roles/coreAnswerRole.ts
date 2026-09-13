@@ -153,7 +153,7 @@ export const coreAnswerRole = {
     const allowedQuoteIds = CORE_QUOTES[targetLens].map((quote) => quote.id);
     const lensInstructions = targetLens === 'tao_te_ching'
       ? '道德經只觀察事情中的用力、控制與留白；協助看見是否有不必急著推動的地方，以及可以如何順著現況保留空間。不把「無為」解釋成放棄，也不替使用者決定應該順從或退讓。不要改談念頭是否等於事實、情緒是否暫時或自我標籤。'
-      : '金剛經使用破四相、分開念頭與事實、應無所住而生其心、法尚應捨，協助鬆開固定認定，但不把 AI 回答當成最後答案。不要改談控制力、順勢、留白或該不該放手。';
+      : '金剛經定位為「現代認知除錯工具」，不是宗教講課。依序檢查：破我相（是否把成敗、他人態度與自我價值綁在一起）、破人相（是否把關係固定成受害者與加害者）、破眾生相（是否用群體標籤概括他人）、破壽者相（是否被過去沉沒成本或未來災難化想像牽住）；再把憤怒、委屈或難受看作可能的內在警報，探索其中的期待與執著，但不否定外在事件。接著以「應無所住而生其心」收回對情緒劇情的追逐，提出一個冷靜、體面、可自行選擇的具體方向；最後以「法尚應捨」提醒不要把放下或修行變成新的自我評分。語氣沉穩、銳利、有同理心，像替思維除錯，不說教、不灌雞湯。不要把 AI 回答當成最後答案。';
     return {
       timeoutMs: 15_000,
       context: source,
@@ -170,12 +170,12 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
 規則：
 1. ${lensInstructions}
 2. 直接回答，不要開場客套、不要解釋你是 AI、不要重複使用者問題，也不要說「以下將從四個面向分析」。
-3. answer 是「對應解說」，控制在 45–140 個中文字，必須直接解釋前面的 quote 如何對應使用者原文；不使用 Markdown 標題、不列長清單。金剛經聚焦念頭與事實，道德經聚焦用力、控制、留白與順勢。經典只作為回答依據，不要把道德經寫成命令或泛泛的人生格言。
+3. answer 是完整的「對應解說」，控制在 180–420 個中文字；先用 2–3 個有意義的 Markdown 三級標題分段，再逐段解釋前面的 quote 如何對應使用者原文。標題不可只是「分析一」「核心觀點」等空泛字樣，也不要列長清單。金剛經聚焦念頭與事實、四相、無所住與法尚應捨；道德經聚焦用力、控制、留白與順勢。經典只作為回答依據，不要把道德經寫成命令或泛泛的人生格言。
 4. 先承認眼前發生的事，再指出哪些仍未知；不可把一次事件擴大成關係或人格結論。
 5. 面對任何人際或生活情境，只能提出可能的理解方向；不可把任何動機或情緒寫成確定事實，也不可暗示某一方才是需要改變的人。保留不同當事人與互動方式重新被看見的空間。
 6. 必須附上 25–70 個中文字的簡短白話說明；白話說明是給使用者先看的摘要，不得重述 answer。answer 必須補充「這個視角如何套用到使用者原文」的觀察依據，不能只是把白話說明寫長。不用說教。
 7. 不診斷、不預言、不替使用者決定、不命令，不使用「你其實」或「你真正想要」。
-8. 不提供具體生活指令，例如遞水、眼神交流或一定要怎麼做；只提出可自行選擇的方向。
+8. 不命令使用者，也不提供保證有效的處方；若有幫助，可以提出一個冷靜、體面、可自行選擇的具體行動方向。
 9. reflectionQuestion 只留一個具體、開放、可跳過的問題。
 10. quoteId 必須根據使用者原文，從下列經文與適用情境中選出最符合的一句；不要總是選第一句：${CORE_QUOTES[targetLens].map((quote) => `${quote.id}：「${quote.text}」（${quote.useWhen}）`).join('、')}。程式會依 quoteId 顯示原文，不能自行輸出或改寫經文。
 11. evidence 必須從使用者目前文字或同次對話前文逐字摘錄 4–24 個字，作為分析依據，不可自行改寫或捏造。
@@ -184,7 +184,7 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
         generationConfig: {
           temperature: 0.15,
           // 對應解說與白話說明有字數限制；這裡保留足夠空間讓思考型模型完成 JSON。
-          maxOutputTokens: 2048,
+          maxOutputTokens: 3072,
           thinkingConfig: FAST_THINKING_CONFIG,
           responseMimeType: 'application/json',
           responseSchema: { type: 'OBJECT', properties: { lens: { type: 'STRING', enum: [targetLens] }, title: { type: 'STRING' }, quoteId: { type: 'STRING', enum: allowedQuoteIds }, evidence: { type: 'STRING' }, coreQuestion: { type: 'STRING', enum: [...CORE_QUESTIONS] }, answer: { type: 'STRING' }, plainLanguage: { type: 'STRING' }, reflectionQuestion: { type: 'STRING' } }, required: ['lens', 'title', 'quoteId', 'evidence', 'coreQuestion', 'answer', 'plainLanguage', 'reflectionQuestion'] }
@@ -213,7 +213,7 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
     const compactEvidence = sanitize(evidence).toLocaleLowerCase();
     const evidenceLength = Array.from(compactEvidence).length;
     if (evidenceLength < 4 || evidenceLength > 24 || !evidenceSources.some((text) => text.includes(compactEvidence))) return { ok: false, reason: 'invalid_evidence' };
-      const answerFailure = textFailure(answer, 45, 140);
+      const answerFailure = textFailure(answer, 180, 420);
       if (answerFailure) return { ok: false, reason: answerFailure === 'banned' ? 'banned_content' : 'invalid_answer_length' };
       const plainLanguageFailure = textFailure(plainLanguage, 25, 70);
       if (plainLanguageFailure) return { ok: false, reason: plainLanguageFailure === 'banned' ? 'banned_content' : 'invalid_plain_language' };

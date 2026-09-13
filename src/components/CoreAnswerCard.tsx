@@ -16,7 +16,7 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
         {loading && <p className="mt-2 text-sm leading-relaxed text-ink-secondary">正在整理這件事……</p>}
         {answer && <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-secondary">
           <blockquote className="border-l-2 border-accent/50 pl-3 text-base leading-relaxed text-ink">「{answer.quote}」</blockquote>
-          <div><span className="block text-xs font-medium text-ink-muted">對應解說</span><p className="mt-1 whitespace-pre-wrap text-ink">{answer.answer}</p></div>
+          <div><span className="block text-xs font-medium text-ink-muted">完整解說</span><p className="mt-1 whitespace-pre-wrap text-ink">{answer.answer}</p></div>
           <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>
           <p className="text-ink">{answer.reflectionQuestion}</p>
           <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>
