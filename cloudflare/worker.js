@@ -1,5 +1,5 @@
 /**
- * Mind Harbor / Thought Router - Cloudflare Worker Reverse Proxy
+ * 轉念之間 - Cloudflare Worker Reverse Proxy
  * 安全轉發前端請求至 Google Gemini API，完全隱藏 GEMINI_API_KEY
  */
 export default {

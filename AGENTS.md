@@ -1,4 +1,4 @@
-# Mind Harbor repository instructions
+# 轉念之間 repository instructions
 
 Before changing product behavior, UI flow, AI prompts, persistence, backup, or infrastructure, read [docs/CORE_ARCHITECTURE.md](docs/CORE_ARCHITECTURE.md).
 

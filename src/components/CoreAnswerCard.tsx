@@ -16,6 +16,7 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
         <p className="text-xs font-medium text-accent">{(answer?.lens || expectedLens) === 'tao_te_ching' ? '道德經視角' : '金剛經視角'}</p>
         {loading && <p className="mt-2 text-sm leading-relaxed text-ink-secondary">正在整理這件事……</p>}
         {answer && <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-secondary">
+          <blockquote className="border-l-2 border-accent/50 pl-3 text-base leading-relaxed text-ink">「{answer.quote}」</blockquote>
           <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>
           <p className="text-ink">{answer.reflectionQuestion}</p>
           <button type="button" onClick={() => setExpanded(value => !value)} className="min-h-[44px] rounded-full border border-border-base px-4 text-xs text-ink-secondary cursor-pointer">
