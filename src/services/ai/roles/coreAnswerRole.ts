@@ -29,7 +29,7 @@ export const CORE_QUOTES: Record<CoreLens, readonly { id: string; text: string; 
     { id: 'diamond_non_abiding_01', text: '應無所住而生其心。', useWhen: '使用者卡在某個立場、結果或必須怎樣的想法' },
     { id: 'diamond_change_01', text: '一切有為法，如夢幻泡影，如露亦如電，應作如是觀。', useWhen: '使用者把當下的感受或事件延伸成永久的未來' },
     { id: 'diamond_no_self_01', text: '若菩薩有我相、人相、眾生相、壽者相，即非菩薩。', useWhen: '使用者把自己或他人固定在某個身份與對立位置' },
-    { id: 'diamond_form_is_empty_01', text: '色即是空，空即是色。', useWhen: '使用者把眼前的表象當成全部真相' },
+    { id: 'diamond_leave_appearances_01', text: '離一切諸相，則名諸佛。', useWhen: '使用者把眼前的表象或標籤當成全部真相' },
     { id: 'diamond_not_grasping_01', text: '不應住色生心，不應住聲香味觸法生心。', useWhen: '使用者被某個畫面、話語或感官印象牢牢牽動' },
     { id: 'diamond_giving_without_abiding_01', text: '菩薩於法，應無所住，行於布施。', useWhen: '使用者付出後執著於回報、肯定或特定結果' },
     { id: 'diamond_merit_without_attachment_01', text: '應如是布施，不住於相。', useWhen: '使用者把一次付出或善意變成對自己的固定評價' },
@@ -43,7 +43,6 @@ export const CORE_QUOTES: Record<CoreLens, readonly { id: string; text: string; 
     { id: 'diamond_no_dharma_to_grasp_01', text: '如來於燃燈佛所，於法實無所得。', useWhen: '使用者過度追問自己是否已經得到足夠的答案' },
     { id: 'diamond_all_beings_not_fixed_01', text: '如來說有我者，即非有我，而凡夫之人以為有我。', useWhen: '使用者把「我是怎樣的人」當成固定事實' },
     { id: 'diamond_not_all_beings_01', text: '如來說一切眾生，即非一切眾生，是名一切眾生。', useWhen: '使用者用群體標籤或單一印象概括所有人' },
-    { id: 'diamond_no_appearance_01', text: '若菩薩有我相、人相、眾生相、壽者相，則非菩薩。', useWhen: '使用者把關係衝突化成固定的你我對立' },
     { id: 'diamond_past_mind_01', text: '過去心不可得，現在心不可得，未來心不可得。', useWhen: '使用者反覆困在過去、現在或未來的某個念頭' },
     { id: 'diamond_three_times_01', text: '三世諸佛，應無所住而生其心。', useWhen: '使用者想從時間中的某個階段找出唯一答案' },
     { id: 'diamond_not_by_appearance_01', text: '不可以三十二相得見如來。', useWhen: '使用者以外在條件判定事情是否成功或值得' },
@@ -71,7 +70,7 @@ export const CORE_QUOTES: Record<CoreLens, readonly { id: string; text: string; 
     { id: 'tao_water_low_01', text: '江海所以能為百谷王者，以其善下之。', useWhen: '使用者需要重新調整位置，而不是爭著站在上方' },
     { id: 'tao_simplicity_01', text: '見素抱樸，少私寡欲。', useWhen: '使用者被過多期待、比較與外在標準牽動' },
     { id: 'tao_contentment_01', text: '知足不辱，知止不殆，可以長久。', useWhen: '使用者不斷追求更多，已經忽略自身限度' },
-    { id: 'tao_know_stop_01', text: '知人者智，自知者明；勝人者有力，自勝者強。', useWhen: '使用者只想改變別人，沒有看見自己能調整的地方' },
+    { id: 'tao_strength_01', text: '知足者富，強行者有志。', useWhen: '使用者把力量等同於控制別人或取得外在結果' },
     { id: 'tao_great_sound_01', text: '大音希聲，大象無形。', useWhen: '使用者只相信明顯、喧鬧或立即可見的結果' },
     { id: 'tao_haste_01', text: '企者不立，跨者不行。', useWhen: '使用者急於跳過過程或一次完成太多事' },
     { id: 'tao_natural_action_01', text: '為無為，事無事，味無味。', useWhen: '使用者把所有事情都當成必須立即處理的任務' },
@@ -95,12 +94,15 @@ export const CORE_QUOTES: Record<CoreLens, readonly { id: string; text: string; 
 
 const banned = ['你其實', '你真正想要', '你應該', '你必須', '命中注定', '一定會', '診斷', '創傷'];
 const valid = (value: unknown, min: number, max: number) => typeof value === 'string' && value.trim().length >= min && Array.from(value.trim()).length <= max && !banned.some(word => value.includes(word));
+const sanitize = (value: string) => value.replace(/[^\p{L}\p{N}]/gu, '');
 
 export const coreAnswerFallback = (lens: CoreLens = 'diamond_sutra'): CoreAnswer => ({ ...FALLBACK, lens, quoteId: CORE_QUOTES[lens][0].id, quote: CORE_QUOTES[lens][0].text });
 
 export const coreAnswerRole = {
   create(source: CoreAnswerSource): GeminiRoleRequest<CoreAnswerSource> {
     const context = source.recentContext?.filter(Boolean).slice(-3).join('\n') || '';
+    const targetLens = source.preferredLens || 'diamond_sutra';
+    const allowedQuoteIds = CORE_QUOTES[targetLens].map((quote) => quote.id);
     const lensInstructions = source.preferredLens === 'tao_te_ching'
       ? '道德經只觀察事情中的用力、控制與留白；協助看見是否有不必急著推動的地方，以及可以如何順著現況保留空間。不把「無為」解釋成放棄，也不替使用者決定應該順從或退讓。不要改談念頭是否等於事實、情緒是否暫時或自我標籤。'
       : '金剛經使用破四相、分開念頭與事實、應無所住而生其心、法尚應捨，協助鬆開固定認定，但不把 AI 回答當成最後答案。不要改談控制力、順勢、留白或該不該放手。';
@@ -134,10 +136,10 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
         generationConfig: {
           temperature: 0.15,
           // 回答本身仍受 80–180 字限制；這裡保留足夠空間讓完整 JSON 不被截斷。
-          maxOutputTokens: 520,
+          maxOutputTokens: 1536,
           thinkingConfig: FAST_THINKING_CONFIG,
           responseMimeType: 'application/json',
-          responseSchema: { type: 'OBJECT', properties: { lens: { type: 'STRING', enum: ['diamond_sutra', 'tao_te_ching'] }, title: { type: 'STRING' }, quoteId: { type: 'STRING', enum: [...CORE_QUOTES.diamond_sutra, ...CORE_QUOTES.tao_te_ching].map((quote) => quote.id) }, evidence: { type: 'STRING' }, coreQuestion: { type: 'STRING' }, answer: { type: 'STRING' }, plainLanguage: { type: 'STRING' }, reflectionQuestion: { type: 'STRING' } }, required: ['lens', 'title', 'quoteId', 'evidence', 'coreQuestion', 'answer', 'plainLanguage', 'reflectionQuestion'] }
+          responseSchema: { type: 'OBJECT', properties: { lens: { type: 'STRING', enum: ['diamond_sutra', 'tao_te_ching'] }, title: { type: 'STRING' }, quoteId: { type: 'STRING', enum: allowedQuoteIds }, evidence: { type: 'STRING' }, coreQuestion: { type: 'STRING' }, answer: { type: 'STRING' }, plainLanguage: { type: 'STRING' }, reflectionQuestion: { type: 'STRING' } }, required: ['lens', 'title', 'quoteId', 'evidence', 'coreQuestion', 'answer', 'plainLanguage', 'reflectionQuestion'] }
         }
       }
     };
@@ -150,14 +152,13 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
       const title = value.title?.trim() || '';
       if (!valid(title, 4, 18) || ['金剛經視角', '道德經視角', '核心回答'].includes(title)) return null;
       const evidence = value.evidence?.trim() || '';
-      const compactSource = sourceContent.replace(/[\s，。！？、；：：“”「」『』（）()]/gu, '');
-      const compactEvidence = evidence.replace(/[\s，。！？、；：：“”「」『』（）()]/gu, '');
+      const compactSource = sanitize(sourceContent);
+      const compactEvidence = sanitize(evidence);
       if (Array.from(evidence).length < 4 || Array.from(evidence).length > 24 || !compactEvidence || !compactSource.includes(compactEvidence)) return null;
       if (!valid(value.answer, 30, 160) || !valid(value.plainLanguage, 12, 70) || !valid(value.reflectionQuestion, 8, 60)) return null;
       const compactAnswer = value.answer!.replace(/[\s，。！？、；：：“”「」『』（）()]/gu, '');
       const compactPlainLanguage = value.plainLanguage!.replace(/[\s，。！？、；：：“”「」『』（）()]/gu, '');
       if (compactAnswer === compactPlainLanguage) return null;
-      const combined = `${value.answer || ''}${value.plainLanguage || ''}${value.reflectionQuestion || ''}`;
       if ((value.reflectionQuestion!.match(/[？?]/gu) || []).length !== 1) return null;
       return { lens: value.lens, title, quoteId: quote.id, quote: quote.text, evidence, coreQuestion: value.coreQuestion!, answer: value.answer!.trim(), plainLanguage: value.plainLanguage!.trim(), reflectionQuestion: value.reflectionQuestion!.trim() };
     } catch { return null; }
