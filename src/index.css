@@ -192,6 +192,14 @@ html {
   animation: anchor-breathe 1s ease-in-out infinite alternate;
 }
 
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  margin: 0;
+  background: transparent;
+  color: var(--ink-primary);
+}
+
 .anchor-water {
   position: absolute;
   left: -10%;

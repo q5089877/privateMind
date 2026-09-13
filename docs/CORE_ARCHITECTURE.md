@@ -243,6 +243,22 @@ Cloudflare Worker 只做安全轉送。Gemini API key 只能存在 Worker Secret
 
 ## 五、目前實作與下一步
 
+### 核心問題模式（Core Question Mode）
+
+目前實作採最小核心版本：只保留畫面、輕按／長按定心互動，以及金剛經先回答、易經由使用者主動追加的核心對話。五層冰山、Session、IndexedDB 回看、備份、Landing、Explore 與舊流程控制器已從前端執行路徑移除，後續若要恢復功能，必須重新提出明確的資料與 UI 契約。
+
+產品主流程不再要求使用者依序完成 Event、Feeling、Meaning、Expectation、Yearning 五層。這些名稱只保留作為舊資料的相容格式，不得在新 UI 中形成通關式輸入流程。
+
+新流程以一個 Moment 為中心：先保存使用者原文，再由使用者主動要求 AI 從固定核心問題庫中選出一題，使用金剛經作為閱讀視角，並附上白話說明與一個可跳過的反思問題。
+
+核心邊界如下：
+
+- AI 只能選擇既有核心問題、提供視角與白話說明，不替使用者回答。
+- 核心回答不會自動寫入使用者資料，也不會自動推進流程。
+- 金剛經視角用於破除固定認定、分開念頭與事實，並回到當下可處理的行動；不替使用者判定家人或他人的內在動機。
+- AI 失敗時使用固定 fallback，使用者仍可繼續對話或離開。
+- 舊 `iceberg_layers` 僅供歷史回看與匯入相容，不再新增五層導引資料。
+
 目前已具備：Moment／session／turn／closure 資料模型、五場景 MVI Flow Engine、IndexedDB 與 JSON 備份、當下回應、使用者主動觸發且只讀本次 session 原文的 Explore Companion、獨立 LAND 收束頁、可從回看重新開啟同一個 session 的續談、單一 session 時間流、使用者主動觸發的跨時間回看、Cloudflare Worker proxy。
 
 下一步應依序完成：
