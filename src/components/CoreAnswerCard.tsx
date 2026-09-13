@@ -6,7 +6,7 @@ interface Props { answer: CoreAnswer | null; loading: boolean; failed?: boolean;
 
 const SPEECH_START_EVENT = 'core-answer-speech-start';
 const SPEECH_RATE_KEY = 'core-answer-speech-rate';
-const SPEECH_RATES = [0.8, 1, 1.2] as const;
+const SPEECH_RATES = [0.8, 1, 1.2, 1.4, 1.6] as const;
 const cleanForSpeech = (value: string) => value
   .replace(/^#{1,6}\s*/gmu, '')
   .replace(/[*_`~>]/gu, '')
