@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import type { CoreAnswer, CoreLens } from '../services/ai/roles/coreAnswerRole';
+import React from 'react';
+import type { CoreAnswer } from '../services/ai/roles/coreAnswerRole';
 
-interface Props { answer: CoreAnswer | null; loading: boolean; failed?: boolean; onRequest?: () => void; showRetry?: boolean; retryLabel?: string; expectedLens?: CoreLens; }
+interface Props { answer: CoreAnswer | null; loading: boolean; failed?: boolean; onRequest?: () => void; showRetry?: boolean; retryLabel?: string; }
 
-export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = false, onRequest, showRetry = true, retryLabel = '再看一個核心問題', expectedLens = 'diamond_sutra' }) => {
-  const [expanded, setExpanded] = useState(false);
+export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = false, onRequest, showRetry = true, retryLabel = '再看一個核心問題' }) => {
 
   return <section className="mt-4 rounded-2xl border border-accent/25 bg-surface-subtle p-4" aria-label="核心問題回答">
     {!answer && !loading && onRequest ? (
@@ -13,16 +12,14 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
       </button>
     ) : (
       <>
-        <p className="text-xs font-medium text-accent">{(answer?.lens || expectedLens) === 'tao_te_ching' ? '道德經視角' : '金剛經視角'}</p>
+        {answer && <div className="space-y-1"><p className="text-sm font-medium text-accent">{answer.lens === 'diamond_sutra' ? '金剛經視角' : '道德經視角'}</p><p className="text-base font-medium text-ink">{answer.title}</p></div>}
         {loading && <p className="mt-2 text-sm leading-relaxed text-ink-secondary">正在整理這件事……</p>}
         {answer && <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-secondary">
           <blockquote className="border-l-2 border-accent/50 pl-3 text-base leading-relaxed text-ink">「{answer.quote}」</blockquote>
+          <div><span className="block text-xs font-medium text-ink-muted">對應解說</span><p className="mt-1 whitespace-pre-wrap text-ink">{answer.answer}</p></div>
           <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>
           <p className="text-ink">{answer.reflectionQuestion}</p>
-          <button type="button" onClick={() => setExpanded(value => !value)} className="min-h-[44px] rounded-full border border-border-base px-4 text-xs text-ink-secondary cursor-pointer">
-            {expanded ? '收合完整分析' : '展開完整分析'}
-          </button>
-          {expanded && <p className="whitespace-pre-wrap border-t border-border-base/70 pt-3">{answer.answer}</p>}
+          <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>
         </div>}
         {!loading && showRetry && onRequest && (answer || failed) && <button type="button" onClick={onRequest} className="mt-3 min-h-[44px] rounded-full border border-border-base px-4 text-xs text-ink-secondary cursor-pointer">{retryLabel}</button>}
       </>
