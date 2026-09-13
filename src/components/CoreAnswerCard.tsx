@@ -12,7 +12,7 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
       </button>
     ) : (
       <>
-        {answer && <div className="space-y-1"><p className="text-sm font-medium text-accent">{answer.lens === 'diamond_sutra' ? '金剛經視角' : '道德經視角'}</p><p className="text-base font-medium text-ink">{answer.title}</p></div>}
+        {answer && <p className="text-base font-medium text-ink">{answer.title}</p>}
         {loading && <p className="mt-2 text-sm leading-relaxed text-ink-secondary">正在整理這件事……</p>}
         {answer && <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-secondary">
           <blockquote className="border-l-2 border-accent/50 pl-3 text-base leading-relaxed text-ink">「{answer.quote}」</blockquote>
