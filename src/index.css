@@ -200,6 +200,15 @@ body {
   color: var(--ink-primary);
 }
 
+.perspective-tabs {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.perspective-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .anchor-water {
   position: absolute;
   left: -10%;
