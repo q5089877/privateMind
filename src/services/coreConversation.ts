@@ -6,7 +6,7 @@ export type PerspectiveAnswer = CoreAnswer | PsychologyAnswer;
 export interface PerspectiveAnswerSource { content: string; recentContext?: string[]; preferredLens: PerspectiveId; }
 
 const getUrl = () => {
-  try { return localStorage.getItem('CLOUDFLARE_WORKER_URL') || import.meta.env.VITE_CLOUDFLARE_WORKER_URL || 'https://raspy-bush-9ab5.q5089877.workers.dev'; } catch { return ''; }
+  try { return import.meta.env.VITE_AI_PROXY_URL || localStorage.getItem('CLOUDFLARE_WORKER_URL') || import.meta.env.VITE_CLOUDFLARE_WORKER_URL || 'https://raspy-bush-9ab5.q5089877.workers.dev'; } catch { return ''; }
 };
 
 const requestJson = async (url: string, payload: Record<string, unknown>, timeoutMs: number): Promise<Record<string, any> | null> => {

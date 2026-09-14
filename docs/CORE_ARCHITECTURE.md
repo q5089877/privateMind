@@ -101,7 +101,7 @@
 - `src/services/coreConversation.ts`：依視角分派請求。
 - `src/services/ai/roles/coreAnswerRole.ts`：兩個經典的 Prompt、經文庫與驗證。
 - `src/services/ai/roles/psychologyAnswerRole.ts`：三個心理／發展視角的 Prompt、Schema 與驗證。
-- `cloudflare/worker.js`：轉送 Gemini 請求，不包含產品判斷。
+- `cloudflare/worker.js`、`api/gemini.js`：轉送 Gemini 請求，不包含產品判斷；API Key 只能存在後端 Secret。正式部署優先使用位於 Gemini 支援地區的代理，避免代理商出口 IP 被判定為不支援地區。
 
 ## 七、目前不包含
 
