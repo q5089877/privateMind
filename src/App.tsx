@@ -71,7 +71,7 @@ export default function App() {
     if (!content || perspectiveStates[activePerspective].status === 'loading') return;
     const previous = turns;
     const latestOriginal = [...turns].reverse().find(turn => turn.role === 'user')?.content || '';
-    const requestContent = inputMode === 'supplement' && latestOriginal ? `${latestOriginal}\n${content}` : content;
+    const requestContent = inputMode === 'supplement' && latestOriginal ? `${analysisContent}\n${content}` : content;
     conversationVersion.current += 1;
     setText(''); setTurns(inputMode === 'supplement' ? current => [...current, { role: 'user', content, kind: 'supplement' }] : [{ role: 'user', content, kind: 'original' }]); setAnalysisContent(requestContent); setPerspectiveStates(createPerspectiveStates()); setActivePerspective('diamond_sutra'); await loadPerspective('diamond_sutra', requestContent, inputMode === 'supplement' ? previous : []);
   };
@@ -84,7 +84,7 @@ export default function App() {
     setActivePerspective(lens);
     if (perspectiveStates[lens].status !== 'idle') return;
     const latest = turns.findLast(turn => turn.role === 'user');
-    if (latest) void loadPerspective(lens, latest.content, turns.slice(0, -1));
+    if (latest) void loadPerspective(lens, analysisContent, turns.slice(0, -1));
   };
 
   const activeState = perspectiveStates[activePerspective];

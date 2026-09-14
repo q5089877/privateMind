@@ -9,13 +9,30 @@ const getUrl = () => {
   try { return localStorage.getItem('CLOUDFLARE_WORKER_URL') || import.meta.env.VITE_CLOUDFLARE_WORKER_URL || 'https://raspy-bush-9ab5.q5089877.workers.dev'; } catch { return ''; }
 };
 
+const requestJson = async (url: string, payload: Record<string, unknown>, timeoutMs: number): Promise<Record<string, any> | null> => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    return response.ok ? await response.json() as Record<string, any> : null;
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
+
 export async function getCoreAnswer(source: CoreAnswerSource): Promise<CoreAnswer | null> {
   const url = getUrl();
   if (!url) return null;
   try {
     const task = coreAnswerRole.create(source);
-    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(task.payload) });
-    const data = response.ok ? await response.json() : null;
+    const data = await requestJson(url, task.payload, task.timeoutMs);
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsed = typeof raw === 'string' ? coreAnswerRole.read(raw, source) : null;
     return parsed && (!source.preferredLens || parsed.lens === source.preferredLens) ? parsed : null;
@@ -29,8 +46,7 @@ export async function getPerspectiveAnswer(source: PerspectiveAnswerSource): Pro
   try {
     const psychologySource = source as PsychologyAnswerSource;
     const task = psychologyAnswerRole.create(psychologySource);
-    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(task.payload) });
-    const data = response.ok ? await response.json() : null;
+    const data = await requestJson(url, task.payload, task.timeoutMs);
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     return typeof raw === 'string' ? psychologyAnswerRole.read(raw, psychologySource) : null;
   } catch { return null; }
