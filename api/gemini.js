@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
   try {
     const request = req.body || {};
-    const model = request.model || 'gemini-3.1-flash-lite';
+    const model = request.model || 'gemini-3.5-flash-lite';
     const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },

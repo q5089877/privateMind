@@ -62,7 +62,7 @@ export const psychologyAnswerRole = {
       ...fields.map((field) => [field, { type: 'STRING' }]),
     ]);
     return {
-      timeoutMs: 15_000,
+      timeoutMs: 45_000,
       context: source,
       payload: {
         model: FLASH_LITE_MODEL,
