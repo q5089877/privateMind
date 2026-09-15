@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, Heart, Waves } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Heart, History, Waves } from 'lucide-react';
 import { CoreAnswerCard } from './components/CoreAnswerCard';
 import { PsychologyAnswerCard } from './components/PsychologyAnswerCard';
 import type { CoreAnswer } from './services/ai/roles/coreAnswerRole';
 import type { PsychologyAnswer } from './services/ai/roles/psychologyAnswerRole';
 import { getPerspectiveAnswer, type PerspectiveAnswer, type PerspectiveId } from './services/coreConversation';
 import { cancelHaptics, triggerHaptic } from './utils/haptics';
+import { loadConversationHistory, saveConversationHistory, upsertConversation, type ConversationRecord } from './logic/conversationHistory';
 
 type Turn = { role: 'user' | 'assistant'; content: string; kind?: 'original' | 'supplement' };
 type InputMode = 'supplement' | 'new';
@@ -38,8 +39,10 @@ export default function App() {
   const [pulse, setPulse] = useState(0);
   const [pressing, setPressing] = useState(false);
   const [held, setHeld] = useState(false);
+  const [history, setHistory] = useState<ConversationRecord[]>(loadConversationHistory);
   const timer = useRef<number | null>(null);
   const conversationVersion = useRef(0);
+  const conversationId = useRef<string | null>(null);
 
   const press = () => {
     if (timer.current !== null) return;
@@ -59,6 +62,23 @@ export default function App() {
   };
   useEffect(() => () => { if (timer.current !== null) window.clearTimeout(timer.current); cancelHaptics(); }, [held]);
 
+  useEffect(() => {
+    if (!chat || !conversationId.current || turns.length === 0 || !analysisContent) return;
+    const record: ConversationRecord = {
+      id: conversationId.current,
+      createdAt: new Date().toISOString(),
+      turns,
+      analysisContent,
+      activePerspective,
+      perspectiveStates,
+    };
+    setHistory(current => {
+      const next = upsertConversation(current, record);
+      saveConversationHistory(next);
+      return next;
+    });
+  }, [chat, turns, analysisContent, activePerspective, perspectiveStates]);
+
   const loadPerspective = async (lens: PerspectiveId, content: string, previous: Turn[] = []) => {
     const version = conversationVersion.current;
     setPerspectiveStates(current => ({ ...current, [lens]: { status: 'loading', answer: null } }));
@@ -76,6 +96,7 @@ export default function App() {
     const content = text.trim();
     if (!content) return;
     conversationVersion.current += 1;
+    conversationId.current = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setText(''); setTurns([{ role: 'user', content, kind: 'original' }]); setAnalysisContent(content); setInputMode('supplement'); setPerspectiveStates(createPerspectiveStates()); setActivePerspective(lens); setChat(true); await loadPerspective(lens, content);
   };
   const continueChat = async () => {
@@ -85,6 +106,7 @@ export default function App() {
     const latestOriginal = [...turns].reverse().find(turn => turn.role === 'user')?.content || '';
     const requestContent = inputMode === 'supplement' && latestOriginal ? `${analysisContent}\n${content}` : content;
     conversationVersion.current += 1;
+    if (inputMode === 'new') conversationId.current = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setText(''); setTurns(inputMode === 'supplement' ? current => [...current, { role: 'user', content, kind: 'supplement' }] : [{ role: 'user', content, kind: 'original' }]); setAnalysisContent(requestContent); setPerspectiveStates(createPerspectiveStates()); setActivePerspective('diamond_sutra'); await loadPerspective('diamond_sutra', requestContent, inputMode === 'supplement' ? previous : []);
   };
   const retryPerspective = async () => {
@@ -97,6 +119,18 @@ export default function App() {
     if (perspectiveStates[lens].status !== 'idle') return;
     const latest = turns.findLast(turn => turn.role === 'user');
     if (latest) void loadPerspective(lens, analysisContent, turns.slice(0, -1));
+  };
+
+  const restoreConversation = (record: ConversationRecord) => {
+    conversationVersion.current += 1;
+    conversationId.current = record.id;
+    setText('');
+    setTurns(record.turns);
+    setAnalysisContent(record.analysisContent);
+    setInputMode('supplement');
+    setPerspectiveStates(record.perspectiveStates);
+    setActivePerspective(record.activePerspective);
+    setChat(true);
   };
 
   const activeState = perspectiveStates[activePerspective];
@@ -116,5 +150,5 @@ export default function App() {
     <section className="mt-8 border-t border-border-base/70 pt-5"><div className="rounded-[24px] border border-accent/25 bg-surface p-4 shadow-[0_5px_18px_rgba(47,70,54,0.08)]"><div className="mb-3 flex gap-2"><button type="button" onClick={() => setInputMode('supplement')} className={`min-h-[40px] rounded-full border px-3 text-xs ${inputMode === 'supplement' ? 'border-accent bg-accent text-white' : 'border-border-base text-ink-secondary'}`}>補充這件事</button><button type="button" onClick={() => setInputMode('new')} className={`min-h-[40px] rounded-full border px-3 text-xs ${inputMode === 'new' ? 'border-accent bg-accent text-white' : 'border-border-base text-ink-secondary'}`}>留下新的內容</button></div><label htmlFor="core-input" className="text-sm font-medium text-ink">{inputMode === 'supplement' ? '補充內容' : '新的內容'}</label><textarea id="core-input" value={text} onChange={event => setText(event.target.value)} placeholder={inputMode === 'supplement' ? '補充剛才那件事……' : '留下另一件事……'} rows={3} className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-muted" /><button type="button" onClick={() => void continueChat()} disabled={!text.trim() || activeState.status === 'loading'} className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-full bg-accent text-sm font-medium text-white disabled:opacity-35">{inputMode === 'supplement' ? '補充這件事' : '送出新內容'}<ArrowDown size={15} /></button></div></section>
   </main>;
 
-  return <main className="mx-auto flex min-h-screen w-full max-w-[680px] flex-col bg-transparent px-4 py-5 sm:px-8"><header className="flex min-h-[44px] items-center justify-between"><div className="flex items-center gap-2"><div className="harbor-mark"><Waves size={18} /><span className="harbor-wave harbor-wave-first" /><span className="harbor-wave harbor-wave-second" /></div><span className="text-sm font-semibold tracking-[0.12em] text-ink">轉念之間</span></div><span className="text-xs text-ink-muted">讓自己停一會兒</span></header><section className="flex flex-1 flex-col justify-center pb-16 pt-10"><p className="mb-3 text-sm text-ink-muted">有些事，不只一種看法。</p><h1 className="main-title text-[30px] font-medium leading-tight tracking-[-0.04em] text-ink sm:text-[38px]">把眼前的問題，<br />換個角度看看。</h1><div className="mt-8 rounded-[24px] border border-border-base bg-surface p-4 shadow-[0_5px_18px_rgba(47,70,54,0.08)]"><textarea value={text} onChange={event => setText(event.target.value)} placeholder="此刻你想留下什麼？" rows={5} className="home-thought-input w-full resize-none bg-transparent text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-muted" /></div><div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-5">{PERSPECTIVES.map(({ id, label }) => <button key={id} type="button" onClick={() => void start(id)} disabled={!text.trim()} className="min-h-[48px] rounded-full border border-accent/35 bg-surface px-3 text-sm font-medium text-accent transition-colors hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-35">{label}</button>)}</div><div className="mt-8 flex flex-col items-center gap-2"><button type="button" aria-label="輕按或長按定心" onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release} onContextMenu={event => event.preventDefault()} className={`relative flex min-h-[56px] min-w-[56px] touch-none select-none items-center justify-center rounded-full border border-border-base bg-surface text-accent anchor-mechanical-btn ${held ? 'anchor-mechanical-pressed bg-accent text-white shadow-md' : pressing ? 'anchor-mechanical-pressed' : ''}`}><Heart size={21} fill={held ? 'currentColor' : 'none'} />{pressing && <span className="long-press-progress" aria-hidden="true" />}{pulse > 0 && <span key={pulse} className="tap-ripple-ring" />}</button><span className="text-xs text-ink-muted">輕按一下，或長按讓自己停一會兒</span></div></section><footer className="pb-4 text-center text-xs text-ink-muted">你的感受可以慢一點整理</footer></main>;
+  return <main className="mx-auto flex min-h-screen w-full max-w-[680px] flex-col bg-transparent px-4 py-5 sm:px-8"><header className="flex min-h-[44px] items-center justify-between"><div className="flex items-center gap-2"><div className="harbor-mark"><Waves size={18} /><span className="harbor-wave harbor-wave-first" /><span className="harbor-wave harbor-wave-second" /></div><span className="text-sm font-semibold tracking-[0.12em] text-ink">轉念之間</span></div><span className="text-xs text-ink-muted">讓自己停一會兒</span></header><section className="flex flex-1 flex-col justify-center pb-16 pt-10"><p className="mb-3 text-sm text-ink-muted">有些事，不只一種看法。</p><h1 className="main-title text-[30px] font-medium leading-tight tracking-[-0.04em] text-ink sm:text-[38px]">把眼前的問題，<br />換個角度看看。</h1><div className="mt-8 rounded-[24px] border border-border-base bg-surface p-4 shadow-[0_5px_18px_rgba(47,70,54,0.08)]"><textarea value={text} onChange={event => setText(event.target.value)} placeholder="此刻你想留下什麼？" rows={5} className="home-thought-input w-full resize-none bg-transparent text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-muted" /></div><div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-5">{PERSPECTIVES.map(({ id, label }) => <button key={id} type="button" onClick={() => void start(id)} disabled={!text.trim()} className="min-h-[48px] rounded-full border border-accent/35 bg-surface px-3 text-sm font-medium text-accent transition-colors hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-35">{label}</button>)}</div>{history.length > 0 && <section className="mt-8 rounded-[24px] border border-border-base bg-surface p-4"><div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink"><History size={16} />對話記錄</div><div className="space-y-2">{history.map(record => <button key={record.id} type="button" onClick={() => restoreConversation(record)} className="block w-full rounded-2xl border border-border-base/70 px-4 py-3 text-left transition-colors hover:bg-surface-subtle"><span className="block truncate text-sm text-ink">{record.turns.find(turn => turn.role === 'user')?.content || '未命名對話'}</span><span className="mt-1 block text-xs text-ink-muted">{new Date(record.createdAt).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })}</span></button>)}</div></section>}<div className="mt-8 flex flex-col items-center gap-2"><button type="button" aria-label="輕按或長按定心" onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release} onContextMenu={event => event.preventDefault()} className={`relative flex min-h-[56px] min-w-[56px] touch-none select-none items-center justify-center rounded-full border border-border-base bg-surface text-accent anchor-mechanical-btn ${held ? 'anchor-mechanical-pressed bg-accent text-white shadow-md' : pressing ? 'anchor-mechanical-pressed' : ''}`}><Heart size={21} fill={held ? 'currentColor' : 'none'} />{pressing && <span className="long-press-progress" aria-hidden="true" />}{pulse > 0 && <span key={pulse} className="tap-ripple-ring" />}</button><span className="text-xs text-ink-muted">輕按一下，或長按讓自己停一會兒</span></div></section><footer className="pb-4 text-center text-xs text-ink-muted">你的感受可以慢一點整理</footer></main>;
 }

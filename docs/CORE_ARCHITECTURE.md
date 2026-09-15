@@ -70,6 +70,7 @@
 - TAB 可橫向滑動，青少年發展固定在第三格。
 - 切換 TAB 不重複呼叫已成功取得的回答。
 - 使用者留下新一句話並選擇角度時，五個 TAB 的舊回答會清除，先顯示所選角度。
+- 對話記錄只保存在瀏覽器 localStorage，保存對話文字、時間與已取得的角度回答；首頁可恢復記錄，不上傳歷史資料。
 - 底部輸入分成「補充這件事」與「留下新的內容」兩種模式。
 - 補充會保留原文並另行標示補充文字，送給 AI 時合併成同一個分析脈絡。
 - 新增會清除前一件事的內容與回答，只留下新的問題重新分析。
@@ -101,6 +102,7 @@
 - `src/components/PsychologyAnswerCard.tsx`：青少年發展、阿德勒與 CBT 的欄位式回答。
 - `src/components/SpeechControls.tsx`：共用朗讀及 0.8×、1×、1.2×、1.4×、1.6× 速度切換。
 - `src/services/coreConversation.ts`：依視角分派請求。
+- `src/logic/conversationHistory.ts`：管理瀏覽器端的對話記錄保存與恢復。
 - `src/services/ai/roles/coreAnswerRole.ts`：兩個經典的 Prompt、經文庫與驗證。
 - `src/services/ai/roles/psychologyAnswerRole.ts`：三個心理／發展視角的 Prompt、Schema 與驗證。
 - `cloudflare/worker.js`、`api/gemini.js`：轉送 Gemini 請求，不包含產品判斷；API Key 只能存在後端 Secret。正式部署優先使用位於 Gemini 支援地區的代理，避免代理商出口 IP 被判定為不支援地區。
