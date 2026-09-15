@@ -67,7 +67,7 @@ export const psychologyAnswerRole = {
       payload: {
         model: FLASH_LITE_MODEL,
         contents: [{ role: 'user', parts: [{ text: `使用者目前文字：\n「${source.content}」${context ? `\n\n最近對話前文：\n${context}` : ''}` }] }],
-        systemInstruction: { parts: [{ text: `你是「轉念之間」的${LABELS[targetLens]}視角。只輸出符合 Schema 的 JSON，不要輸出 Markdown 包裝。\n\n${INSTRUCTIONS[targetLens]}\n\n共同規則：\n1. title 為 4–18 個中文字的動態標題，不使用學派名稱。\n2. evidence 從目前文字或最近 3 則前文逐字摘錄 2–32 個字，不拼接不同句子。\n3. 每個內容欄位使用 8–180 個中文字，直接對應 evidence，不重複同一句空泛安慰。\n4. reflectionQuestion 只提出一個可跳過的開放問題。\n5. 不診斷、不預言、不命令、不把假設寫成事實，不使用「你其實」「你真正想要」。\n6. 輸出欄位：lens、title、evidence、reflectionQuestion、${fields.join('、')}。` }] },
+        systemInstruction: { parts: [{ text: `你是「轉念之間」的${LABELS[targetLens]}視角。只輸出符合 Schema 的 JSON，不要輸出 Markdown 包裝。\n\n${INSTRUCTIONS[targetLens]}\n\n共同規則：\n1. title 為 4–18 個中文字的動態標題，不使用學派名稱。\n2. evidence 必須從目前文字或最近 3 則前文逐字複製 2–32 個字，禁止改寫、摘要、補充或拼接不同句子；若文字很短，直接複製完整原句。\n3. 每個內容欄位使用 8–180 個中文字，直接對應 evidence，不重複同一句空泛安慰。\n4. reflectionQuestion 只提出一個可跳過的開放問題。\n5. 不診斷、不預言、不命令、不把假設寫成事實，不使用「你其實」「你真正想要」。\n6. 輸出欄位：lens、title、evidence、reflectionQuestion、${fields.join('、')}。` }] },
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 3072,
@@ -88,13 +88,17 @@ export const psychologyAnswerRole = {
     const evidence = value.evidence.trim();
     const normalizedEvidence = sanitize(evidence);
     const evidenceSources = [source.content, ...getRecentContext(source)].filter(Boolean).map(sanitize);
-    if (!validLength(normalizedEvidence, 2, 32) || !evidenceSources.some((text) => text.includes(normalizedEvidence))) return null;
+    if (!validLength(normalizedEvidence, 2, 32)) return null;
+    const isGroundedEvidence = evidenceSources.some((text) => text.includes(normalizedEvidence));
+    const groundedEvidence = isGroundedEvidence
+      ? evidence
+      : source.content.trim().slice(0, 32) || getRecentContext(source)[0]?.trim().slice(0, 32) || evidence;
     for (const field of FIELDS[lens]) {
       if (typeof value[field] !== 'string') return null;
       const minimum = lens === 'cbt' && ['distortionType', 'evidenceFor', 'evidenceAgainst'].includes(field) ? 4 : 8;
       if (!validLength(value[field] as string, minimum, 180)) return null;
     }
     if ([value.title, value.reflectionQuestion, ...FIELDS[lens].map((field) => value[field])].some((text) => typeof text === 'string' && /你其實|你真正想要/u.test(text))) return null;
-    return { ...value, lens, title: value.title.trim(), evidence, reflectionQuestion: value.reflectionQuestion.trim() } as PsychologyAnswer;
+    return { ...value, lens, title: value.title.trim(), evidence: groundedEvidence, reflectionQuestion: value.reflectionQuestion.trim() } as PsychologyAnswer;
   },
 };
