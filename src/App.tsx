@@ -25,6 +25,7 @@ const createPerspectiveStates = (): Record<PerspectiveId, PerspectiveState> => O
 
 const isCoreAnswer = (answer: PerspectiveAnswer | null): answer is CoreAnswer => answer?.lens === 'diamond_sutra' || answer?.lens === 'tao_te_ching';
 const isPsychologyAnswer = (answer: PerspectiveAnswer | null): answer is PsychologyAnswer => answer?.lens === 'teen' || answer?.lens === 'adler' || answer?.lens === 'cbt';
+const AUTO_RETRIES = 3;
 
 export default function App() {
   const [text, setText] = useState('');
@@ -43,6 +44,8 @@ export default function App() {
   const press = () => {
     if (timer.current !== null) return;
     setPressing(true);
+    // 在原始 pointerdown 事件內先觸發短震，避免部分瀏覽器拒絕延遲後的震動請求。
+    triggerHaptic('light');
     timer.current = window.setTimeout(() => { setHeld(true); triggerHaptic('heartbeat'); }, 240);
   };
   const release = () => {
@@ -59,7 +62,13 @@ export default function App() {
   const loadPerspective = async (lens: PerspectiveId, content: string, previous: Turn[] = []) => {
     const version = conversationVersion.current;
     setPerspectiveStates(current => ({ ...current, [lens]: { status: 'loading', answer: null } }));
-    const result = await getPerspectiveAnswer({ content, recentContext: previous.map(turn => turn.content).slice(-3), preferredLens: lens });
+    let result: PerspectiveAnswer | null = null;
+    for (let attempt = 0; attempt <= AUTO_RETRIES; attempt += 1) {
+      if (version !== conversationVersion.current) return;
+      result = await getPerspectiveAnswer({ content, recentContext: previous.map(turn => turn.content).slice(-3), preferredLens: lens });
+      if (result || attempt === AUTO_RETRIES) break;
+      await new Promise(resolve => window.setTimeout(resolve, 400 * (attempt + 1)));
+    }
     if (version !== conversationVersion.current) return;
     setPerspectiveStates(current => ({ ...current, [lens]: { status: result ? 'success' : 'error', answer: result } }));
   };
