@@ -3,6 +3,10 @@ import type { CoreAnswer } from '../services/ai/roles/coreAnswerRole';
 import { SpeechControls } from './SpeechControls';
 
 interface Props { answer: CoreAnswer | null; loading: boolean; failed?: boolean; onRequest?: () => void; showRetry?: boolean; retryLabel?: string; }
+const formatAnswer = (value: string) => value
+  .replace(/\s*#{3,6}\s*/gu, '\n\n')
+  .replace(/\n{3,}/gu, '\n\n')
+  .trim();
 
 export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = false, onRequest, showRetry = true, retryLabel = '再看一個核心問題' }) => {
   return <section className="mt-4 rounded-2xl border border-accent/25 bg-surface-subtle p-4" aria-label="核心問題回答">
@@ -16,7 +20,7 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
         {loading && <p className="mt-2 text-sm leading-relaxed text-ink-secondary">正在整理這件事……</p>}
         {answer && <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-secondary">
           <blockquote className="border-l-2 border-accent/50 pl-3 text-base leading-relaxed text-ink">「{answer.quote}」</blockquote>
-          <div><span className="block text-xs font-medium text-ink-muted">完整解說</span><p className="mt-1 whitespace-pre-wrap text-ink">{answer.answer}</p></div>
+          <div><span className="block text-xs font-medium text-ink-muted">完整解說</span><p className="mt-1 whitespace-pre-wrap text-ink">{formatAnswer(answer.answer)}</p></div>
           <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>
           <p className="text-ink">{answer.reflectionQuestion}</p>
           <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>
