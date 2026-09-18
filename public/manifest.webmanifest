@@ -1,0 +1,20 @@
+{
+  "name": "轉念之間",
+  "short_name": "轉念之間",
+  "description": "讓眼前的問題，換個角度看看。",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "start_url": "/privateMind/",
+  "scope": "/privateMind/",
+  "display": "standalone",
+  "background_color": "#f4f7f2",
+  "theme_color": "#f4f7f2",
+  "icons": [
+    {
+      "src": "/privateMind/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -30,3 +30,6 @@ export const upsertConversation = (records: ConversationRecord[], record: Conver
   record,
   ...records.filter(item => item.id !== record.id),
 ].slice(0, MAX_RECORDS);
+
+export const removeConversation = (records: ConversationRecord[], id: string) =>
+  records.filter(record => record.id !== id);

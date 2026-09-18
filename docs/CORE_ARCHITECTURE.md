@@ -98,6 +98,7 @@
 ## 六、介面與檔案邊界
 
 - `src/App.tsx`：首頁、五 TAB、目前對話與每個視角的狀態。
+- `src/main.tsx`：React 啟動與正式環境的 Service Worker 註冊。
 - `src/components/CoreAnswerCard.tsx`：金剛經與道德經回答。
 - `src/components/PsychologyAnswerCard.tsx`：青少年發展、阿德勒與 CBT 的欄位式回答。
 - `src/components/SpeechControls.tsx`：共用朗讀及 0.8×、1×、1.2×、1.4×、1.6× 速度切換。
@@ -106,6 +107,7 @@
 - `src/services/ai/roles/coreAnswerRole.ts`：兩個經典的 Prompt、經文庫與驗證。
 - `src/services/ai/roles/psychologyAnswerRole.ts`：三個心理／發展視角的 Prompt、Schema 與驗證。
 - `cloudflare/worker.js`、`api/gemini.js`：轉送 Gemini 請求，不包含產品判斷；API Key 只能存在後端 Secret。正式部署優先使用位於 Gemini 支援地區的代理，避免代理商出口 IP 被判定為不支援地區。
+- `public/manifest.webmanifest`、`public/sw.js`、`public/pwa-icon.svg`：PWA 安裝資訊、同源離線 App Shell 快取與應用程式圖示；AI API 請求不進入離線快取。
 
 ## 七、目前不包含
 
