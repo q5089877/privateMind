@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CoreAnswer } from '../services/ai/roles/coreAnswerRole';
+import { CopyAnswerButton } from './CopyAnswerButton';
 import { SpeechControls } from './SpeechControls';
 
 interface Props { answer: CoreAnswer | null; loading: boolean; failed?: boolean; onRequest?: () => void; showRetry?: boolean; retryLabel?: string; }
@@ -24,7 +25,10 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
           <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>
           <p className="text-ink">{answer.reflectionQuestion}</p>
           <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>
-          <SpeechControls text={[answer.title, answer.quote, answer.answer, `白話說明。${answer.plainLanguage}`, answer.reflectionQuestion].join('。')} />
+          <div className="flex flex-wrap items-center gap-2">
+            <CopyAnswerButton text={[answer.title, `經文：「${answer.quote}」`, `完整解說：${answer.answer}`, `白話說明：${answer.plainLanguage}`, `反思問題：${answer.reflectionQuestion}`, `依據原文：「${answer.evidence}」`].join('\n\n')} />
+            <SpeechControls text={[answer.title, answer.quote, answer.answer, `白話說明。${answer.plainLanguage}`, answer.reflectionQuestion].join('。')} />
+          </div>
         </div>}
         {!loading && showRetry && onRequest && (answer || failed) && <button type="button" onClick={onRequest} className="mt-3 min-h-[44px] rounded-full border border-border-base px-4 text-xs text-ink-secondary cursor-pointer">{retryLabel}</button>}
       </>

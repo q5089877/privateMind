@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PsychologyAnswer } from '../services/ai/roles/psychologyAnswerRole';
+import { CopyAnswerButton } from './CopyAnswerButton';
 import { SpeechControls } from './SpeechControls';
 
 interface Props { answer: PsychologyAnswer | null; loading: boolean; failed: boolean; onRetry: () => void; }
@@ -53,6 +54,9 @@ export const PsychologyAnswerCard: React.FC<Props> = ({ answer, loading, failed,
     </div>
     <p className="text-sm leading-relaxed text-ink">{answer.reflectionQuestion}</p>
     <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>
-    <SpeechControls text={[answer.title, ...sectionsFor(answer).flatMap(([label, content]) => [label, content]), answer.reflectionQuestion].join('。')} />
+    <div className="flex flex-wrap items-center gap-2">
+      <CopyAnswerButton text={[answer.title, ...sectionsFor(answer).map(([label, content]) => `${label}：${content}`), `反思問題：${answer.reflectionQuestion}`, `依據原文：「${answer.evidence}」`].join('\n\n')} />
+      <SpeechControls text={[answer.title, ...sectionsFor(answer).flatMap(([label, content]) => [label, content]), answer.reflectionQuestion].join('。')} />
+    </div>
   </div>}
 </section>;
