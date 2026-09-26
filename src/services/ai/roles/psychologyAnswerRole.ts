@@ -1,6 +1,6 @@
 import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCompanionResponse } from './shared';
 
-export type PsychologyLens = 'teen' | 'adler' | 'cbt';
+export type PsychologyLens = 'teen' | 'adler' | 'cbt' | 'russell';
 export interface PsychologyAnswerSource { content: string; recentContext?: string[]; preferredLens: PsychologyLens; }
 export type PsychologyAnswerReadFailure =
   | 'invalid_json'
@@ -39,21 +39,30 @@ export interface CbtAnswer extends BaseAnswer<'cbt'> {
   balancedThought: string;
   smallExperiment: string;
 }
-export type PsychologyAnswer = TeenAnswer | AdlerAnswer | CbtAnswer;
+export interface RussellAnswer extends BaseAnswer<'russell'> {
+  selfAbsorptionOrComparison: string;
+  narrowedLife: string;
+  outwardInterest: string;
+  constructiveActivity: string;
+  smallLifeExperiment: string;
+}
+export type PsychologyAnswer = TeenAnswer | AdlerAnswer | CbtAnswer | RussellAnswer;
 
 const FIELDS: Record<PsychologyLens, readonly string[]> = {
   teen: ['developmentalTask', 'developmentContext', 'possibleNeed', 'whatIsStillUnknown', 'phraseToAvoid', 'lowPressureReply', 'lowPressureBridge'],
   adler: ['myTask', 'otherTask', 'possiblePurpose', 'boundaryAction'],
   cbt: ['trigger', 'automaticThought', 'distortionType', 'evidenceFor', 'evidenceAgainst', 'balancedThought', 'smallExperiment'],
+  russell: ['selfAbsorptionOrComparison', 'narrowedLife', 'outwardInterest', 'constructiveActivity', 'smallLifeExperiment'],
 };
 
 const INSTRUCTIONS: Record<PsychologyLens, string> = {
   teen: `你使用發展心理學與發展腦科學，服務焦慮、不知如何回應青少年的父母。不要把叛逆直接定義為問題行為，也不要把所有衝突歸因於前額葉未成熟。developmentalTask 說明可能的發展任務；developmentContext 提供不帶道德評價的發展脈絡；possibleNeed 只能提出可能需求；whatIsStillUnknown 明確指出目前不能知道什麼；phraseToAvoid 給一句容易升高衝突的話；lowPressureReply 給一句短、不評判的回應；lowPressureBridge 提供一個可自行選擇的低壓連結方式，不固定推薦遞水果或長談。若涉及自傷、暴力、虐待、失聯或立即危險，不可淡化成正常青春期，應建議立即尋求可信任成人或當地緊急支援。`,
   adler: `你只使用阿德勒的課題分離與目的論觀察當下選擇。myTask 說明使用者能負責的部分；otherTask 說明屬於對方決定與承擔的部分；possiblePurpose 只能用「可能、也許」探索目前反應想保護或達成什麼，不得指控操控或扮演受害者；boundaryAction 提供一個尊重雙方的界線行動。不要挖童年、陰影或潛意識，也不要做 CBT 的證據辯論。`,
   cbt: `你只使用 CBT 的認知模型與可驗證實驗。trigger 描述具體觸發事件；automaticThought 摘出當下自動冒出的判斷；distortionType 從非黑即白、過度概括、讀心、災難化、個人化、情緒推理或證據不足中選最貼近的一種，資料不足請寫「目前資料不足，無法判定」；evidenceFor 與 evidenceAgainst 分別列出支持與不支持該想法的現有資訊，資料不足時請明確寫出目前沒有足夠資料；balancedThought 產生不盲目樂觀的替代想法；smallExperiment 提供一個低風險、可觀察結果的小實驗。不要談放下、無我、順勢、課題分離或潛意識。`,
+  russell: `你使用羅素《幸福之路》的生活哲學觀察當下困境。selfAbsorptionOrComparison 指出目前是否被自我耽溺、嫉妒、競爭、外界評價或過度自我關注牽住；narrowedLife 說明這件事如何讓生活視野變窄，但不可把它宣判為唯一原因；outwardInterest 找出一個可能重新連向世界的興趣、關係、知識或自然方向；constructiveActivity 提供一個有方向感、能看見成果且不必追求完美的活動方向；smallLifeExperiment 提供一個低風險、可觀察結果的生活實驗。不要把幸福寫成命令、保證或單一人生答案，也不要把羅素觀點寫成心理診斷。`,
 };
 
-const LABELS: Record<PsychologyLens, string> = { teen: '青少年發展', adler: '阿德勒', cbt: 'CBT' };
+const LABELS: Record<PsychologyLens, string> = { teen: '青少年發展', adler: '阿德勒', cbt: 'CBT', russell: '羅素／幸福之路' };
 const getRecentContext = (source: PsychologyAnswerSource) => source.recentContext?.filter(Boolean).slice(-3) || [];
 const sanitize = (value: string) => value.replace(/[^\p{L}\p{N}]/gu, '').toLocaleLowerCase();
 const validLength = (value: string, min: number, max: number) => {

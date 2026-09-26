@@ -30,6 +30,13 @@ const sectionsFor = (answer: PsychologyAnswer) => {
       ['較平衡的想法', answer.balancedThought],
       ['小型實驗', answer.smallExperiment],
     ] as const;
+    case 'russell': return [
+      ['自我封閉或比較壓力', answer.selfAbsorptionOrComparison],
+      ['生活被縮小的地方', answer.narrowedLife],
+      ['可以重新產生的興趣', answer.outwardInterest],
+      ['建設性活動', answer.constructiveActivity],
+      ['小型生活實驗', answer.smallLifeExperiment],
+    ] as const;
   }
 };
 

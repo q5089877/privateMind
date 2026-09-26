@@ -18,6 +18,7 @@ const PERSPECTIVES: readonly { id: PerspectiveId; label: string }[] = [
   { id: 'teen', label: '青少年發展' },
   { id: 'adler', label: '阿德勒' },
   { id: 'cbt', label: 'CBT' },
+  { id: 'russell', label: '羅素／幸福之路' },
 ];
 
 const createPerspectiveStates = (): Record<PerspectiveId, PerspectiveState> => Object.fromEntries(
@@ -25,7 +26,7 @@ const createPerspectiveStates = (): Record<PerspectiveId, PerspectiveState> => O
 ) as Record<PerspectiveId, PerspectiveState>;
 
 const isCoreAnswer = (answer: PerspectiveAnswer | null): answer is CoreAnswer => answer?.lens === 'diamond_sutra' || answer?.lens === 'tao_te_ching';
-const isPsychologyAnswer = (answer: PerspectiveAnswer | null): answer is PsychologyAnswer => answer?.lens === 'teen' || answer?.lens === 'adler' || answer?.lens === 'cbt';
+const isPsychologyAnswer = (answer: PerspectiveAnswer | null): answer is PsychologyAnswer => answer?.lens === 'teen' || answer?.lens === 'adler' || answer?.lens === 'cbt' || answer?.lens === 'russell';
 const AUTO_RETRIES = 3;
 
 export default function App() {
