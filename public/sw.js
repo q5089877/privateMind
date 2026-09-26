@@ -1,4 +1,4 @@
-const CACHE_NAME = 'private-mind-shell-v1';
+const CACHE_NAME = 'private-mind-shell-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,13 +21,23 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
 
+  const requestUrl = new URL(event.request.url);
+  const isNavigation = event.request.mode === 'navigate' || requestUrl.pathname.endsWith('/index.html');
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-      if (response.ok) {
-        const copy = response.clone();
-        void caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-      }
-      return response;
-    }).catch(() => caches.match('./index.html'))),
+    (isNavigation
+      ? fetch(event.request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          void caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
+      : caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          void caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      }))),
   );
 });

@@ -2,6 +2,18 @@ import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCom
 
 export type PsychologyLens = 'teen' | 'adler' | 'cbt';
 export interface PsychologyAnswerSource { content: string; recentContext?: string[]; preferredLens: PsychologyLens; }
+export type PsychologyAnswerReadFailure =
+  | 'invalid_json'
+  | 'wrong_lens'
+  | 'invalid_base_field'
+  | 'invalid_title_or_reflection'
+  | 'invalid_evidence'
+  | 'missing_field'
+  | 'invalid_field_length'
+  | 'banned_content';
+export type PsychologyAnswerReadResult =
+  | { ok: true; value: PsychologyAnswer }
+  | { ok: false; reason: PsychologyAnswerReadFailure };
 interface BaseAnswer<L extends PsychologyLens> { lens: L; title: string; evidence: string; reflectionQuestion: string; }
 export interface TeenAnswer extends BaseAnswer<'teen'> {
   developmentalTask: string;
@@ -78,27 +90,39 @@ export const psychologyAnswerRole = {
       },
     };
   },
-  read(raw: string, source: PsychologyAnswerSource): PsychologyAnswer | null {
+  readResult(raw: string, source: PsychologyAnswerSource): PsychologyAnswerReadResult {
     let value: Record<string, unknown>;
     try { value = JSON.parse(normalizeCompanionResponse(raw)) as Record<string, unknown>; }
-    catch { return null; }
+    catch { return { ok: false, reason: 'invalid_json' }; }
     const lens = source.preferredLens;
-    if (value.lens !== lens || typeof value.title !== 'string' || typeof value.evidence !== 'string' || typeof value.reflectionQuestion !== 'string') return null;
-    if (!validLength(value.title, 4, 18) || !validLength(value.reflectionQuestion, 6, 100) || !/[？?]/u.test(value.reflectionQuestion)) return null;
+    if (value.lens !== lens) return { ok: false, reason: 'wrong_lens' };
+    if (typeof value.title !== 'string' || typeof value.evidence !== 'string' || typeof value.reflectionQuestion !== 'string') return { ok: false, reason: 'invalid_base_field' };
+    if (!validLength(value.title, 4, 18) || !validLength(value.reflectionQuestion, 6, 100) || !/[？?]/u.test(value.reflectionQuestion)) return { ok: false, reason: 'invalid_title_or_reflection' };
     const evidence = value.evidence.trim();
     const normalizedEvidence = sanitize(evidence);
     const evidenceSources = [source.content, ...getRecentContext(source)].filter(Boolean).map(sanitize);
-    if (!validLength(normalizedEvidence, 2, 32)) return null;
-    const isGroundedEvidence = evidenceSources.some((text) => text.includes(normalizedEvidence));
+    // Evidence is supporting metadata, not the answer itself. Models sometimes
+    // return a short paraphrase or a slightly-too-long excerpt; use grounded
+    // source text instead of discarding an otherwise complete CBT answer.
+    if (!validLength(normalizedEvidence, 2, 32)) {
+      if (evidenceSources.length === 0) return { ok: false, reason: 'invalid_evidence' };
+    }
+    const hasValidEvidenceLength = validLength(normalizedEvidence, 2, 32);
+    const isGroundedEvidence = hasValidEvidenceLength && evidenceSources.some((text) => text.includes(normalizedEvidence));
     const groundedEvidence = isGroundedEvidence
       ? evidence
       : source.content.trim().slice(0, 32) || getRecentContext(source)[0]?.trim().slice(0, 32) || evidence;
     for (const field of FIELDS[lens]) {
-      if (typeof value[field] !== 'string') return null;
+      if (typeof value[field] !== 'string') return { ok: false, reason: 'missing_field' };
       const minimum = lens === 'cbt' && ['distortionType', 'evidenceFor', 'evidenceAgainst'].includes(field) ? 4 : 8;
-      if (!validLength(value[field] as string, minimum, 180)) return null;
+      if (!validLength(value[field] as string, minimum, 180)) return { ok: false, reason: 'invalid_field_length' };
     }
-    if ([value.title, value.reflectionQuestion, ...FIELDS[lens].map((field) => value[field])].some((text) => typeof text === 'string' && /你其實|你真正想要/u.test(text))) return null;
-    return { ...value, lens, title: value.title.trim(), evidence: groundedEvidence, reflectionQuestion: value.reflectionQuestion.trim() } as PsychologyAnswer;
+    if ([value.title, value.reflectionQuestion, ...FIELDS[lens].map((field) => value[field])].some((text) => typeof text === 'string' && /你其實|你真正想要/u.test(text))) return { ok: false, reason: 'banned_content' };
+    return { ok: true, value: { ...value, lens, title: value.title.trim(), evidence: groundedEvidence, reflectionQuestion: value.reflectionQuestion.trim() } as PsychologyAnswer };
+  },
+  read(raw: string, source: PsychologyAnswerSource): PsychologyAnswer | null {
+    const result = this.readResult(raw, source);
+    if (!result.ok && import.meta.env.DEV) console.warn(`[psychologyAnswer] validation failed: ${result.reason}`);
+    return result.ok ? result.value : null;
   },
 };
