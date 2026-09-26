@@ -114,7 +114,12 @@ export const psychologyAnswerRole = {
       : source.content.trim().slice(0, 32) || getRecentContext(source)[0]?.trim().slice(0, 32) || evidence;
     for (const field of FIELDS[lens]) {
       if (typeof value[field] !== 'string') return { ok: false, reason: 'missing_field' };
-      const minimum = lens === 'cbt' && ['distortionType', 'evidenceFor', 'evidenceAgainst'].includes(field) ? 4 : 8;
+      // CBT labels such as 「讀心」「災難化」「個人化」 are valid short
+      // category names; do not reject them merely because they have fewer
+      // than four Chinese characters.
+      const minimum = lens === 'cbt' && field === 'distortionType' ? 2
+        : lens === 'cbt' && ['evidenceFor', 'evidenceAgainst'].includes(field) ? 4
+          : 8;
       if (!validLength(value[field] as string, minimum, 180)) return { ok: false, reason: 'invalid_field_length' };
     }
     if ([value.title, value.reflectionQuestion, ...FIELDS[lens].map((field) => value[field])].some((text) => typeof text === 'string' && /你其實|你真正想要/u.test(text))) return { ok: false, reason: 'banned_content' };
