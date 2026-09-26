@@ -2,7 +2,7 @@ import { FAST_THINKING_CONFIG, FLASH_LITE_MODEL, GeminiRoleRequest, normalizeCom
 
 export type CoreLens = 'diamond_sutra' | 'tao_te_ching';
 export interface CoreAnswerSource { content: string; recentContext?: string[]; preferredLens?: CoreLens; }
-export interface CoreAnswer { lens: CoreLens; title: string; quoteId: string; quote: string; evidence: string; coreQuestion: string; answer: string; plainLanguage: string; reflectionQuestion: string; }
+export interface CoreAnswer { lens: CoreLens; title: string; quoteId: string; quote: string; evidence?: string; coreQuestion: string; answer: string; plainLanguage?: string; reflectionQuestion?: string; }
 export type CoreAnswerReadResult =
   | { ok: true; value: CoreAnswer }
   | { ok: false; reason: CoreAnswerReadFailure };
@@ -203,27 +203,30 @@ ${CORE_QUESTIONS.map((question, index) => `${index + 1}. ${question}`).join('\n'
     if (!quote) return { ok: false, reason: 'unknown_quote' };
     const coreQuestion = value.coreQuestion;
     if (typeof coreQuestion !== 'string' || !CORE_QUESTIONS.includes(coreQuestion as never)) return { ok: false, reason: 'invalid_question' };
-    if (typeof value.title !== 'string' || typeof value.evidence !== 'string' || typeof value.answer !== 'string' || typeof value.plainLanguage !== 'string' || typeof value.reflectionQuestion !== 'string') return { ok: false, reason: 'invalid_field_type' };
-    const { answer, plainLanguage, reflectionQuestion } = value;
+    if (typeof value.title !== 'string' || typeof value.answer !== 'string') return { ok: false, reason: 'invalid_field_type' };
+    const { answer } = value;
     const title = value.title.trim();
       const titleFailure = textFailure(title, 4, 18);
       if (titleFailure || /(?:金剛經|道德經)視角|核心回答/u.test(title)) return { ok: false, reason: 'invalid_title' };
-    const evidence = value.evidence.trim();
+    const evidence = typeof value.evidence === 'string' ? value.evidence.trim() : '';
     const evidenceSources = [source.content, ...getRecentContext(source)].filter(Boolean).map((text) => sanitize(text).toLocaleLowerCase());
     const compactEvidence = sanitize(evidence).toLocaleLowerCase();
     const evidenceLength = Array.from(compactEvidence).length;
-      if (evidenceLength < 2 || evidenceLength > 32 || !evidenceSources.some((text) => text.includes(compactEvidence))) return { ok: false, reason: 'invalid_evidence' };
+    const hasValidEvidence = evidenceLength >= 2 && evidenceLength <= 32 && evidenceSources.some((text) => text.includes(compactEvidence));
+      if (typeof value.evidence === 'string' && !hasValidEvidence && import.meta.env.DEV) console.warn('[coreAnswer] evidence omitted after validation');
       const answerFailure = textFailure(answer, 120, 520);
       if (answerFailure) return { ok: false, reason: answerFailure === 'banned' ? 'banned_content' : 'invalid_answer_length' };
-      const plainLanguageFailure = textFailure(plainLanguage, 15, 100);
-      if (plainLanguageFailure) return { ok: false, reason: plainLanguageFailure === 'banned' ? 'banned_content' : 'invalid_plain_language' };
-      const reflectionFailure = textFailure(reflectionQuestion, 6, 80);
-      if (reflectionFailure) return { ok: false, reason: reflectionFailure === 'banned' ? 'banned_content' : 'invalid_reflection' };
+    const plainLanguage = typeof value.plainLanguage === 'string' ? value.plainLanguage.trim() : '';
+    const plainLanguageFailure = plainLanguage ? textFailure(plainLanguage, 15, 100) : 'missing';
+    const safePlainLanguage = plainLanguageFailure ? undefined : plainLanguage;
+    const reflectionQuestion = typeof value.reflectionQuestion === 'string' ? value.reflectionQuestion.trim() : '';
+    const reflectionFailure = reflectionQuestion && /[？?]/u.test(reflectionQuestion) ? textFailure(reflectionQuestion, 6, 80) : 'missing';
+    const safeReflectionQuestion = reflectionFailure ? undefined : reflectionQuestion;
     const compactAnswer = sanitize(answer);
-    const compactPlainLanguage = sanitize(plainLanguage);
-    if (compactAnswer === compactPlainLanguage) return { ok: false, reason: 'duplicate_summary' };
-    if ((reflectionQuestion.match(/[？?]/gu) || []).length === 0) return { ok: false, reason: 'missing_question' };
-    return { ok: true, value: { lens: value.lens, title, quoteId: quote.id, quote: quote.text, evidence, coreQuestion, answer: answer.trim(), plainLanguage: plainLanguage.trim(), reflectionQuestion: reflectionQuestion.trim() } };
+    const compactPlainLanguage = safePlainLanguage ? sanitize(safePlainLanguage) : '';
+    const normalizedEvidence = hasValidEvidence ? evidence : undefined;
+    if (compactPlainLanguage && compactAnswer === compactPlainLanguage) return { ok: false, reason: 'duplicate_summary' };
+    return { ok: true, value: { lens: value.lens, title, quoteId: quote.id, quote: quote.text, evidence: normalizedEvidence, coreQuestion, answer: answer.trim(), plainLanguage: safePlainLanguage, reflectionQuestion: safeReflectionQuestion } };
   },
   read(raw: string, source: CoreAnswerSource): CoreAnswer | null {
     const result = this.readResult(raw, source);

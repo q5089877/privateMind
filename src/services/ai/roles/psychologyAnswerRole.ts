@@ -69,6 +69,12 @@ const validLength = (value: string, min: number, max: number) => {
   const length = Array.from(value.trim()).length;
   return length >= min && length <= max;
 };
+const neutralFieldFallback = '目前資料不足，先保留這個部分。';
+const fieldFallback = (lens: PsychologyLens, field: string) => {
+  if (lens === 'cbt' && field === 'distortionType') return '目前資料不足，無法判定。';
+  if (lens === 'cbt' && ['evidenceFor', 'evidenceAgainst'].includes(field)) return '目前沒有足夠資料。';
+  return neutralFieldFallback;
+};
 
 export const psychologyAnswerRole = {
   create(source: PsychologyAnswerSource): GeminiRoleRequest<PsychologyAnswerSource> {
@@ -105,9 +111,9 @@ export const psychologyAnswerRole = {
     catch { return { ok: false, reason: 'invalid_json' }; }
     const lens = source.preferredLens;
     if (value.lens !== lens) return { ok: false, reason: 'wrong_lens' };
-    if (typeof value.title !== 'string' || typeof value.evidence !== 'string' || typeof value.reflectionQuestion !== 'string') return { ok: false, reason: 'invalid_base_field' };
+    if (typeof value.title !== 'string' || typeof value.reflectionQuestion !== 'string') return { ok: false, reason: 'invalid_base_field' };
     if (!validLength(value.title, 4, 18) || !validLength(value.reflectionQuestion, 6, 100) || !/[？?]/u.test(value.reflectionQuestion)) return { ok: false, reason: 'invalid_title_or_reflection' };
-    const evidence = value.evidence.trim();
+    const evidence = typeof value.evidence === 'string' ? value.evidence.trim() : '';
     const normalizedEvidence = sanitize(evidence);
     const evidenceSources = [source.content, ...getRecentContext(source)].filter(Boolean).map(sanitize);
     // Evidence is supporting metadata, not the answer itself. Models sometimes
@@ -121,18 +127,22 @@ export const psychologyAnswerRole = {
     const groundedEvidence = isGroundedEvidence
       ? evidence
       : source.content.trim().slice(0, 32) || getRecentContext(source)[0]?.trim().slice(0, 32) || evidence;
+    const normalizedFields: Record<string, string> = {};
     for (const field of FIELDS[lens]) {
-      if (typeof value[field] !== 'string') return { ok: false, reason: 'missing_field' };
       // CBT labels such as 「讀心」「災難化」「個人化」 are valid short
       // category names; do not reject them merely because they have fewer
       // than four Chinese characters.
       const minimum = lens === 'cbt' && field === 'distortionType' ? 2
         : lens === 'cbt' && ['evidenceFor', 'evidenceAgainst'].includes(field) ? 4
           : 8;
-      if (!validLength(value[field] as string, minimum, 180)) return { ok: false, reason: 'invalid_field_length' };
+      const candidate = typeof value[field] === 'string' ? value[field].trim() : '';
+      const isBanned = /你其實|你真正想要/u.test(candidate);
+      normalizedFields[field] = !isBanned && validLength(candidate, minimum, 180)
+        ? candidate
+        : fieldFallback(lens, field);
     }
-    if ([value.title, value.reflectionQuestion, ...FIELDS[lens].map((field) => value[field])].some((text) => typeof text === 'string' && /你其實|你真正想要/u.test(text))) return { ok: false, reason: 'banned_content' };
-    return { ok: true, value: { ...value, lens, title: value.title.trim(), evidence: groundedEvidence, reflectionQuestion: value.reflectionQuestion.trim() } as PsychologyAnswer };
+    if (/你其實|你真正想要/u.test(value.title) || /你其實|你真正想要/u.test(value.reflectionQuestion)) return { ok: false, reason: 'banned_content' };
+    return { ok: true, value: { ...value, ...normalizedFields, lens, title: value.title.trim(), evidence: groundedEvidence, reflectionQuestion: value.reflectionQuestion.trim() } as PsychologyAnswer };
   },
   read(raw: string, source: PsychologyAnswerSource): PsychologyAnswer | null {
     const result = this.readResult(raw, source);

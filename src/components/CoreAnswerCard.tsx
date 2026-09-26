@@ -22,12 +22,12 @@ export const CoreAnswerCard: React.FC<Props> = ({ answer, loading, failed = fals
         {answer && <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-secondary">
           <blockquote className="border-l-2 border-accent/50 pl-3 text-base leading-relaxed text-ink">「{answer.quote}」</blockquote>
           <div><span className="block text-xs font-medium text-ink-muted">完整解說</span><p className="mt-1 whitespace-pre-wrap text-ink">{formatAnswer(answer.answer)}</p></div>
-          <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>
-          <p className="text-ink">{answer.reflectionQuestion}</p>
-          <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>
+          {answer.plainLanguage && <div className="rounded-xl bg-surface px-3 py-2"><span className="block text-xs font-medium text-ink-muted">白話說明</span><p className="mt-1 whitespace-pre-wrap">{answer.plainLanguage}</p></div>}
+          {answer.reflectionQuestion && <p className="text-ink">{answer.reflectionQuestion}</p>}
+          {answer.evidence && <p className="text-xs text-ink-muted">依據原文：「{answer.evidence}」</p>}
           <div className="flex flex-wrap items-center gap-2">
-            <CopyAnswerButton text={[answer.title, `經文：「${answer.quote}」`, `完整解說：${answer.answer}`, `白話說明：${answer.plainLanguage}`, `反思問題：${answer.reflectionQuestion}`, `依據原文：「${answer.evidence}」`].join('\n\n')} />
-            <SpeechControls text={[answer.title, answer.quote, answer.answer, `白話說明。${answer.plainLanguage}`, answer.reflectionQuestion].join('。')} />
+            <CopyAnswerButton text={[answer.title, `經文：「${answer.quote}」`, `完整解說：${answer.answer}`, answer.plainLanguage && `白話說明：${answer.plainLanguage}`, answer.reflectionQuestion && `反思問題：${answer.reflectionQuestion}`, answer.evidence && `依據原文：「${answer.evidence}」`].filter(Boolean).join('\n\n')} />
+            <SpeechControls text={[answer.title, answer.quote, answer.answer, answer.plainLanguage && `白話說明。${answer.plainLanguage}`, answer.reflectionQuestion].filter(Boolean).join('。')} />
           </div>
         </div>}
         {!loading && showRetry && onRequest && (answer || failed) && <button type="button" onClick={onRequest} className="mt-3 min-h-[44px] rounded-full border border-border-base px-4 text-xs text-ink-secondary cursor-pointer">{retryLabel}</button>}
